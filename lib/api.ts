@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://mediflow-backend-delta.vercel.app/api";
 
 export const api = axios.create({
   baseURL: API_URL,
