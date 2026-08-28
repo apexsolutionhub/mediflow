@@ -1,5 +1,10 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Documentation
+
+- **[Offline Sync Contract (PDF)](docs/OFFLINE_SYNC_CONTRACT.pdf)** — Shareable PDF for partners and Apex ops.
+- **[Offline Sync Contract (Markdown)](docs/OFFLINE_SYNC_CONTRACT.md)** — Source document; edit here and regenerate the PDF when needed.
+
 ## Getting Started
 
 First, run the development server:

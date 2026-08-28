@@ -11,6 +11,7 @@ import {
   Pill,
   Stethoscope,
   Tags,
+  Server,
   UserPlus,
   Users,
   Wallet,
@@ -38,6 +39,7 @@ export const MANAGER_NAV: ClinicNavItem[] = [
   { href: "/manager/billables", label: "Billables", icon: Tags },
   { href: "/manager/inventory", label: "Inventory", icon: Package },
   { href: "/manager/requests", label: "Requests", icon: Wrench },
+  { href: "/manager/ops-mode", label: "Operating mode", icon: Server },
   ACCOUNT_NAV,
 ];
 

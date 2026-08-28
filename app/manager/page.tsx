@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
+import { ManagerOpsModeOverviewTeaser } from "@/components/manager/ManagerOpsModePortal";
 import { SectionCard, StatTile, StatusPill } from "@/components/ui-chrome";
 import { api } from "@/lib/api";
 import { type DashboardStats, money } from "@/lib/clinic";
@@ -138,6 +139,10 @@ export default function ManagerOverviewPage() {
             </div>
           </div>
         </SectionCard>
+      </div>
+
+      <div className="mt-6">
+        <ManagerOpsModeOverviewTeaser />
       </div>
     </ClinicShell>
   );

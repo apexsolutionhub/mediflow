@@ -18,28 +18,39 @@ export function ClinicOpsModeSelector({
   value,
   onChange,
   disabled,
+  allowedModes,
+  disabledModes,
 }: {
   value: ClinicOpsMode;
   onChange: (next: ClinicOpsMode) => void;
   disabled?: boolean;
+  /** When set, only these modes are selectable (others hidden). */
+  allowedModes?: ClinicOpsMode[];
+  /** Modes shown but not selectable (e.g. current mode). */
+  disabledModes?: ClinicOpsMode[];
 }) {
+  const visible = allowedModes?.length
+    ? OPTIONS.filter((o) => allowedModes.includes(o.value))
+    : OPTIONS;
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {OPTIONS.map((option) => {
+    <div className={cn("grid gap-3", visible.length > 1 ? "sm:grid-cols-2" : "")}>
+      {visible.map((option) => {
+        const optionDisabled = disabled || disabledModes?.includes(option.value);
         const selected = value === option.value;
         const Icon = option.icon;
         return (
           <button
             key={option.value}
             type="button"
-            disabled={disabled}
+            disabled={optionDisabled}
             onClick={() => onChange(option.value)}
             className={cn(
               "flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-colors",
               selected
                 ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                 : "border-border bg-card hover:border-primary/40",
-              disabled && "pointer-events-none opacity-60",
+              optionDisabled && "pointer-events-none opacity-60",
             )}
           >
             <div className="flex items-center gap-2">

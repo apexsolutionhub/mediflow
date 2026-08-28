@@ -34,3 +34,55 @@ export function parseClinicOpsMode(raw: unknown): ClinicOpsMode {
 export function isOfflineClinicOpsMode(mode: unknown): boolean {
   return parseClinicOpsMode(mode) === "offline";
 }
+
+/**
+ * Online → offline: Apex approval applies the change (no sync wait).
+ * Offline → online: Apex approval, then manager must sync before cloud mode is live.
+ */
+export function appliesOnApexApprovalWithoutSync(from: unknown, to: unknown): boolean {
+  return (
+    parseClinicOpsMode(from) === "online" && parseClinicOpsMode(to) === "offline"
+  );
+}
+
+/** @deprecated Use appliesOnApexApprovalWithoutSync */
+export function isImmediateOpsModeTransition(
+  from: unknown,
+  to: unknown,
+): boolean {
+  return appliesOnApexApprovalWithoutSync(from, to);
+}
+
+export function opsModeTransitionSummary(
+  from: unknown,
+  to: unknown,
+): {
+  appliesOnApprovalWithoutSync: boolean;
+  headline: string;
+  detail: string;
+} {
+  const current = parseClinicOpsMode(from);
+  const target = parseClinicOpsMode(to);
+  if (appliesOnApexApprovalWithoutSync(current, target)) {
+    return {
+      appliesOnApprovalWithoutSync: true,
+      headline: "Apex review, then offline goes live",
+      detail:
+        "Submit to Apex for review. Once approved, your clinic switches to offline mode right away — no sync step.",
+    };
+  }
+  return {
+    appliesOnApprovalWithoutSync: false,
+    headline: "Apex review, then sync",
+    detail:
+      "Submit to Apex for review. After approval, run a full push + pull sync — cloud mode starts only when sync completes.",
+  };
+}
+
+export const OPS_MODE_REQUEST_STATUS_LABELS: Record<string, string> = {
+  pending: "Awaiting Apex",
+  approved: "Approved — sync required",
+  applied: "Active",
+  rejected: "Rejected",
+  cancelled: "Cancelled",
+};

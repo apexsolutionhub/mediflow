@@ -239,6 +239,14 @@ export function ClinicShell({
     }
   }, [pathname, refreshBilling, router]);
 
+  useEffect(() => {
+    const onOpsModeChanged = () => {
+      void refreshBilling();
+    };
+    window.addEventListener("clinic:ops-mode-changed", onOpsModeChanged);
+    return () => window.removeEventListener("clinic:ops-mode-changed", onOpsModeChanged);
+  }, [refreshBilling]);
+
   if (!user) {
     return (
       <div className="clinic-canvas flex min-h-dvh items-center justify-center text-sm text-muted-foreground">
