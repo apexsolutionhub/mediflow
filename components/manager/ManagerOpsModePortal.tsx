@@ -160,7 +160,7 @@ const RequestHistoryRow = memo(function RequestHistoryRow({ row }: { row: OpsMod
               : row.status === "pending"
                 ? "orange"
                 : row.status === "rejected"
-                  ? "rose"
+                  ? "red"
                   : "navy"
           }
         >
