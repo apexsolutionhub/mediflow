@@ -1,50 +1,91 @@
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 /** Primary action button — amber gradient with readable dark text. */
 export const ctaButtonClass =
   "h-11 rounded-xl bg-linear-to-r from-cta to-apex-orange-light font-semibold text-cta-foreground shadow-md shadow-cta/25 hover:from-cta/95 hover:to-apex-orange-light/95";
 
+type StatusTone = "navy" | "orange" | "green" | "muted" | "red";
+
+const statusToneClass: Record<StatusTone, string> = {
+  navy: "border-primary/15 bg-primary/10 text-primary hover:bg-primary/10",
+  orange: "border-cta/25 bg-cta/12 text-amber-800 hover:bg-cta/12",
+  green: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50",
+  muted: "border-border bg-muted text-muted-foreground hover:bg-muted",
+  red: "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50",
+};
+
 export function StatusPill({
   children,
   tone = "navy",
 }: {
   children: React.ReactNode;
-  tone?: "navy" | "orange" | "green" | "muted" | "red";
+  tone?: StatusTone;
 }) {
-  const tones = {
-    navy: "bg-primary/10 text-primary ring-primary/15",
-    orange: "bg-cta/12 text-amber-800 ring-cta/25",
-    green: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-    muted: "bg-slate-100 text-slate-600 ring-slate-200",
-    red: "bg-rose-50 text-rose-700 ring-rose-200",
-  };
   return (
-    <span
+    <Badge
+      variant="outline"
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide ring-1",
-        tones[tone],
+        "h-auto rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide",
+        statusToneClass[tone],
       )}
     >
       {children}
-    </span>
+    </Badge>
   );
 }
 
 export function EmptyState({
   title,
   hint,
+  icon,
 }: {
   title: string;
   hint: string;
+  icon?: React.ReactNode;
 }) {
   return (
-    <div className="clinic-panel flex flex-col items-center justify-center rounded-3xl border border-dashed border-primary/15 px-6 py-14 text-center">
-      <div className="mb-3 size-10 rounded-2xl bg-linear-to-br from-cta/20 to-primary/10 ring-1 ring-cta/20" />
-      <p className="font-heading text-base font-semibold text-primary">{title}</p>
-      <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">{hint}</p>
-    </div>
+    <Empty className="clinic-panel rounded-3xl border border-dashed border-primary/15 bg-muted/20 py-14">
+      <EmptyHeader>
+        <EmptyMedia
+          variant="icon"
+          className="size-11 rounded-2xl bg-linear-to-br from-cta/20 to-primary/10 text-primary ring-1 ring-cta/20"
+        >
+          {icon}
+        </EmptyMedia>
+        <EmptyTitle className="font-heading text-base font-semibold text-primary">
+          {title}
+        </EmptyTitle>
+        <EmptyDescription className="max-w-sm leading-6">{hint}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
   );
 }
+
+type StatTone = "navy" | "orange" | "green" | "rose";
+
+const statToneClass: Record<StatTone, string> = {
+  navy: "from-white to-primary/5 border-primary/10 text-primary shadow-primary/5",
+  orange: "from-amber-50 to-white border-cta/20 text-cta shadow-amber-100/70",
+  green: "from-emerald-50 to-white border-emerald-200/80 text-emerald-700 shadow-emerald-100/70",
+  rose: "from-rose-50 to-white border-rose-200/80 text-rose-700 shadow-rose-100/70",
+};
 
 export function StatTile({
   label,
@@ -53,24 +94,20 @@ export function StatTile({
 }: {
   label: string;
   value: React.ReactNode;
-  tone?: "navy" | "orange" | "green" | "rose";
+  tone?: StatTone;
 }) {
-  const tones = {
-    navy: "from-white to-primary/5 border-primary/10 text-primary shadow-primary/5",
-    orange: "from-amber-50 to-white border-cta/20 text-cta shadow-amber-100/70",
-    green: "from-emerald-50 to-white border-emerald-200/80 text-emerald-700 shadow-emerald-100/70",
-    rose: "from-rose-50 to-white border-rose-200/80 text-rose-700 shadow-rose-100/70",
-  };
   return (
-    <div
+    <Card
       className={cn(
-        "clinic-panel rounded-3xl border bg-linear-to-br p-4 shadow-md",
-        tones[tone],
+        "clinic-panel gap-0 rounded-3xl border bg-linear-to-br py-0 shadow-md",
+        statToneClass[tone],
       )}
     >
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 font-heading text-3xl font-semibold tracking-tight">{value}</p>
-    </div>
+      <CardContent className="p-4">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="mt-1 font-heading text-3xl font-semibold tracking-tight">{value}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -94,24 +131,23 @@ export function SectionCard({
   id?: string;
 }) {
   return (
-    <section
+    <Card
       id={id}
-      className={cn("clinic-panel clinic-panel-glow overflow-hidden rounded-3xl", className)}
+      className={cn(
+        "clinic-panel clinic-panel-glow gap-0 overflow-hidden rounded-3xl py-0 shadow-sm",
+        className,
+      )}
     >
-      <div className="border-b border-primary/8 bg-linear-to-r from-primary/4 via-transparent to-cta/5 px-5 py-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            {kicker ? <p className="clinic-kicker">{kicker}</p> : null}
-            <h2 className="font-heading text-xl font-semibold text-primary">{title}</h2>
-            {description ? (
-              <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
-            ) : null}
-          </div>
-          {action}
-        </div>
-      </div>
-      <div className={cn("p-5", contentClassName)}>{children}</div>
-    </section>
+      <CardHeader className="border-b border-primary/8 bg-linear-to-r from-primary/4 via-transparent to-cta/5 px-5 py-4">
+        {kicker ? <p className="clinic-kicker">{kicker}</p> : null}
+        <CardTitle className="font-heading text-xl font-semibold text-primary">{title}</CardTitle>
+        {description ? (
+          <CardDescription className="max-w-2xl leading-6">{description}</CardDescription>
+        ) : null}
+        {action ? <CardAction>{action}</CardAction> : null}
+      </CardHeader>
+      <CardContent className={cn("p-5", contentClassName)}>{children}</CardContent>
+    </Card>
   );
 }
 
@@ -123,13 +159,41 @@ export function QueueItem({
   className?: string;
 }) {
   return (
-    <div
+    <Card
+      size="sm"
       className={cn(
-        "rounded-3xl border border-primary/10 bg-white/95 px-5 py-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-cta/25 hover:shadow-lg hover:shadow-primary/5",
+        "gap-0 rounded-2xl border-primary/10 bg-card/95 py-0 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-cta/25 hover:shadow-lg hover:shadow-primary/5",
         className,
       )}
     >
-      {children}
+      <CardContent className="px-5 py-5">{children}</CardContent>
+    </Card>
+  );
+}
+
+export function FormSection({
+  title,
+  description,
+  children,
+  className,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-3", className)}>
+      <div className="space-y-1">
+        <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+          {title}
+        </p>
+        {description ? (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+      <Separator className="bg-primary/8" />
+      <div className="grid gap-3 pt-1 sm:grid-cols-2">{children}</div>
     </div>
   );
 }

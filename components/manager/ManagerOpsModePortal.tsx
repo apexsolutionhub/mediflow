@@ -12,10 +12,14 @@ import {
   RefreshCw,
   Server,
   ShieldCheck,
+  TriangleAlert,
+  CircleCheck,
+  CircleX,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicOpsModeSelector } from "@/components/signup/ClinicOpsModeSelector";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,9 +30,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ctaButtonClass,
@@ -54,9 +62,9 @@ function ModeHeroBadge({ mode }: { mode: ClinicOpsMode }) {
   const offline = mode === "offline";
   const Icon = offline ? HardDrive : Cloud;
   return (
-    <div
+    <Card
       className={cn(
-        "relative overflow-hidden rounded-3xl border p-6 sm:p-8",
+        "relative gap-0 overflow-hidden rounded-3xl border py-0 shadow-md",
         offline
           ? "border-cta/25 bg-linear-to-br from-cta/10 via-amber-50/40 to-white"
           : "border-primary/15 bg-linear-to-br from-primary/8 via-sky-50/30 to-white",
@@ -68,56 +76,59 @@ function ModeHeroBadge({ mode }: { mode: ClinicOpsMode }) {
           offline ? "bg-cta/20" : "bg-primary/15",
         )}
       />
-      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <span
+      <CardContent className="relative p-6 sm:p-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span
+              className={cn(
+                "inline-flex size-14 shrink-0 items-center justify-center rounded-2xl ring-1",
+                offline
+                  ? "bg-cta/15 text-amber-900 ring-cta/25"
+                  : "bg-primary/10 text-primary ring-primary/20",
+              )}
+            >
+              <Icon className="size-7" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                Current operating mode
+              </p>
+              <h2 className="font-heading mt-1 text-2xl font-semibold text-primary sm:text-3xl">
+                {CLINIC_OPS_MODE_LABELS[mode]}
+              </h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+                {CLINIC_OPS_MODE_DESCRIPTIONS[mode]}
+              </p>
+            </div>
+          </div>
+          <Badge
+            variant="outline"
             className={cn(
-              "inline-flex size-14 shrink-0 items-center justify-center rounded-2xl ring-1",
+              "h-auto gap-2 rounded-full px-4 py-2 text-sm font-semibold",
               offline
-                ? "bg-cta/15 text-amber-900 ring-cta/25"
-                : "bg-primary/10 text-primary ring-primary/20",
+                ? "border-cta/25 bg-cta/12 text-amber-900"
+                : "border-primary/15 bg-primary/10 text-primary",
             )}
           >
-            <Icon className="size-7" />
-          </span>
-          <div>
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Current operating mode
-            </p>
-            <h2 className="font-heading mt-1 text-2xl font-semibold text-primary sm:text-3xl">
-              {CLINIC_OPS_MODE_LABELS[mode]}
-            </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              {CLINIC_OPS_MODE_DESCRIPTIONS[mode]}
-            </p>
-          </div>
+            <span className="relative flex size-2">
+              <span
+                className={cn(
+                  "absolute inline-flex size-full animate-ping rounded-full opacity-60",
+                  offline ? "bg-amber-500" : "bg-primary",
+                )}
+              />
+              <span
+                className={cn(
+                  "relative inline-flex size-2 rounded-full",
+                  offline ? "bg-amber-600" : "bg-primary",
+                )}
+              />
+            </span>
+            Live · {CLINIC_OPS_MODE_SHORT_LABELS[mode]}
+          </Badge>
         </div>
-        <span
-          className={cn(
-            "inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ring-1",
-            offline
-              ? "bg-cta/12 text-amber-900 ring-cta/25"
-              : "bg-primary/10 text-primary ring-primary/15",
-          )}
-        >
-          <span className="relative flex size-2">
-            <span
-              className={cn(
-                "absolute inline-flex size-full animate-ping rounded-full opacity-60",
-                offline ? "bg-amber-500" : "bg-primary",
-              )}
-            />
-            <span
-              className={cn(
-                "relative inline-flex size-2 rounded-full",
-                offline ? "bg-amber-600" : "bg-primary",
-              )}
-            />
-          </span>
-          Live · {CLINIC_OPS_MODE_SHORT_LABELS[mode]}
-        </span>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -135,9 +146,12 @@ const RequestHistoryRow = memo(function RequestHistoryRow({ row }: { row: OpsMod
             <ArrowRight className="size-3.5 text-muted-foreground" />
             <span className="font-medium text-primary">{CLINIC_OPS_MODE_SHORT_LABELS[to]}</span>
             {row.applies_immediately ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-cta/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ring-1 ring-cta/20">
+              <Badge
+                variant="outline"
+                className="h-auto border-cta/20 bg-cta/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800"
+              >
                 No sync
-              </span>
+              </Badge>
             ) : null}
           </div>
           {row.request_note ? (
@@ -197,19 +211,18 @@ function WorkflowSteps({
       {steps.map((step, index) => {
         const Icon = step.icon;
         return (
-          <div
-            key={step.title}
-            className="rounded-2xl border border-primary/10 bg-white/70 px-4 py-4"
-          >
-            <div className="flex items-center gap-2">
-              <span className="inline-flex size-8 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
-                {index + 1}
-              </span>
-              <Icon className="size-4 text-primary/70" />
-            </div>
-            <p className="mt-3 text-sm font-semibold text-primary">{step.title}</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">{step.detail}</p>
-          </div>
+          <Card key={step.title} size="sm" className="gap-0 rounded-2xl border-primary/10 bg-card/70 py-0">
+            <CardContent className="px-4 py-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="size-8 justify-center rounded-xl p-0 text-xs font-bold">
+                  {index + 1}
+                </Badge>
+                <Icon className="size-4 text-primary/70" />
+              </div>
+              <p className="mt-3 text-sm font-semibold text-primary">{step.title}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{step.detail}</p>
+            </CardContent>
+          </Card>
         );
       })}
     </div>
@@ -265,9 +278,11 @@ export function ManagerOpsModePortal() {
 
   if (loading && !status) {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
-        <Loader2 className="size-8 animate-spin text-primary" />
-        <p className="text-sm">Loading operating mode…</p>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <Skeleton className="h-10 w-24 rounded-xl" />
+        <Skeleton className="h-44 w-full rounded-3xl" />
+        <Skeleton className="h-28 w-full rounded-2xl" />
+        <Skeleton className="h-80 w-full rounded-3xl" />
       </div>
     );
   }
@@ -293,60 +308,67 @@ export function ManagerOpsModePortal() {
       <ModeHeroBadge mode={currentMode} />
 
       {apiUnavailable ? (
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/70 px-4 py-3 text-sm leading-6 text-muted-foreground">
-          Live request status could not be loaded — you can still submit a mode change below. If
-          submit fails, the clinic API needs the latest ops-mode routes deployed.
-        </div>
+        <Alert className="rounded-2xl border-amber-200/80 bg-amber-50/70">
+          <TriangleAlert className="text-amber-700" />
+          <AlertTitle className="text-amber-950">Limited status visibility</AlertTitle>
+          <AlertDescription className="leading-6">
+            Live request status could not be loaded — you can still submit a mode change below. If
+            submit fails, the clinic API needs the latest ops-mode routes deployed.
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {status.approved_awaiting_sync ? (
-        <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/80 px-5 py-5">
-          <div className="flex flex-wrap items-center gap-2">
+        <Alert className="rounded-2xl border-emerald-200/80 bg-emerald-50/80">
+          <CircleCheck className="text-emerald-700" />
+          <AlertTitle className="flex flex-wrap items-center gap-2 text-emerald-950">
             <StatusPill tone="green">Approved — sync required</StatusPill>
-            <span className="text-sm font-medium text-primary">
+            <span className="text-sm font-medium">
               {CLINIC_OPS_MODE_SHORT_LABELS[parseClinicOpsMode(status.approved_awaiting_sync.current_ops_mode)]}
             </span>
             <ArrowRight className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-primary">
+            <span className="text-sm font-medium">
               {CLINIC_OPS_MODE_SHORT_LABELS[parseClinicOpsMode(status.approved_awaiting_sync.requested_ops_mode)]}
             </span>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          </AlertTitle>
+          <AlertDescription className="leading-6">
             Apex approved your return to cloud mode. Run a full sync (push + pull) from the sync
             portal when your reception server is ready — staff stay on offline LAN until sync
             completes.
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {status.pending_request ? (
-        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/60 px-5 py-5">
-          <div className="flex flex-wrap items-center gap-2">
+        <Alert className="rounded-2xl border-amber-200/80 bg-amber-50/60">
+          <Clock className="text-amber-700" />
+          <AlertTitle className="flex flex-wrap items-center gap-2 text-amber-950">
             <StatusPill tone="orange">Awaiting Apex</StatusPill>
-            <span className="text-sm font-medium text-primary">
+            <span className="text-sm font-medium">
               {CLINIC_OPS_MODE_SHORT_LABELS[parseClinicOpsMode(status.pending_request.current_ops_mode)]}
             </span>
             <ArrowRight className="size-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-primary">
+            <span className="text-sm font-medium">
               {CLINIC_OPS_MODE_SHORT_LABELS[parseClinicOpsMode(status.pending_request.requested_ops_mode)]}
             </span>
-          </div>
+          </AlertTitle>
           {status.pending_request.request_note ? (
-            <p className="mt-3 text-sm text-muted-foreground">{status.pending_request.request_note}</p>
+            <AlertDescription>{status.pending_request.request_note}</AlertDescription>
           ) : null}
-          <p className="mt-2 text-xs text-muted-foreground">
+          <AlertDescription className="text-xs">
             Submitted {new Date(status.pending_request.created_at).toLocaleString()}
-          </p>
-        </div>
+          </AlertDescription>
+        </Alert>
       ) : null}
 
       {status.latest_request?.status === "rejected" && !status.pending_request ? (
-        <div className="rounded-2xl border border-rose-200/80 bg-rose-50/60 px-5 py-4">
-          <p className="font-medium text-rose-900">Last request was rejected</p>
+        <Alert variant="destructive" className="rounded-2xl border-rose-200/80 bg-rose-50/60">
+          <CircleX />
+          <AlertTitle>Last request was rejected</AlertTitle>
           {status.latest_request.review_note ? (
-            <p className="mt-1 text-sm text-muted-foreground">{status.latest_request.review_note}</p>
+            <AlertDescription>{status.latest_request.review_note}</AlertDescription>
           ) : null}
-        </div>
+        </Alert>
       ) : null}
 
       {status.can_request_change ? (
@@ -359,17 +381,21 @@ export function ManagerOpsModePortal() {
           <div className="space-y-6">
             <WorkflowSteps from={currentMode} to={effectiveTarget} />
 
-            <div className="rounded-2xl border border-primary/10 bg-slate-50/60 p-4">
-              <p className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Target mode
-              </p>
-              <ClinicOpsModeSelector
-                value={effectiveTarget}
-                onChange={setTargetMode}
-                disabled={submitting}
-                disabledModes={[currentMode]}
-              />
-            </div>
+            <Separator className="bg-primary/8" />
+
+            <Card className="gap-0 rounded-2xl border-primary/10 bg-muted/30 py-0">
+              <CardContent className="p-4">
+                <p className="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Target mode
+                </p>
+                <ClinicOpsModeSelector
+                  value={effectiveTarget}
+                  onChange={setTargetMode}
+                  disabled={submitting}
+                  disabledModes={[currentMode]}
+                />
+              </CardContent>
+            </Card>
 
             <div className="grid gap-2">
               <Label htmlFor="ops-note">Reason for Apex</Label>

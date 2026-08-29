@@ -2,8 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { format } from "date-fns";
-import { CalendarIcon, ImageIcon } from "@hugeicons/core-free-icons";
+import { ImageIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
 import type { Control, FieldPath, FieldValues } from "react-hook-form";
@@ -22,8 +21,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { DatePicker, DateTimePicker, parsePickerDate } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Field,
   FieldContent,
@@ -32,11 +31,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -54,6 +48,7 @@ import { cn } from "@/lib/utils";
 export enum formFieldTypes {
   INPUT = "input",
   CALENDAR = "calendar",
+  DATETIME = "datetime",
   RADIO_BUTTON = "radioButton",
   SELECT = "select",
   TAG_INPUT = "tagInput",
@@ -270,12 +265,7 @@ const CustomFormField = <T extends FieldValues>(
       name={name}
       render={({ field, fieldState }) => {
         const hasError = Boolean(fieldState.error);
-        const dateValue =
-          (field.value as any) instanceof Date
-            ? field.value
-            : typeof field.value === "string" && field.value
-              ? new Date(field.value)
-              : undefined;
+        const dateValue = parsePickerDate(field.value);
 
         return (
           <Field className="min-w-0 flex-col gap-1.5" data-invalid={hasError || undefined}>
@@ -376,39 +366,24 @@ const CustomFormField = <T extends FieldValues>(
               ) : null}
 
               {fieldType === formFieldTypes.CALENDAR ? (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className={className}
-                    >
-                      <span
-                        className={
-                          dateValue
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        }
-                      >
-                        {dateValue
-                          ? format(dateValue, "PPP")
-                          : (placeholder ?? "Pick a date")}
-                      </span>
-                      <HugeiconsIcon
-                        icon={CalendarIcon}
-                        strokeWidth={2}
-                        className="size-4"
-                      />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dateValue}
-                      onSelect={(date) => field.onChange(date ?? null)}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePicker
+                  value={dateValue}
+                  onChange={(date) => field.onChange(date ?? null)}
+                  placeholder={placeholder ?? "Pick a date"}
+                  disabled={disabled}
+                  className={className}
+                />
+              ) : null}
+
+              {fieldType === formFieldTypes.DATETIME ? (
+                <DateTimePicker
+                  value={dateValue}
+                  onChange={(date) => field.onChange(date ?? null)}
+                  placeholder={placeholder ?? "Pick date and time"}
+                  disabled={disabled}
+                  className={className}
+                  fromDate={new Date()}
+                />
               ) : null}
 
               {fieldType === formFieldTypes.RADIO_BUTTON ? (
