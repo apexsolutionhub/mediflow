@@ -55,6 +55,32 @@ function buildDisabledMatchers(
   return matchers;
 }
 
+function getPickerMonthRange(fromDate?: Date, yearsAhead = 10) {
+  const start = fromDate ? new Date(fromDate.getFullYear(), fromDate.getMonth(), 1) : new Date(new Date().getFullYear(), 0, 1);
+  const end = new Date(start.getFullYear() + yearsAhead, 11, 31);
+  return { startMonth: start, endMonth: end };
+}
+
+function PickerPopoverContent({ children }: { children: React.ReactNode }) {
+  return (
+    <PopoverContent
+      className="w-auto max-h-[min(85vh,32rem)] overflow-y-auto overscroll-contain p-0"
+      align="start"
+      side="bottom"
+      sideOffset={8}
+      collisionPadding={16}
+    >
+      {children}
+    </PopoverContent>
+  );
+}
+
+const pickerCalendarProps = {
+  captionLayout: "dropdown" as const,
+  navLayout: "after" as const,
+  className: "p-3",
+};
+
 type PickerBaseProps = {
   value?: Date | string | null;
   onChange?: (value: Date | undefined) => void;
@@ -82,6 +108,7 @@ export function DatePicker({
     () => buildDisabledMatchers(fromDate, toDate, disabledDates),
     [disabledDates, fromDate, toDate],
   );
+  const monthRange = React.useMemo(() => getPickerMonthRange(fromDate), [fromDate]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -102,7 +129,7 @@ export function DatePicker({
           <CalendarIcon className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PickerPopoverContent>
         <Calendar
           mode="single"
           selected={selected}
@@ -111,9 +138,12 @@ export function DatePicker({
             setOpen(false);
           }}
           disabled={disabledMatcher}
-          defaultMonth={selected ?? fromDate}
+          defaultMonth={selected ?? fromDate ?? monthRange.startMonth}
+          startMonth={monthRange.startMonth}
+          endMonth={monthRange.endMonth}
+          {...pickerCalendarProps}
         />
-      </PopoverContent>
+      </PickerPopoverContent>
     </Popover>
   );
 }
@@ -135,6 +165,7 @@ export function DateTimePicker({
     () => buildDisabledMatchers(fromDate, toDate, disabledDates),
     [disabledDates, fromDate, toDate],
   );
+  const monthRange = React.useMemo(() => getPickerMonthRange(fromDate, 2), [fromDate]);
 
   React.useEffect(() => {
     setTime(timeFromDate(selected));
@@ -167,13 +198,16 @@ export function DateTimePicker({
           <CalendarIcon className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PickerPopoverContent>
         <Calendar
           mode="single"
           selected={selected}
           onSelect={(date) => apply(date, time)}
           disabled={disabledMatcher}
-          defaultMonth={selected ?? fromDate}
+          defaultMonth={selected ?? fromDate ?? monthRange.startMonth}
+          startMonth={monthRange.startMonth}
+          endMonth={monthRange.endMonth}
+          {...pickerCalendarProps}
         />
         <Separator />
         <div className="flex items-center gap-2 p-3">
@@ -201,7 +235,7 @@ export function DateTimePicker({
             Done
           </Button>
         </div>
-      </PopoverContent>
+      </PickerPopoverContent>
     </Popover>
   );
 }
