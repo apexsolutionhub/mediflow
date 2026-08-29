@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 
 import { api, readBilling } from "@/lib/api";
+import { cacheKey, fetchWithCache, invalidateCacheKey } from "@/lib/api-cache";
 import {
   isImmediateOpsModeTransition,
   parseClinicOpsMode,
@@ -60,8 +61,12 @@ export function buildFallbackOpsModeStatus(opsMode?: string | null): OpsModeStat
   };
 }
 
+const OPS_MODE_STATUS_KEY = cacheKey(["billing", "ops-mode"]);
+const OPS_MODE_TTL_MS = 30_000;
+
 export function notifyOpsModeChanged() {
   if (typeof window !== "undefined") {
+    invalidateCacheKey(OPS_MODE_STATUS_KEY);
     window.dispatchEvent(new CustomEvent("clinic:ops-mode-changed"));
   }
 }
@@ -93,7 +98,7 @@ export function useOpsModeStatus(options?: {
   }, []);
 
   const load = useCallback(
-    async (silent = false) => {
+    async (silent = false, force = false) => {
       if (!fetchDetails) {
         applyBillingFallback();
         setLoading(false);
@@ -106,6 +111,8 @@ export function useOpsModeStatus(options?: {
         return readInitialStatus();
       }
 
+      if (force) invalidateCacheKey(OPS_MODE_STATUS_KEY);
+
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -114,9 +121,16 @@ export function useOpsModeStatus(options?: {
       else setRefreshing(true);
 
       try {
-        const { data } = await api.get<OpsModeStatus>("/billing/ops-mode/", {
-          signal: controller.signal,
-        });
+        const data = await fetchWithCache(
+          OPS_MODE_STATUS_KEY,
+          async () => {
+            const { data: response } = await api.get<OpsModeStatus>("/billing/ops-mode/", {
+              signal: controller.signal,
+            });
+            return response;
+          },
+          OPS_MODE_TTL_MS,
+        );
         if (!controller.signal.aborted) {
           setStatus(data);
           setApiUnavailable(false);
@@ -165,6 +179,7 @@ export function useOpsModeStatus(options?: {
 
   const submitRequest = useCallback(
     async (requested_ops_mode: ClinicOpsMode, request_note: string) => {
+      invalidateCacheKey(OPS_MODE_STATUS_KEY);
       const { data } = await api.post<{
         detail: string;
         applied_immediately: boolean;
@@ -176,7 +191,7 @@ export function useOpsModeStatus(options?: {
       });
 
       notifyOpsModeChanged();
-      await load(true);
+      await load(true, true);
       return data;
     },
     [load],

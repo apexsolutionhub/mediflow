@@ -11,15 +11,21 @@ import {
   StatTile,
   StatusPill,
 } from "@/components/ui-chrome";
-import { api, results } from "@/lib/api";
+import { api } from "@/lib/api";
 import { type Medicine, money } from "@/lib/clinic";
+import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 
 export default function PharmacyInventoryPage() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
 
-  const load = useCallback(async () => {
-    const meds = await api.get("/clinic/medicines/", { params: { page_size: 200 } });
-    setMedicines(results<Medicine>(meds.data));
+  const load = useCallback(async (force = false) => {
+    const rows = await fetchClinicCatalog<Medicine>(
+      "medicines",
+      "/clinic/medicines/",
+      { page_size: 200 },
+      force,
+    );
+    setMedicines(rows);
   }, []);
 
   useEffect(() => {

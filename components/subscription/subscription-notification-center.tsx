@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { AlertTriangle, CreditCard, ShieldAlert } from "lucide-react";
 
@@ -26,7 +27,10 @@ export function SubscriptionNotificationCenter({
   className?: string;
   onNavigate?: () => void;
 }) {
-  const notifications = buildSubscriptionNotifications(billing);
+  const notifications = useMemo(
+    () => buildSubscriptionNotifications(billing),
+    [billing],
+  );
   if (notifications.length === 0) return null;
 
   const summary = subscriptionNotificationSummary(notifications);

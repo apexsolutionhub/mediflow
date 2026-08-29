@@ -283,7 +283,7 @@ export function ManagerOpsModePortal() {
           size="sm"
           className="rounded-xl"
           disabled={refreshing}
-          onClick={() => void load(true)}
+          onClick={() => void load(true, true)}
         >
           <RefreshCw className={cn("mr-2 size-3.5", refreshing && "animate-spin")} />
           Refresh
@@ -375,7 +375,7 @@ export function ManagerOpsModePortal() {
               <Label htmlFor="ops-note">Reason for Apex</Label>
               <Textarea
                 id="ops-note"
-                className="min-h-[96px] rounded-xl"
+                className="min-h-24 rounded-xl"
                 placeholder={
                   transition.appliesOnApprovalWithoutSync
                     ? "e.g. Unreliable internet — need offline LAN with evening sync"
@@ -458,7 +458,7 @@ export function ManagerOpsModePortal() {
             hint="When you switch modes, the audit trail appears here."
           />
         ) : (
-          <ScrollArea className="max-h-[28rem] pr-3">
+          <ScrollArea className="max-h-112 pr-3">
             <div className="space-y-3">
               {status.recent_requests.map((row) => (
                 <RequestHistoryRow key={row.id} row={row} />

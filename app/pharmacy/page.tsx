@@ -15,19 +15,25 @@ import {
 } from "@/components/ui-chrome";
 import { api, results } from "@/lib/api";
 import { type ClinicalOrder, type Medicine, orderTone } from "@/lib/clinic";
+import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 
 export default function PharmacyQueuePage() {
   const [queue, setQueue] = useState<ClinicalOrder[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [pick, setPick] = useState<Record<number, { medicine: string; quantity: string }>>({});
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (forceMeds = false) => {
     const [rx, meds] = await Promise.all([
       api.get("/clinic/orders/", { params: { queue: "pharmacy", page_size: 100 } }),
-      api.get("/clinic/medicines/", { params: { page_size: 200 } }),
+      fetchClinicCatalog<Medicine>(
+        "medicines",
+        "/clinic/medicines/",
+        { page_size: 200 },
+        forceMeds,
+      ),
     ]);
     setQueue(results<ClinicalOrder>(rx.data));
-    setMedicines(results<Medicine>(meds.data).filter((m) => m.is_active !== false));
+    setMedicines(meds.filter((m) => m.is_active !== false));
   }, []);
 
   useEffect(() => {
@@ -133,7 +139,7 @@ export default function PharmacyQueuePage() {
                             quantity: Number(sel.quantity) || 1,
                           });
                           toast.success("Dispensed — stock updated");
-                          await load();
+                          await load(true);
                         } catch (error: unknown) {
                           toast.error(
                             String(

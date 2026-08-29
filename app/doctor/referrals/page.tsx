@@ -10,8 +10,9 @@ import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SelectedVisitBanner } from "@/components/selected-visit-banner";
 import { Button } from "@/components/ui/button";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
-import { api, results } from "@/lib/api";
+import { api } from "@/lib/api";
 import { type Department } from "@/lib/clinic";
+import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 
 export default function DoctorReferralsPage() {
@@ -22,8 +23,12 @@ export default function DoctorReferralsPage() {
   });
 
   const loadDepts = useCallback(async () => {
-    const depts = await api.get("/clinic/departments/", { params: { page_size: 50 } });
-    setDepartments(results<Department>(depts.data));
+    const rows = await fetchClinicCatalog<Department>(
+      "departments",
+      "/clinic/departments/",
+      { page_size: 50 },
+    );
+    setDepartments(rows);
   }, []);
 
   useEffect(() => {

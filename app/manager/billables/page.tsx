@@ -48,7 +48,8 @@ import {
   StatusPill,
 } from "@/components/ui-chrome";
 import { cn } from "@/lib/utils";
-import { api, results } from "@/lib/api";
+import { api } from "@/lib/api";
+import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import {
   BILLABLE_SERVICE_TYPES,
   type BillableService,
@@ -209,13 +210,13 @@ export default function ManagerBillablesPage() {
     return map;
   }, [services]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     const [svc, depts] = await Promise.all([
-      api.get("/clinic/services/", { params: { page_size: 100 } }),
-      api.get("/clinic/departments/", { params: { page_size: 50 } }),
+      fetchClinicCatalog<BillableService>("services", "/clinic/services/", { page_size: 100 }, force),
+      fetchClinicCatalog<Department>("departments", "/clinic/departments/", { page_size: 50 }, force),
     ]);
-    setServices(results<BillableService>(svc.data));
-    setDepartments(results<Department>(depts.data));
+    setServices(svc);
+    setDepartments(depts);
   }, []);
 
   useEffect(() => {
@@ -269,7 +270,7 @@ export default function ManagerBillablesPage() {
         toast.success("Service added");
       }
       resetServiceForm();
-      await load();
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(
@@ -291,7 +292,7 @@ export default function ManagerBillablesPage() {
       toast.success("Service deleted");
       setPendingDeleteService(null);
       if (editingServiceId === service.id) resetServiceForm();
-      await load();
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(
@@ -330,7 +331,7 @@ export default function ManagerBillablesPage() {
       await api.patch(`/clinic/departments/${dept.id}/`, { name });
       toast.success("Department updated");
       cancelEditDepartment();
-      await load();
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(
@@ -354,7 +355,7 @@ export default function ManagerBillablesPage() {
       toast.success("Department deleted");
       setPendingDeleteDept(null);
       if (editingDeptId === dept.id) cancelEditDepartment();
-      await load();
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(
@@ -477,7 +478,7 @@ export default function ManagerBillablesPage() {
                 await api.post("/clinic/departments/", values);
                 toast.success("Department added");
                 deptForm.reset();
-                await load();
+                await load(true);
               } catch (error: unknown) {
                 toast.error(
                   String(

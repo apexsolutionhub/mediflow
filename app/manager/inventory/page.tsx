@@ -33,7 +33,8 @@ import {
   StatusPill,
 } from "@/components/ui-chrome";
 import { cn } from "@/lib/utils";
-import { api, results } from "@/lib/api";
+import { api } from "@/lib/api";
+import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import { MEDICINE_CATEGORIES, MEDICINE_UNITS, type Medicine, money } from "@/lib/clinic";
 
 type MedicineFormValues = {
@@ -136,9 +137,14 @@ export default function ManagerInventoryPage() {
     defaultValues: defaultMedicineValues(),
   });
 
-  const load = useCallback(async () => {
-    const meds = await api.get("/clinic/medicines/", { params: { page_size: 200 } });
-    setMedicines(results<Medicine>(meds.data));
+  const load = useCallback(async (force = false) => {
+    const rows = await fetchClinicCatalog<Medicine>(
+      "medicines",
+      "/clinic/medicines/",
+      { page_size: 200 },
+      force,
+    );
+    setMedicines(rows);
   }, []);
 
   useEffect(() => {
@@ -192,7 +198,7 @@ export default function ManagerInventoryPage() {
         toast.success("Medicine added");
       }
       resetMedicineForm();
-      await load();
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(
@@ -214,7 +220,7 @@ export default function ManagerInventoryPage() {
       toast.success("Medicine deleted");
       setPendingDeleteMedicine(null);
       if (editingMedicineId === medicine.id) resetMedicineForm();
-      await load();
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(

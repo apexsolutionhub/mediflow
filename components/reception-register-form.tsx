@@ -12,7 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SectionCard } from "@/components/ui-chrome";
-import { api, results } from "@/lib/api";
+import { api } from "@/lib/api";
+import { invalidateEncounterBoardCache } from "@/hooks/use-encounter-board";
+import { fetchClinicCatalog, invalidateClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import { type Patient } from "@/lib/clinic";
 
 export type ArrivalType = "new" | "returning" | "referred";
@@ -93,9 +95,14 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
   const patientQuery = registerForm.watch("patient_query");
   const selectedPatientId = registerForm.watch("patient_id");
 
-  const loadPatients = useCallback(async () => {
-    const people = await api.get("/clinic/patients/", { params: { page_size: 200 } });
-    setPatients(results<Patient>(people.data));
+  const loadPatients = useCallback(async (force = false) => {
+    const rows = await fetchClinicCatalog<Patient>(
+      "patients",
+      "/clinic/patients/",
+      { page_size: 200 },
+      force,
+    );
+    setPatients(rows);
   }, []);
 
   useEffect(() => {
@@ -131,6 +138,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
           address: values.address || "",
         });
         patientId = created.data.id;
+        invalidateClinicCatalog("patients", { page_size: 200 });
       }
       if (!patientId) {
         toast.error("Select or create a patient");
@@ -153,6 +161,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
         arrival_type: arrivalType,
         referral_source,
       });
+      invalidateEncounterBoardCache();
       toast.success("Encounter opened — consultation awaiting payment");
       router.push("/reception");
     } catch {
@@ -198,7 +207,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
                   <label
                     key={option.value}
                     htmlFor={`gender-${option.value}`}
-                    className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 py-2.5 text-center has-[:checked]:border-primary/40 has-[:checked]:bg-primary/5"
+                    className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 py-2.5 text-center has-checked:border-primary/40 has-checked:bg-primary/5"
                   >
                     <RadioGroupItem
                       id={`gender-${option.value}`}

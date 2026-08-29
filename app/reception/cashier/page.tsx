@@ -19,7 +19,7 @@ import {
 } from "@/components/ui-chrome";
 import { api } from "@/lib/api";
 import { money, paymentTone } from "@/lib/clinic";
-import { useEncounterBoard } from "@/hooks/use-encounter-board";
+import { invalidateEncounterBoardCache, useEncounterBoard } from "@/hooks/use-encounter-board";
 
 export default function ReceptionCashierPage() {
   const { current, load } = useEncounterBoard("today");
@@ -39,7 +39,8 @@ export default function ReceptionCashierPage() {
         tender_method: values.tender_method,
       });
       toast.success("Payment approved — units unlocked");
-      await load();
+      invalidateEncounterBoardCache("today");
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(
@@ -55,7 +56,8 @@ export default function ReceptionCashierPage() {
     try {
       await api.post(`/clinic/encounters/${current.id}/checkout/`);
       toast.success("Patient checked out");
-      await load();
+      invalidateEncounterBoardCache();
+      await load(true);
     } catch (error: unknown) {
       toast.error(
         String(

@@ -16,8 +16,9 @@ import {
   SectionCard,
   StatusPill,
 } from "@/components/ui-chrome";
-import { api, results } from "@/lib/api";
+import { api } from "@/lib/api";
 import { type BillableService, ORDER_TYPE_TO_SERVICE_TYPE, orderTone } from "@/lib/clinic";
+import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 
 const ORDER_ICONS = {
@@ -34,8 +35,12 @@ export default function DoctorOrdersPage() {
   });
 
   const loadServices = useCallback(async () => {
-    const svc = await api.get("/clinic/services/", { params: { page_size: 100 } });
-    setServices(results<BillableService>(svc.data).filter((s) => s.is_active !== false));
+    const rows = await fetchClinicCatalog<BillableService>(
+      "services",
+      "/clinic/services/",
+      { page_size: 100 },
+    );
+    setServices(rows.filter((s) => s.is_active !== false));
   }, []);
 
   useEffect(() => {
