@@ -5,7 +5,6 @@ import {
   ClipboardList,
   FileText,
   HeartPulse,
-  KeyRound,
   LayoutDashboard,
   Package,
   Pill,
@@ -27,12 +26,6 @@ export type ClinicNavItem = {
   children?: ClinicNavItem[];
 };
 
-export const ACCOUNT_NAV: ClinicNavItem = {
-  href: "/account/password",
-  label: "Password",
-  icon: KeyRound,
-};
-
 export const MANAGER_NAV: ClinicNavItem[] = [
   { href: "/manager", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/manager/staff", label: "Staff", icon: Users },
@@ -40,7 +33,6 @@ export const MANAGER_NAV: ClinicNavItem[] = [
   { href: "/manager/inventory", label: "Inventory", icon: Package },
   { href: "/manager/requests", label: "Requests", icon: Wrench },
   { href: "/manager/ops-mode", label: "Operating mode", icon: Server },
-  ACCOUNT_NAV,
 ];
 
 export const RECEPTION_NAV: ClinicNavItem[] = [
@@ -57,7 +49,6 @@ export const RECEPTION_NAV: ClinicNavItem[] = [
   },
   { href: "/reception/cashier", label: "Cashier", icon: Wallet },
   { href: "/reception/appointments", label: "Appointments", icon: CalendarDays },
-  ACCOUNT_NAV,
 ];
 
 export const DOCTOR_NAV: ClinicNavItem[] = [
@@ -73,7 +64,6 @@ export const DOCTOR_NAV: ClinicNavItem[] = [
       { href: "/doctor/referrals", label: "Referrals", icon: Users },
     ],
   },
-  ACCOUNT_NAV,
 ];
 
 export const NURSE_NAV: ClinicNavItem[] = [
@@ -87,19 +77,16 @@ export const NURSE_NAV: ClinicNavItem[] = [
       { href: "/nurse/timeline", label: "Timeline", icon: ClipboardList },
     ],
   },
-  ACCOUNT_NAV,
 ];
 
 export const LAB_NAV: ClinicNavItem[] = [
   { href: "/lab", label: "Work queue", icon: Beaker, exact: true },
   { href: "/lab/equipment", label: "Equipment", icon: Wrench },
-  ACCOUNT_NAV,
 ];
 
 export const PHARMACY_NAV: ClinicNavItem[] = [
   { href: "/pharmacy", label: "Rx queue", icon: Pill, exact: true },
   { href: "/pharmacy/inventory", label: "Inventory", icon: Package },
-  ACCOUNT_NAV,
 ];
 
 export const ROLE_NAV: Record<string, ClinicNavItem[]> = {

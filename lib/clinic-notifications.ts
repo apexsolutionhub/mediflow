@@ -1,4 +1,5 @@
 import type { DashboardStats } from "@/lib/clinic";
+import { isClinicNotificationUnread } from "@/lib/clinic-notification-seen";
 
 export type ClinicNotification = {
   id: string;
@@ -100,6 +101,19 @@ export function buildClinicNotifications(
   return notifications;
 }
 
-export function clinicNotificationBadgeCount(notifications: ClinicNotification[]): number {
-  return notifications.reduce((sum, notification) => sum + notification.count, 0);
+export function clinicNotificationBadgeCount(
+  notifications: ClinicNotification[],
+  seen: Record<string, number> = {},
+): number {
+  return notifications.reduce((sum, notification) => {
+    if (!isClinicNotificationUnread(notification.id, notification.count, seen)) return sum;
+    return sum + notification.count;
+  }, 0);
+}
+
+export function isNotificationUnread(
+  notification: ClinicNotification,
+  seen: Record<string, number>,
+): boolean {
+  return isClinicNotificationUnread(notification.id, notification.count, seen);
 }
