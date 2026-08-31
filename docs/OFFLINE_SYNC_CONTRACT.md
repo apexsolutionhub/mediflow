@@ -1,9 +1,9 @@
 # MediFlow Offline Sync Contract
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Approved design (implementation pending)  
 **Audience:** Engineering partners, Apex ops, clinic IT  
-**Last updated:** 2026-08-28
+**Last updated:** 2026-08-31
 
 This document defines how **offline clinics** run MediFlow on a local server and how data moves between the **clinic node** and the **cloud**. Online-only tenants are unchanged: they always use the cloud API.
 
@@ -244,6 +244,20 @@ Before first offline clinic day:
 
 Passwords on clinic node: **hashed** (Django-compatible), not decryptable. After pull, credential changes from cloud apply **before next login**.
 
+### 6.3 Account UI vs connectivity (all tenants)
+
+| Feature | Offline tenant (`ops_mode = offline`) | Online tenant (`ops_mode = online`) |
+|---------|----------------------------------------|-------------------------------------|
+| **Apex chat** (manager) | **Cloud only.** Available when the clinic has **internet to the cloud API**. Not served from the local node during LAN-only clinic hours. | Cloud API; same rule — requires connectivity to cloud. |
+| **Change password** | **Local node, real time.** Updates the clinic MySQL user record immediately; sync **push** carries the change to cloud on the next successful sync. | Cloud API, immediate. |
+| **Clinic notifications** (bell) | **Local node, real time.** Built from local `/clinic/dashboard/` stats (queues, payments, stock). No cloud round-trip during the clinic day. | Cloud API, polled from dashboard endpoint. |
+
+**Rules:**
+
+- Chat messages are **never** queued for later delivery on the clinic node. If cloud is unreachable, the chat UI stays disabled with an “internet required” state.
+- Password change and notification bell must **not** depend on cloud reachability for offline tenants during the clinic day.
+- Online tenants use cloud for all three; chat still requires live cloud connectivity (no offline queue).
+
 ---
 
 ## 10. Ops mode change workflow
@@ -355,6 +369,9 @@ Clinic node stores locally:
 | Backup status (last dump, OK/fail) | Yes |
 | Request ops mode change | Yes |
 | Block staff nav when sync overdue | Yes (manager: Sync + Billing only) |
+| Apex chat (manager) | Yes — **cloud / internet only**; disabled on LAN when cloud unreachable |
+| Change password (topbar) | Yes — **local real time** for offline tenants |
+| Clinic notifications bell | Yes — **local real time** for offline tenants |
 
 ---
 
@@ -397,6 +414,7 @@ Clinic node stores locally:
 
 | Version | Date | Notes |
 |---------|------|-------|
+| 1.1 | 2026-08-31 | §6.3 — chat cloud-only; password + notifications local real-time for offline tenants |
 | 1.0 | 2026-08-28 | Initial contract from product/architecture review |
 
 ---

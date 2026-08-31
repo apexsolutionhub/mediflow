@@ -15,6 +15,9 @@ import { Activity, ChevronDown, LogOut, Menu } from "lucide-react";
 
 import { SubscriptionNotificationCenter } from "@/components/subscription/subscription-notification-center";
 import { TrialBillingButton } from "@/components/subscription/trial-billing-button";
+import { ChangeOwnPasswordButton } from "@/components/account/ChangeOwnPasswordButton";
+import { ClinicFeedbackCenter } from "@/components/feedback/ClinicFeedbackCenter";
+import { ClinicNotificationCenter } from "@/components/notifications/ClinicNotificationCenter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -451,8 +454,11 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
                   <>
                     <TrialBillingButton billing={billing} />
                     <SubscriptionNotificationCenter billing={billing} />
+                    <ClinicFeedbackCenter clinicName={user.clinic_name} />
                   </>
                 ) : null}
+                <ClinicNotificationCenter role={role} />
+                <ChangeOwnPasswordButton />
               </div>
             </div>
           </header>
@@ -467,8 +473,16 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
                     billing={billing}
                     onNavigate={() => setOpen(false)}
                   />
+                  <ClinicFeedbackCenter
+                    clinicName={user.clinic_name}
+                    onNavigate={() => setOpen(false)}
+                  />
                 </div>
               ) : null}
+              <div className="flex items-center justify-end gap-1 border-t border-white/10 px-4 py-3">
+                <ClinicNotificationCenter role={role} onNavigate={() => setOpen(false)} />
+                <ChangeOwnPasswordButton />
+              </div>
             </div>
           ) : null}
 
