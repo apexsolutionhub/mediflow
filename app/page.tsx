@@ -26,6 +26,7 @@ import {
   loginDecisionFromSignupStatus,
   type LoginPayload,
 } from "@/lib/tenant-access";
+import { isIllustrationSignupStatus } from "@/lib/tenant-demo";
 import { cn } from "@/lib/utils";
 
 type LoginValues = { username: string; password: string };
@@ -49,7 +50,11 @@ export default function LoginPage() {
         signupStatus = null;
       }
 
-      if (signupStatus && signupStatus.status !== "approved") {
+      if (
+        signupStatus &&
+        signupStatus.status !== "approved" &&
+        !isIllustrationSignupStatus(signupStatus)
+      ) {
         const blocked = loginDecisionFromSignupStatus(username, signupStatus);
         if (!blocked.allowed) {
           saveSignupPending({

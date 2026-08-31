@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { CheckCircle2, Clock3, Loader2, ShieldAlert, XCircle } from "lucide-react";
@@ -43,6 +44,7 @@ type BillingRenewalCardProps = {
 };
 
 export function BillingRenewalCard({ initialUsername }: BillingRenewalCardProps) {
+  const router = useRouter();
   const [pending, setPending] = useState<RenewalPendingRecord | null>(null);
   const [status, setStatus] = useState<RenewalStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,8 +66,11 @@ export function BillingRenewalCard({ initialUsername }: BillingRenewalCardProps)
       const next = await fetchRenewalStatus(username);
       if (next) {
         setStatus(next);
-        if (next.status === "active") {
+        if (next.status === "active" || next.status === "exempt") {
           clearRenewalPending();
+          if (next.status === "exempt") {
+            router.replace("/");
+          }
         }
       } else if (pending) {
         setStatus({

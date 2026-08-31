@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 
-export type SignupStatusValue = "not_found" | "pending" | "approved" | "rejected";
+export type SignupStatusValue = "not_found" | "pending" | "approved" | "rejected" | "exempt";
 
 export type SignupStatusResponse = {
   status: SignupStatusValue;
@@ -9,6 +9,7 @@ export type SignupStatusResponse = {
   clinic_tin?: string;
   setup_fee_etb?: number;
   rejection_reason?: string;
+  is_illustration?: boolean;
 };
 
 export async function fetchSignupStatus(username: string): Promise<SignupStatusResponse> {

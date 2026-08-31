@@ -1,4 +1,5 @@
 import type { BillingSnapshot } from "@/lib/api";
+import { isIllustrationBilling } from "@/lib/tenant-demo";
 
 export type PendingPaymentSubmission = {
   payment_kind?: string;
@@ -25,6 +26,10 @@ export function getSubscriptionPaymentGate(
   billing: BillingSnapshot | null | undefined,
   pendingSubmission?: PendingPaymentSubmission | null,
 ): SubscriptionPaymentGate {
+  if (isIllustrationBilling(billing)) {
+    return { blocked: false };
+  }
+
   if (!billing?.setup_fee_approved || !quarterlyBillingApplies(billing)) {
     return { blocked: false };
   }
@@ -93,6 +98,7 @@ export function isClinicBillingActive(
   billing: BillingSnapshot | null | undefined,
   pendingSubmission?: PendingPaymentSubmission | null,
 ): boolean {
+  if (isIllustrationBilling(billing)) return true;
   if (!billing?.setup_fee_approved) return false;
   if (isSubscriptionPaymentBlocking(billing, pendingSubmission)) return false;
   return true;

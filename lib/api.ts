@@ -61,6 +61,7 @@ export type BillingSnapshot = {
   payment_channel?: string;
   payment_transaction_ref?: string;
   ops_mode?: "online" | "offline" | string;
+  is_illustration?: boolean;
 };
 
 export const ROLE_HOME: Record<string, string> = {

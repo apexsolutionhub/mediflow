@@ -1,6 +1,6 @@
 import { api } from "@/lib/api";
 
-export type RenewalStatusValue = "active" | "pending" | "rejected" | "renewal_due" | "not_found";
+export type RenewalStatusValue = "active" | "pending" | "rejected" | "renewal_due" | "exempt" | "not_found";
 
 export type RenewalStatusResponse = {
   status: RenewalStatusValue;
@@ -9,6 +9,7 @@ export type RenewalStatusResponse = {
   clinic_tin?: string;
   quarterly_fee_etb?: number;
   rejection_reason?: string;
+  is_illustration?: boolean;
 };
 
 export async function fetchRenewalStatus(username: string): Promise<RenewalStatusResponse | null> {

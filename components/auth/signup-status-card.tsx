@@ -7,7 +7,7 @@ import { CheckCircle2, Clock3, Loader2, ShieldAlert, XCircle } from "lucide-reac
 import { toast } from "sonner";
 
 import { AUTH_BAND, AUTH_CARD } from "@/components/auth-shell";
-import CustomFormField, { formFieldTypes } from "@/components/customFormField";
+import { SignupPaymentSection } from "@/components/signup/SignupPaymentSection";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import {
   resubmitSetupPayment,
   type SignupStatusResponse,
 } from "@/lib/signup-api";
+import { isIllustrationSignupStatus } from "@/lib/tenant-demo";
 import {
   clearSignupPending,
   readSignupPending,
@@ -64,7 +65,7 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
     try {
       const next = await fetchSignupStatus(username);
       setStatus(next);
-      if (next.status === "approved") {
+      if (next.status === "approved" || isIllustrationSignupStatus(next)) {
         clearSignupPending();
       }
     } catch {
@@ -137,6 +138,7 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
 
   const clinicLabel = status?.clinic_name || pending?.clinic_name || "Your clinic";
   const setupFee = status?.setup_fee_etb;
+  const isExempt = isIllustrationSignupStatus(status);
 
   return (
     <Card className={cn("gap-0 py-0", AUTH_CARD)}>
@@ -146,14 +148,18 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
             <Loader2 className="size-8 animate-spin text-primary" />
             <p className="text-sm">Checking registration status…</p>
           </div>
-        ) : status?.status === "approved" ? (
+        ) : status?.status === "approved" || isExempt ? (
           <>
             <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
               <CheckCircle2 className="size-7" />
             </div>
-            <CardTitle className="text-primary">Clinic approved</CardTitle>
+            <CardTitle className="text-primary">
+              {isExempt ? "Demo clinic ready" : "Clinic approved"}
+            </CardTitle>
             <CardDescription className="text-[15px] leading-relaxed">
-              {clinicLabel} is active. You can sign in with your manager account now.
+              {isExempt
+                ? `${clinicLabel} is an illustration account for demos. No billing or Apex approval is required — sign in with your manager password.`
+                : `${clinicLabel} is active. You can sign in with your manager account now.`}
             </CardDescription>
           </>
         ) : status?.status === "rejected" ? (
@@ -212,22 +218,11 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
               </p>
             </div>
             <form className="grid gap-3.5" onSubmit={resubmitForm.handleSubmit(handleResubmit)}>
-              <CustomFormField
+              <SignupPaymentSection
                 control={resubmitForm.control}
-                name="payment_channel"
-                fieldType={formFieldTypes.SELECT}
-                label="Payment channel"
-                options={[
-                  { label: "Telebirr", value: "Telebirr" },
-                  { label: "Commercial Bank of Ethiopia", value: "Commercial Bank of Ethiopia" },
-                ]}
-              />
-              <CustomFormField
-                control={resubmitForm.control}
-                name="payment_transaction_ref"
-                fieldType={formFieldTypes.INPUT}
-                label="Transfer ID"
-                placeholder="At least 4 characters"
+                setValue={resubmitForm.setValue}
+                setupFeeETB={setupFee ?? 15000}
+                compact
               />
               <SubmitButton
                 size="lg"
@@ -249,7 +244,7 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
       </CardContent>
 
       <CardFooter className={cn("flex flex-col gap-2 px-8 py-5", AUTH_BAND)}>
-        {status?.status === "approved" ? (
+        {status?.status === "approved" || isExempt ? (
           <Button asChild className="h-11 w-full font-semibold">
             <Link href="/">Continue to sign in</Link>
           </Button>

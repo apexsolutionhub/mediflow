@@ -5,6 +5,7 @@ import {
   isClinicBillingActive,
 } from "@/lib/billing-access";
 import type { SignupStatusResponse } from "@/lib/signup-api";
+import { isIllustrationBilling, isIllustrationSignupStatus } from "@/lib/tenant-demo";
 
 export type LoginPayload = {
   access: string;
@@ -64,6 +65,14 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
     };
   }
 
+  if (isIllustrationBilling(billing)) {
+    return {
+      allowed: true,
+      destination: ROLE_HOME[role] || "/manager",
+      accessMode: "full",
+    };
+  }
+
   if (!billing?.setup_fee_approved) {
     return {
       allowed: false,
@@ -115,6 +124,13 @@ export function loginDecisionFromSignupStatus(
   username: string,
   status: SignupStatusResponse,
 ): LoginAccessDecision {
+  if (isIllustrationSignupStatus(status)) {
+    return {
+      allowed: true,
+      destination: "/",
+      accessMode: "full",
+    };
+  }
   if (status.status === "approved") {
     return {
       allowed: true,

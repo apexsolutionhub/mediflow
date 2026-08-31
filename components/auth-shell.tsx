@@ -4,8 +4,25 @@ import { cn } from "@/lib/utils";
 export const AUTH_CARD =
   "auth-shimmer relative w-full max-w-[28rem] overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-[0_24px_80px_-28px_rgba(30,58,138,0.35)] ring-1 ring-primary/10";
 
+export const AUTH_SIGNUP_CARD =
+  "auth-shimmer relative mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-primary/10 bg-white shadow-[0_24px_80px_-28px_rgba(30,58,138,0.35)] ring-1 ring-primary/10 transition-shadow duration-500 hover:shadow-[0_24px_80px_-24px_rgba(30,58,138,0.45)]";
+
 export const AUTH_BAND =
   "border-primary/10 bg-linear-to-r from-primary/10 via-white to-cta/10";
+
+export const AUTH_EYEBROW =
+  "text-[11px] font-medium tracking-[0.22em] text-cta uppercase";
+
+export const AUTH_TITLE = "font-heading text-primary";
+
+export const AUTH_SUBTITLE = "text-[15px] leading-relaxed text-muted-foreground";
+
+export const AUTH_MUTED = "text-muted-foreground";
+
+export const AUTH_LINK = "font-medium text-primary underline-offset-4 hover:underline";
+
+export const AUTH_BUTTON =
+  "bg-primary text-primary-foreground hover:bg-primary/90";
 
 export const AUTH_PANEL_NAVY =
   "rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-white to-primary/5 p-4";

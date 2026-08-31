@@ -34,6 +34,7 @@ import {
 } from "@/lib/api";
 import { isClinicSessionAllowed, renewalGatePath, signupGatePath } from "@/lib/tenant-access";
 import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
+import { isIllustrationBilling } from "@/lib/tenant-demo";
 import { cacheKey, fetchWithCache, invalidateCacheKey } from "@/lib/api-cache";
 import {
   pathAllowedForRole,
@@ -233,7 +234,7 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
           | { payment_kind?: string; status?: string; rejection_reason?: string }
           | null
           | undefined;
-        if (isSubscriptionPaymentBlocking(snapshot, pending)) {
+        if (isSubscriptionPaymentBlocking(snapshot, pending) && !isIllustrationBilling(snapshot)) {
           const current = readUser();
           clearSession();
           if (current?.username) {
@@ -264,7 +265,7 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
     const mode = localStorage.getItem("access_mode");
     const stored = readBilling();
 
-    if (stored && isSubscriptionPaymentBlocking(stored)) {
+    if (stored && isSubscriptionPaymentBlocking(stored) && !isIllustrationBilling(stored)) {
       clearSession();
       router.replace(renewalGatePath(current.username));
       return;
@@ -277,9 +278,10 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
     if (!isClinicSessionAllowed(stored, current)) {
       clearSession();
-      const destination = stored?.setup_fee_approved
-        ? renewalGatePath(current.username)
-        : signupGatePath(current.username);
+      const destination =
+        stored && (stored.setup_fee_approved || isIllustrationBilling(stored))
+          ? renewalGatePath(current.username)
+          : signupGatePath(current.username);
       router.replace(destination);
       return;
     }

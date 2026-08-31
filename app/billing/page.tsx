@@ -16,6 +16,7 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { api, clearSession, persistSession, readAccessMode, readBilling, readUser, updateBillingSession } from "@/lib/api";
 import type { BillingSnapshot } from "@/lib/api";
 import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
+import { isIllustrationBilling } from "@/lib/tenant-demo";
 import { billingAlertDescription, billingDueDateLabel } from "@/lib/billing-ui";
 import { saveRenewalPending } from "@/lib/renewal-pending";
 import { renewalGatePath } from "@/lib/tenant-access";
@@ -44,7 +45,12 @@ export default function BillingPage() {
     }
     const billingSnapshot = readBilling();
     const currentUser = readUser();
-    if (currentUser && billingSnapshot && !billingSnapshot.setup_fee_approved) {
+    if (
+      currentUser &&
+      billingSnapshot &&
+      !billingSnapshot.setup_fee_approved &&
+      !isIllustrationBilling(billingSnapshot)
+    ) {
       router.replace(`/signup?username=${encodeURIComponent(currentUser.username)}`);
       return;
     }
@@ -57,7 +63,7 @@ export default function BillingPage() {
           | null
           | undefined;
 
-        if (isSubscriptionPaymentBlocking(snapshot, pending)) {
+        if (isSubscriptionPaymentBlocking(snapshot, pending) && !isIllustrationBilling(snapshot)) {
           const currentUser = readUser();
           if (currentUser) {
             saveRenewalPending({
