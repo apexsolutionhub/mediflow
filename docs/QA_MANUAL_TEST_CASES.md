@@ -54,7 +54,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [x] AUTH-04
 - [x] AUTH-05
 - [x] AUTH-06
-- [ ] AUTH-07
+- [x] AUTH-07
 - [ ] AUTH-08
 - [ ] AUTH-09
 - [ ] AUTH-10
