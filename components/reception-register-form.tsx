@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -71,6 +72,7 @@ type FormValues = {
 export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalType }) {
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [registering, setRegistering] = useState(false);
   const meta = META[arrivalType];
   const registerForm = useForm<FormValues>({
     defaultValues: {
@@ -122,6 +124,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
   );
 
   const register = async (values: FormValues) => {
+    setRegistering(true);
     try {
       let patientId: string | number | undefined = values.patient_id;
       if (arrivalType !== "returning") {
@@ -161,6 +164,8 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
       router.push("/reception");
     } catch {
       toast.error("Registration failed");
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -368,13 +373,14 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
 
             <Separator className="bg-primary/8" />
 
-            <Button
-              type="submit"
+            <SubmitButton
               size="lg"
               className={cn("h-11 w-full rounded-xl font-semibold sm:w-auto", ctaButtonClass)}
+              loading={registering}
+              loadingLabel="Opening encounter…"
             >
               {meta.submit}
-            </Button>
+            </SubmitButton>
           </FieldGroup>
         </form>
       </SectionCard>

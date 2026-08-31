@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ctaButtonClass,
@@ -22,6 +22,7 @@ import { type EquipmentTicket } from "@/lib/clinic";
 
 export default function LabEquipmentPage() {
   const [tickets, setTickets] = useState<EquipmentTicket[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const ticketForm = useForm({
     defaultValues: { title: "", details: "" },
   });
@@ -60,10 +61,15 @@ export default function LabEquipmentPage() {
           <form
             className="grid gap-4"
             onSubmit={ticketForm.handleSubmit(async (values) => {
-              await api.post("/clinic/tickets/", values);
-              toast.success("Request sent to manager");
-              ticketForm.reset();
-              await load();
+              setSubmitting(true);
+              try {
+                await api.post("/clinic/tickets/", values);
+                toast.success("Request sent to manager");
+                ticketForm.reset();
+                await load();
+              } finally {
+                setSubmitting(false);
+              }
             })}
           >
             <CustomFormField
@@ -79,10 +85,10 @@ export default function LabEquipmentPage() {
               fieldType={formFieldTypes.TEXTAREA}
               label="Details"
             />
-            <Button type="submit" className={ctaButtonClass}>
+            <SubmitButton className={ctaButtonClass} loading={submitting} loadingLabel="Submitting…">
               <Send className="size-4" />
               Submit to manager
-            </Button>
+            </SubmitButton>
           </form>
         </SectionCard>
 

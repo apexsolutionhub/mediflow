@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/submit-button";
 import {
   EmptyState,
   QueueItem,
@@ -19,6 +20,8 @@ import { type ClinicalOrder, orderTone } from "@/lib/clinic";
 export default function LabQueuePage() {
   const [queue, setQueue] = useState<ClinicalOrder[]>([]);
   const [resultDraft, setResultDraft] = useState<Record<number, string>>({});
+  const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
+  const [busyAction, setBusyAction] = useState<"start" | "complete" | null>(null);
 
   const load = useCallback(async () => {
     const orders = await api.get("/clinic/orders/", {
@@ -112,21 +115,30 @@ export default function LabQueuePage() {
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {order.status === "PaymentApproved" ? (
-                    <Button
+                    <LoadingButton
                       size="sm"
                       className="shadow-sm"
+                      loading={busyOrderId === order.id && busyAction === "start"}
+                      loadingLabel="Starting…"
                       onClick={async () => {
-                        await api.post(`/clinic/orders/${order.id}/start/`);
-                        toast.success(
-                          order.order_type === "lab"
-                            ? "Sample / test started"
-                            : "Imaging started",
-                        );
-                        await load();
+                        setBusyOrderId(order.id);
+                        setBusyAction("start");
+                        try {
+                          await api.post(`/clinic/orders/${order.id}/start/`);
+                          toast.success(
+                            order.order_type === "lab"
+                              ? "Sample / test started"
+                              : "Imaging started",
+                          );
+                          await load();
+                        } finally {
+                          setBusyOrderId(null);
+                          setBusyAction(null);
+                        }
                       }}
                     >
                       {order.order_type === "lab" ? "Collect / start" : "Start imaging"}
-                    </Button>
+                    </LoadingButton>
                   ) : null}
                   {(order.status === "InProgress" || order.status === "PaymentApproved") && (
                     <>
@@ -138,20 +150,29 @@ export default function LabQueuePage() {
                           setResultDraft((prev) => ({ ...prev, [order.id]: e.target.value }))
                         }
                       />
-                      <Button
+                      <LoadingButton
                         size="sm"
                         variant="outline"
                         className="border-primary/15 bg-white shadow-sm hover:bg-primary/5"
+                        loading={busyOrderId === order.id && busyAction === "complete"}
+                        loadingLabel="Sending…"
                         onClick={async () => {
-                          await api.post(`/clinic/orders/${order.id}/complete/`, {
-                            result_text: resultDraft[order.id] || order.result_text || "",
-                          });
-                          toast.success("Result forwarded to doctor");
-                          await load();
+                          setBusyOrderId(order.id);
+                          setBusyAction("complete");
+                          try {
+                            await api.post(`/clinic/orders/${order.id}/complete/`, {
+                              result_text: resultDraft[order.id] || order.result_text || "",
+                            });
+                            toast.success("Result forwarded to doctor");
+                            await load();
+                          } finally {
+                            setBusyOrderId(null);
+                            setBusyAction(null);
+                          }
                         }}
                       >
                         Complete & send
-                      </Button>
+                      </LoadingButton>
                     </>
                   )}
                   {(order.result_text || resultDraft[order.id]) && (

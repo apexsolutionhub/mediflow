@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Tooltip,
   TooltipContent,
@@ -400,11 +401,12 @@ export default function ManagerInventoryPage() {
                   Cancel edit
                 </Button>
               ) : null}
-              <Button
-                type="submit"
+              <SubmitButton
                 size="lg"
                 disabled={savingMedicine}
                 className={cn("w-full sm:w-auto", ctaButtonClass)}
+                loading={savingMedicine}
+                loadingLabel={editingMedicineId ? "Updating…" : "Saving…"}
               >
                 {editingMedicineId ? (
                   <>
@@ -417,7 +419,7 @@ export default function ManagerInventoryPage() {
                     Save medicine
                   </>
                 )}
-              </Button>
+              </SubmitButton>
             </div>
           </form>
         </SectionCard>

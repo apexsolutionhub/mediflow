@@ -9,6 +9,7 @@ import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SelectedVisitBanner } from "@/components/selected-visit-banner";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   ctaButtonClass,
   EmptyState,
@@ -30,6 +31,7 @@ const ORDER_ICONS = {
 export default function DoctorOrdersPage() {
   const { current, load } = useEncounterBoard("doctor");
   const [services, setServices] = useState<BillableService[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const orderForm = useForm({
     defaultValues: { order_type: "lab", details: "", service: "" },
   });
@@ -71,15 +73,20 @@ export default function DoctorOrdersPage() {
             <form
               className="grid gap-4"
               onSubmit={orderForm.handleSubmit(async (values) => {
-                await api.post("/clinic/orders/", {
-                  encounter: current.id,
-                  order_type: values.order_type,
-                  details: values.details,
-                  service: values.service || undefined,
-                });
-                toast.success("Order sent — awaiting reception payment");
-                orderForm.reset({ order_type: values.order_type, details: "", service: "" });
-                await load();
+                setSubmitting(true);
+                try {
+                  await api.post("/clinic/orders/", {
+                    encounter: current.id,
+                    order_type: values.order_type,
+                    details: values.details,
+                    service: values.service || undefined,
+                  });
+                  toast.success("Order sent — awaiting reception payment");
+                  orderForm.reset({ order_type: values.order_type, details: "", service: "" });
+                  await load();
+                } finally {
+                  setSubmitting(false);
+                }
               })}
             >
               <CustomFormField
@@ -109,10 +116,10 @@ export default function DoctorOrdersPage() {
                 fieldType={formFieldTypes.TEXTAREA}
                 label="Clinical details"
               />
-              <Button type="submit" className={ctaButtonClass}>
+              <SubmitButton className={ctaButtonClass} loading={submitting} loadingLabel="Sending…">
                 <Plus className="size-4" />
                 Create order
-              </Button>
+              </SubmitButton>
             </form>
           </SectionCard>
 

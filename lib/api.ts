@@ -28,6 +28,17 @@ export type ClinicUser = {
   is_active?: boolean;
 };
 
+export type PendingPaymentSubmission = {
+  id?: number;
+  payment_kind?: string;
+  amount_etb?: number;
+  payment_channel?: string;
+  transaction_ref?: string;
+  status?: string;
+  rejection_reason?: string;
+  submitted_at?: string;
+};
+
 export type BillingSnapshot = {
   clinic_tin: string;
   clinic_name: string;
@@ -38,6 +49,9 @@ export type BillingSnapshot = {
   setup_fee_approved: boolean;
   subscription_payment_approved?: boolean;
   period_status: string;
+  account_status?: string;
+  setup_rejection_reason?: string;
+  subscription_rejection_reason?: string;
   subscription_paid_until: string | null;
   free_trial_ends_at: string | null;
   due_at?: string | null;

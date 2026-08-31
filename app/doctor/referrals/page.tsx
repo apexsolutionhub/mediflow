@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SelectedVisitBanner } from "@/components/selected-visit-banner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
 import { api } from "@/lib/api";
 import { type Department } from "@/lib/clinic";
@@ -18,6 +18,7 @@ import { useEncounterBoard } from "@/hooks/use-encounter-board";
 export default function DoctorReferralsPage() {
   const { current } = useEncounterBoard("doctor");
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [submitting, setSubmitting] = useState(false);
   const referralForm = useForm({
     defaultValues: { to_department: "", to_branch: "", diagnosis: "", lab_summary: "" },
   });
@@ -51,15 +52,20 @@ export default function DoctorReferralsPage() {
           <form
             className="grid gap-4"
             onSubmit={referralForm.handleSubmit(async (values) => {
-              await api.post("/clinic/referrals/", {
-                encounter: current.id,
-                to_department: values.to_department,
-                to_branch: values.to_branch,
-                diagnosis: values.diagnosis || current.chart?.diagnosis || "",
-                lab_summary: values.lab_summary,
-              });
-              toast.success("Referral recorded");
-              referralForm.reset();
+              setSubmitting(true);
+              try {
+                await api.post("/clinic/referrals/", {
+                  encounter: current.id,
+                  to_department: values.to_department,
+                  to_branch: values.to_branch,
+                  diagnosis: values.diagnosis || current.chart?.diagnosis || "",
+                  lab_summary: values.lab_summary,
+                });
+                toast.success("Referral recorded");
+                referralForm.reset();
+              } finally {
+                setSubmitting(false);
+              }
             })}
           >
             <CustomFormField
@@ -91,10 +97,10 @@ export default function DoctorReferralsPage() {
               fieldType={formFieldTypes.TEXTAREA}
               label="Lab / radiology summary"
             />
-            <Button type="submit" className={ctaButtonClass}>
+            <SubmitButton className={ctaButtonClass} loading={submitting} loadingLabel="Sending…">
               <Send className="size-4" />
               Create referral
-            </Button>
+            </SubmitButton>
           </form>
         </SectionCard>
       ) : null}

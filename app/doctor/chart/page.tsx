@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { FileText, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -8,13 +8,14 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SelectedVisitBanner } from "@/components/selected-visit-banner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { ctaButtonClass, QueueItem, SectionCard, StatusPill } from "@/components/ui-chrome";
 import { api } from "@/lib/api";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 
 export default function DoctorChartPage() {
   const { current, load } = useEncounterBoard("doctor");
+  const [saving, setSaving] = useState(false);
   const chartForm = useForm({
     defaultValues: {
       chief_complaint: "",
@@ -53,9 +54,15 @@ export default function DoctorChartPage() {
             <form
               className="grid gap-4"
               onSubmit={chartForm.handleSubmit(async (values) => {
-                await api.post("/clinic/charts/", { encounter: current.id, ...values });
-                toast.success("Chart saved");
-                await load();
+                if (!current) return;
+                setSaving(true);
+                try {
+                  await api.post("/clinic/charts/", { encounter: current.id, ...values });
+                  toast.success("Chart saved");
+                  await load();
+                } finally {
+                  setSaving(false);
+                }
               })}
             >
               <CustomFormField
@@ -88,10 +95,10 @@ export default function DoctorChartPage() {
                 fieldType={formFieldTypes.TEXTAREA}
                 label="Treatment plan (optional printable)"
               />
-              <Button type="submit" className={ctaButtonClass}>
+              <SubmitButton className={ctaButtonClass} loading={saving} loadingLabel="Saving…">
                 <Save className="size-4" />
                 Save chart
-              </Button>
+              </SubmitButton>
             </form>
           </SectionCard>
 

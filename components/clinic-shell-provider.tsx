@@ -32,6 +32,8 @@ import {
   type BillingSnapshot,
   type ClinicUser,
 } from "@/lib/api";
+import { isClinicSessionAllowed, renewalGatePath, signupGatePath } from "@/lib/tenant-access";
+import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
 import { cacheKey, fetchWithCache, invalidateCacheKey } from "@/lib/api-cache";
 import {
   pathAllowedForRole,
@@ -227,6 +229,20 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
         );
         const snapshot = data.billing as BillingSnapshot;
         applyBillingSnapshot(snapshot, String(data.access_mode || "full"));
+        const pending = data.pending_submission as
+          | { payment_kind?: string; status?: string; rejection_reason?: string }
+          | null
+          | undefined;
+        if (isSubscriptionPaymentBlocking(snapshot, pending)) {
+          const current = readUser();
+          clearSession();
+          if (current?.username) {
+            router.replace(renewalGatePath(current.username));
+          } else {
+            router.replace("/");
+          }
+          return data;
+        }
         if (data.access_mode === "payment_portal") {
           router.replace("/billing");
         }
@@ -246,12 +262,28 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
     }
 
     const mode = localStorage.getItem("access_mode");
+    const stored = readBilling();
+
+    if (stored && isSubscriptionPaymentBlocking(stored)) {
+      clearSession();
+      router.replace(renewalGatePath(current.username));
+      return;
+    }
+
     if (mode === "payment_portal") {
       router.replace("/billing");
       return;
     }
 
-    const stored = readBilling();
+    if (!isClinicSessionAllowed(stored, current)) {
+      clearSession();
+      const destination = stored?.setup_fee_approved
+        ? renewalGatePath(current.username)
+        : signupGatePath(current.username);
+      router.replace(destination);
+      return;
+    }
+
     if (stored) {
       setBilling(stored);
       setOpsModeLabel(CLINIC_OPS_MODE_SHORT_LABELS[parseClinicOpsMode(stored.ops_mode)]);

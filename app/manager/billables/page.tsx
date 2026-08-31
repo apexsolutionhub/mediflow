@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -184,6 +185,7 @@ export default function ManagerBillablesPage() {
   const [pendingDeleteService, setPendingDeleteService] = useState<BillableService | null>(null);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
   const [savingService, setSavingService] = useState(false);
+  const [addingDept, setAddingDept] = useState(false);
   const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
 
@@ -474,6 +476,7 @@ export default function ManagerBillablesPage() {
           <form
             className="grid gap-5"
             onSubmit={deptForm.handleSubmit(async (values) => {
+              setAddingDept(true);
               try {
                 await api.post("/clinic/departments/", values);
                 toast.success("Department added");
@@ -489,6 +492,8 @@ export default function ManagerBillablesPage() {
                       "Could not add department",
                   ),
                 );
+              } finally {
+                setAddingDept(false);
               }
             })}
           >
@@ -512,10 +517,15 @@ export default function ManagerBillablesPage() {
               placeholder="e.g. Consultation"
             />
 
-            <Button type="submit" variant="outline" className="h-11 w-full rounded-xl sm:w-auto">
+            <SubmitButton
+              variant="outline"
+              className="h-11 w-full rounded-xl sm:w-auto"
+              loading={addingDept}
+              loadingLabel="Adding…"
+            >
               <Building2 className="size-4" />
               Add department
-            </Button>
+            </SubmitButton>
           </form>
         </SectionCard>
 
@@ -842,11 +852,12 @@ export default function ManagerBillablesPage() {
                     Cancel edit
                   </Button>
                 ) : null}
-                <Button
-                  type="submit"
+                <SubmitButton
                   size="lg"
                   disabled={savingService}
                   className={cn("w-full sm:w-auto", ctaButtonClass)}
+                  loading={savingService}
+                  loadingLabel={editingServiceId ? "Updating…" : "Saving…"}
                 >
                   {editingServiceId ? (
                     <>
@@ -859,7 +870,7 @@ export default function ManagerBillablesPage() {
                       Save service
                     </>
                   )}
-                </Button>
+                </SubmitButton>
               </div>
             </form>
           )}

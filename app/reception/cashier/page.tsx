@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { CreditCard, Receipt, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SelectedVisitBanner } from "@/components/selected-visit-banner";
-import { Button } from "@/components/ui/button";
+import { LoadingButton, SubmitButton } from "@/components/ui/submit-button";
 import {
   ctaButtonClass,
   EmptyState,
@@ -23,6 +23,8 @@ import { invalidateEncounterBoardCache, useEncounterBoard } from "@/hooks/use-en
 
 export default function ReceptionCashierPage() {
   const { current, load } = useEncounterBoard("today");
+  const [approving, setApproving] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
   const payForm = useForm({ defaultValues: { amount: 0, tender_method: "cash" } });
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export default function ReceptionCashierPage() {
 
   const approvePay = async (values: { amount: number; tender_method: string }) => {
     if (!current) return;
+    setApproving(true);
     try {
       await api.post("/clinic/payments/approve/", {
         encounter: current.id,
@@ -48,11 +51,14 @@ export default function ReceptionCashierPage() {
             "Payment failed",
         ),
       );
+    } finally {
+      setApproving(false);
     }
   };
 
   const checkout = async () => {
     if (!current) return;
+    setCheckingOut(true);
     try {
       await api.post(`/clinic/encounters/${current.id}/checkout/`);
       toast.success("Patient checked out");
@@ -65,6 +71,8 @@ export default function ReceptionCashierPage() {
             "Checkout blocked",
         ),
       );
+    } finally {
+      setCheckingOut(false);
     }
   };
 
@@ -142,21 +150,23 @@ export default function ReceptionCashierPage() {
                     { label: "Mixed", value: "mixed" },
                   ]}
                 />
-                <Button type="submit" className={ctaButtonClass}>
+                <SubmitButton className={ctaButtonClass} loading={approving} loadingLabel="Approving…">
                   <Wallet className="size-4" />
                   Approve payment
-                </Button>
+                </SubmitButton>
               </form>
-              <Button
+              <LoadingButton
                 type="button"
                 variant="outline"
                 className="mt-4 h-11 w-full rounded-xl"
                 onClick={() => void checkout()}
                 disabled={current.status === "closed"}
+                loading={checkingOut}
+                loadingLabel="Checking out…"
               >
                 <Receipt className="size-4" />
                 Checkout patient
-              </Button>
+              </LoadingButton>
               <div className="mt-4 flex items-center gap-2 rounded-2xl border border-primary/10 bg-slate-50/80 px-4 py-3 text-xs text-muted-foreground">
                 <CreditCard className="size-4 shrink-0 text-primary/70" />
                 Checkout is blocked until all required billables are approved.

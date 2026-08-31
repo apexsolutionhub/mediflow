@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import {
   Tooltip,
   TooltipContent,
@@ -99,6 +100,7 @@ function roleTone(role: string): "navy" | "orange" | "green" | "muted" {
 
 export default function ManagerStaffPage() {
   const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingDelete, setPendingDelete] = useState<StaffRow | null>(null);
   const staffForm = useForm<StaffFormValues>({
@@ -165,6 +167,7 @@ export default function ManagerStaffPage() {
       return;
     }
     try {
+      setCreating(true);
       await api.post("/user/", {
         username: values.username,
         password: values.password,
@@ -185,6 +188,8 @@ export default function ManagerStaffPage() {
       toast.error(
         String(detail?.role?.[0] || detail?.detail || "Could not create staff"),
       );
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -373,10 +378,15 @@ export default function ManagerStaffPage() {
                   </div>
                 </div>
 
-                <Button type="submit" size="lg" className={cn("w-full sm:w-auto", ctaButtonClass)}>
+                <SubmitButton
+                  size="lg"
+                  className={cn("w-full sm:w-auto", ctaButtonClass)}
+                  loading={creating}
+                  loadingLabel="Creating…"
+                >
                   <KeyRound className="size-4" />
                   Create staff credential
-                </Button>
+                </SubmitButton>
               </form>
             )}
           </div>

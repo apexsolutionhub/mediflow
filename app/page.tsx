@@ -14,16 +14,18 @@ import {
   AuthShell,
 } from "@/components/auth-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { ROLE_HOME, api, persistSession } from "@/lib/api";
+import { fetchSignupStatus } from "@/lib/signup-api";
+import { saveSignupPending } from "@/lib/signup-pending";
+import { saveRenewalPending } from "@/lib/renewal-pending";
+import {
+  evaluateLoginAccess,
+  gatePathForLoginDecision,
+  loginDecisionFromSignupStatus,
+  type LoginPayload,
+} from "@/lib/tenant-access";
 import { cn } from "@/lib/utils";
 
 type LoginValues = { username: string; password: string };
@@ -38,18 +40,71 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post("/auth/login/", {
-        username: values.username,
+      const username = values.username.trim();
+
+      let signupStatus = null;
+      try {
+        signupStatus = await fetchSignupStatus(username);
+      } catch {
+        signupStatus = null;
+      }
+
+      if (signupStatus && signupStatus.status !== "approved") {
+        const blocked = loginDecisionFromSignupStatus(username, signupStatus);
+        if (!blocked.allowed) {
+          saveSignupPending({
+            username,
+            clinic_name: signupStatus.clinic_name || "",
+            clinic_tin: signupStatus.clinic_tin,
+            submitted_at: new Date().toISOString(),
+          });
+          setError(blocked.message);
+          const gatePath = gatePathForLoginDecision(blocked);
+          if (gatePath !== "/") {
+            router.push(gatePath);
+          }
+          return;
+        }
+      }
+
+      const { data } = await api.post<LoginPayload>("/auth/login/", {
+        username,
         password: values.password,
       });
-      persistSession(data);
-      toast.success("Signed in");
-      if (data.access_mode === "payment_portal") {
-        router.push("/billing");
+
+      const decision = evaluateLoginAccess(data);
+      if (!decision.allowed) {
+        if (signupStatus) {
+          saveSignupPending({
+            username,
+            clinic_name: signupStatus.clinic_name || data.user?.clinic_name || "",
+            clinic_tin: signupStatus.clinic_tin || data.user?.clinic_tin,
+            submitted_at: new Date().toISOString(),
+          });
+        }
+        if (
+          decision.code === "quarterly_pending" ||
+          decision.code === "quarterly_rejected"
+        ) {
+          saveRenewalPending({
+            username,
+            clinic_name: data.user?.clinic_name || signupStatus?.clinic_name || "",
+            clinic_tin: data.user?.clinic_tin || signupStatus?.clinic_tin,
+            phase: decision.code === "quarterly_rejected" ? "rejected" : "pending",
+            submitted_at: new Date().toISOString(),
+          });
+        }
+        setError(decision.message);
+        const gatePath = gatePathForLoginDecision(decision);
+        if (gatePath !== "/") {
+          router.push(gatePath);
+        }
         return;
       }
-      const role = String(data.user?.role || "").toLowerCase();
-      router.push(ROLE_HOME[role] || "/manager");
+
+      persistSession(data);
+      toast.success("Signed in");
+      router.push(decision.destination);
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
@@ -69,7 +124,8 @@ export default function LoginPage() {
           </p>
           <CardTitle className="font-heading text-[1.65rem] text-primary">Welcome back</CardTitle>
           <CardDescription className="text-[15px] leading-relaxed">
-            Sign in with your staff username and password to open your terminal.
+            Sign in with your staff username and password. Sign-in stays disabled until Apex
+            approves setup or quarterly renewal payments.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-8 pt-4 pb-5">
@@ -98,9 +154,14 @@ export default function LoginPage() {
                 {error}
               </div>
             ) : null}
-            <Button type="submit" size="lg" disabled={loading} className="h-11 w-full font-semibold tracking-wide">
-              {loading ? "Signing in…" : "Sign in"}
-            </Button>
+            <SubmitButton
+              size="lg"
+              className="h-11 w-full font-semibold tracking-wide"
+              loading={loading}
+              loadingLabel="Signing in…"
+            >
+              Sign in
+            </SubmitButton>
           </form>
         </CardContent>
         <CardFooter className={cn("justify-center border-t px-8 py-4", AUTH_BAND)}>

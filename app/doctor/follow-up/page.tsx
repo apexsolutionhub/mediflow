@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { CalendarDays } from "lucide-react";
 import { toast } from "sonner";
@@ -7,7 +8,7 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SelectedVisitBanner } from "@/components/selected-visit-banner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { FieldGroup } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
@@ -22,6 +23,7 @@ type FollowUpFormValues = {
 
 export default function DoctorFollowUpPage() {
   const { current } = useEncounterBoard("doctor");
+  const [scheduling, setScheduling] = useState(false);
   const apptForm = useForm<FollowUpFormValues>({
     defaultValues: { scheduled_at: null, reason: "Follow-up" },
   });
@@ -45,6 +47,7 @@ export default function DoctorFollowUpPage() {
                 toast.error("Pick a date and time");
                 return;
               }
+              setScheduling(true);
               try {
                 await api.post("/clinic/appointments/", {
                   patient: current.patient.id,
@@ -55,6 +58,8 @@ export default function DoctorFollowUpPage() {
                 apptForm.reset({ scheduled_at: null, reason: "Follow-up" });
               } catch {
                 toast.error("Could not schedule appointment");
+              } finally {
+                setScheduling(false);
               }
             })}
           >
@@ -74,10 +79,14 @@ export default function DoctorFollowUpPage() {
                 label="Reason"
               />
               <Separator className="bg-primary/8" />
-              <Button type="submit" className={cn("h-11 rounded-xl", ctaButtonClass)}>
+              <SubmitButton
+                className={cn("h-11 rounded-xl", ctaButtonClass)}
+                loading={scheduling}
+                loadingLabel="Scheduling…"
+              >
                 <CalendarDays className="size-4" />
                 Schedule follow-up
-              </Button>
+              </SubmitButton>
             </FieldGroup>
           </form>
         </SectionCard>

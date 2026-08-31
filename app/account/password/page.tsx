@@ -1,12 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { KeyRound, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
 import { api } from "@/lib/api";
 
@@ -17,6 +18,7 @@ type PasswordForm = {
 };
 
 export default function AccountPasswordPage() {
+  const [saving, setSaving] = useState(false);
   const form = useForm<PasswordForm>({
     defaultValues: {
       old_password: "",
@@ -35,6 +37,7 @@ export default function AccountPasswordPage() {
       return;
     }
     try {
+      setSaving(true);
       await api.post("/user/change_password/", {
         old_password: values.old_password,
         new_password: values.new_password,
@@ -45,6 +48,8 @@ export default function AccountPasswordPage() {
       const data = (error as { response?: { data?: { old_password?: string[]; detail?: string } } })
         ?.response?.data;
       toast.error(String(data?.old_password?.[0] || data?.detail || "Could not update password"));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -87,10 +92,10 @@ export default function AccountPasswordPage() {
             type="password"
             label="Confirm new password"
           />
-          <Button type="submit" size="lg" className={ctaButtonClass}>
+          <SubmitButton size="lg" className={ctaButtonClass} loading={saving} loadingLabel="Updating…">
             <KeyRound className="size-4" />
             Update password
-          </Button>
+          </SubmitButton>
         </form>
       </SectionCard>
     </ClinicShell>

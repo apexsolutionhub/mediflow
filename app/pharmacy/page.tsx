@@ -5,7 +5,7 @@ import { Package2, Pill } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
-import { Button } from "@/components/ui/button";
+import { LoadingButton } from "@/components/ui/submit-button";
 import {
   EmptyState,
   QueueItem,
@@ -21,6 +21,7 @@ export default function PharmacyQueuePage() {
   const [queue, setQueue] = useState<ClinicalOrder[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [pick, setPick] = useState<Record<number, { medicine: string; quantity: string }>>({});
+  const [dispensingId, setDispensingId] = useState<number | null>(null);
 
   const load = useCallback(async (forceMeds = false) => {
     const [rx, meds] = await Promise.all([
@@ -126,13 +127,16 @@ export default function PharmacyQueuePage() {
                         }
                       />
                     </label>
-                    <Button
+                    <LoadingButton
                       className="shadow-sm"
+                      loading={dispensingId === order.id}
+                      loadingLabel="Dispensing…"
                       onClick={async () => {
                         if (!sel.medicine) {
                           toast.error("Pick a medicine");
                           return;
                         }
+                        setDispensingId(order.id);
                         try {
                           await api.post(`/clinic/orders/${order.id}/dispense/`, {
                             medicine: Number(sel.medicine),
@@ -147,11 +151,13 @@ export default function PharmacyQueuePage() {
                                 ?.response?.data?.detail || "Dispense failed",
                             ),
                           );
+                        } finally {
+                          setDispensingId(null);
                         }
                       }}
                     >
                       Dispense / stock-out
-                    </Button>
+                    </LoadingButton>
                   </div>
                 </QueueItem>
               );

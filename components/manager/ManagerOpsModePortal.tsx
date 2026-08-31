@@ -525,7 +525,14 @@ export function ManagerOpsModePortal() {
                 void handleSubmit();
               }}
             >
-              {submitting ? "Please wait…" : "Submit to Apex"}
+              {submitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Submitting…
+                </>
+              ) : (
+                "Submit to Apex"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

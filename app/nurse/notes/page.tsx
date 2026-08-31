@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Activity, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -7,13 +8,14 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SelectedVisitBanner } from "@/components/selected-visit-banner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
 import { api } from "@/lib/api";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 
 export default function NurseNotesPage() {
   const { current, load } = useEncounterBoard("nurse");
+  const [saving, setSaving] = useState(false);
   const noteForm = useForm({
     defaultValues: {
       note_type: "assessment",
@@ -41,27 +43,32 @@ export default function NurseNotesPage() {
           <form
             className="grid gap-4"
             onSubmit={noteForm.handleSubmit(async (values) => {
-              const vitals: Record<string, string> = {};
-              if (values.bp) vitals.bp = values.bp;
-              if (values.pulse) vitals.pulse = values.pulse;
-              if (values.temp) vitals.temp = values.temp;
-              if (values.spo2) vitals.spo2 = values.spo2;
-              await api.post("/clinic/nurse-notes/", {
-                encounter: current.id,
-                note_type: values.note_type,
-                content: values.content,
-                vitals,
-              });
-              toast.success("Nursing note saved");
-              noteForm.reset({
-                note_type: values.note_type,
-                content: "",
-                bp: "",
-                pulse: "",
-                temp: "",
-                spo2: "",
-              });
-              await load();
+              setSaving(true);
+              try {
+                const vitals: Record<string, string> = {};
+                if (values.bp) vitals.bp = values.bp;
+                if (values.pulse) vitals.pulse = values.pulse;
+                if (values.temp) vitals.temp = values.temp;
+                if (values.spo2) vitals.spo2 = values.spo2;
+                await api.post("/clinic/nurse-notes/", {
+                  encounter: current.id,
+                  note_type: values.note_type,
+                  content: values.content,
+                  vitals,
+                });
+                toast.success("Nursing note saved");
+                noteForm.reset({
+                  note_type: values.note_type,
+                  content: "",
+                  bp: "",
+                  pulse: "",
+                  temp: "",
+                  spo2: "",
+                });
+                await load();
+              } finally {
+                setSaving(false);
+              }
             })}
           >
             <CustomFormField
@@ -116,10 +123,10 @@ export default function NurseNotesPage() {
               fieldType={formFieldTypes.TEXTAREA}
               label="Notes"
             />
-            <Button type="submit" className={ctaButtonClass}>
+            <SubmitButton className={ctaButtonClass} loading={saving} loadingLabel="Saving…">
               <Save className="size-4" />
               Save note
-            </Button>
+            </SubmitButton>
           </form>
         </SectionCard>
       ) : null}
