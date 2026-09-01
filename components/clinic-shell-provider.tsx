@@ -37,7 +37,7 @@ import {
 } from "@/lib/api";
 import { isClinicSessionAllowed, renewalGatePath, sessionRecoveryPath, signupGatePath } from "@/lib/tenant-access";
 import { requiresSetupPaymentPortal } from "@/lib/tenantProvisioning";
-import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
+import { isSetupPaymentBlocking, isSubscriptionPaymentBlocking } from "@/lib/billing-access";
 import { applyCatalogFeesToBilling } from "@/lib/billing-fees";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
 import { cacheKey, fetchWithCache, invalidateCacheKey } from "@/lib/api-cache";
@@ -263,6 +263,16 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
           | { payment_kind?: string; status?: string; rejection_reason?: string }
           | null
           | undefined;
+        if (isSetupPaymentBlocking(snapshot, pending) && !isIllustrationBilling(snapshot)) {
+          const current = readUser();
+          clearSession();
+          if (current?.username) {
+            router.replace(signupGatePath(current.username));
+          } else {
+            router.replace("/");
+          }
+          return data;
+        }
         if (isSubscriptionPaymentBlocking(snapshot, pending) && !isIllustrationBilling(snapshot)) {
           const current = readUser();
           clearSession();
@@ -297,6 +307,12 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
     if (stored && (stored.billing_hold || stored.period_status === "on_hold")) {
       clearSession();
       router.replace("/");
+      return;
+    }
+
+    if (stored && isSetupPaymentBlocking(stored) && !isIllustrationBilling(stored)) {
+      clearSession();
+      router.replace(signupGatePath(current.username));
       return;
     }
 

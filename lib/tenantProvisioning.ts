@@ -46,6 +46,13 @@ export function isActiveFreeTrialBilling(
   billing: BillingSnapshot | null | undefined,
 ): boolean {
   if (!billing || isFreeTrialEndedBilling(billing)) return false;
+  if (
+    !billing.setup_fee_approved &&
+    !isIllustrationBilling(billing) &&
+    !isApexProvisionedBilling(billing)
+  ) {
+    return false;
+  }
   const status = billing.period_status;
   return status === "trial" || status === "trial_ending";
 }

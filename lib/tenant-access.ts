@@ -1,6 +1,7 @@
 import type { BillingSnapshot, ClinicUser, PendingPaymentSubmission } from "@/lib/api";
 import { ROLE_HOME } from "@/lib/api";
 import {
+  getSetupPaymentGate,
   getSubscriptionPaymentGate,
   isClinicBillingActive,
 } from "@/lib/billing-access";
@@ -93,14 +94,6 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
     };
   }
 
-  if (isActiveFreeTrialBilling(billing)) {
-    return {
-      allowed: true,
-      destination: ROLE_HOME[role] || "/manager",
-      accessMode: payload.access_mode || "full",
-    };
-  }
-
   if (requiresSetupPaymentPortal(billing)) {
     if (role === "manager") {
       return {
@@ -115,6 +108,25 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
       message:
         "The free trial has ended. Staff sign-in is disabled until your manager submits and Apex approves the setup fee.",
       username: user.username,
+    };
+  }
+
+  const setupGate = getSetupPaymentGate(billing, payload.pending_submission);
+  if (setupGate.blocked) {
+    return {
+      allowed: false,
+      code: setupGate.phase === "rejected" ? "setup_rejected" : "setup_pending",
+      message: setupGate.message,
+      username: user.username,
+      rejectionReason: setupGate.rejectionReason,
+    };
+  }
+
+  if (isActiveFreeTrialBilling(billing)) {
+    return {
+      allowed: true,
+      destination: ROLE_HOME[role] || "/manager",
+      accessMode: payload.access_mode || "full",
     };
   }
 
@@ -178,6 +190,21 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
     destination: ROLE_HOME[role] || "/manager",
     accessMode: payload.access_mode || "full",
   };
+}
+
+export function mergeLoginAccessWithSignupStatus(
+  decision: LoginAccessDecision,
+  username: string,
+  signupStatus: SignupStatusResponse | null,
+): LoginAccessDecision {
+  if (!signupStatus || isIllustrationSignupStatus(signupStatus)) {
+    return decision;
+  }
+  const statusDecision = loginDecisionFromSignupStatus(username, signupStatus);
+  if (!statusDecision.allowed) {
+    return statusDecision;
+  }
+  return decision;
 }
 
 export function loginDecisionFromSignupStatus(

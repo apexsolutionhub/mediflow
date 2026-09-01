@@ -22,8 +22,77 @@ export type SubscriptionPaymentGate =
       rejectionReason?: string;
     };
 
+export type SetupPaymentGate =
+  | { blocked: false }
+  | {
+      blocked: true;
+      phase: "pending" | "rejected";
+      message: string;
+      rejectionReason?: string;
+    };
+
 function quarterlyBillingApplies(billing: BillingSnapshot): boolean {
   return Number(billing.quarterly_fee_etb || 0) > 0;
+}
+
+function setupFeeApplies(billing: BillingSnapshot): boolean {
+  return Number(billing.setup_fee_etb || 0) > 0;
+}
+
+/** Self-signup clinics must have setup fee approved before any staff login. */
+export function getSetupPaymentGate(
+  billing: BillingSnapshot | null | undefined,
+  pendingSubmission?: PendingPaymentSubmission | null,
+): SetupPaymentGate {
+  if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) {
+    return { blocked: false };
+  }
+  if (!billing?.setup_fee_approved && setupFeeApplies(billing)) {
+    const pendingKind = String(pendingSubmission?.payment_kind || "").toLowerCase();
+    const pendingStatus = String(pendingSubmission?.status || "").toLowerCase();
+    const rejectionReason =
+      pendingSubmission?.rejection_reason?.trim() ||
+      billing.setup_rejection_reason?.trim() ||
+      undefined;
+
+    if (pendingKind === "setup" && pendingStatus === "rejected") {
+      return {
+        blocked: true,
+        phase: "rejected",
+        message:
+          rejectionReason ||
+          "Your setup payment was rejected. Update your transfer details on the signup page and resubmit.",
+        rejectionReason,
+      };
+    }
+
+    if (rejectionReason || billing.period_status === "setup_rejected") {
+      return {
+        blocked: true,
+        phase: "rejected",
+        message:
+          rejectionReason ||
+          "Your setup payment was rejected. Update your transfer details on the signup page and resubmit.",
+        rejectionReason,
+      };
+    }
+
+    return {
+      blocked: true,
+      phase: "pending",
+      message:
+        "Your clinic is awaiting Apex approval. Sign-in stays disabled until your setup payment is verified.",
+    };
+  }
+
+  return { blocked: false };
+}
+
+export function isSetupPaymentBlocking(
+  billing: BillingSnapshot | null | undefined,
+  pendingSubmission?: PendingPaymentSubmission | null,
+): boolean {
+  return getSetupPaymentGate(billing, pendingSubmission).blocked;
 }
 
 /** Setup approved but latest quarterly payment is awaiting Apex or was rejected. */
@@ -111,6 +180,7 @@ export function isClinicBillingActive(
   if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) {
     if (!requiresSetupPaymentPortal(billing)) return true;
   }
+  if (isSetupPaymentBlocking(billing, pendingSubmission)) return false;
   if (!billing?.setup_fee_approved) {
     if (requiresSetupPaymentPortal(billing)) return false;
     return isActiveFreeTrialBilling(billing);

@@ -24,6 +24,7 @@ import {
   evaluateLoginAccess,
   gatePathForLoginDecision,
   loginDecisionFromSignupStatus,
+  mergeLoginAccessWithSignupStatus,
   type LoginPayload,
 } from "@/lib/tenant-access";
 import { isIllustrationSignupStatus } from "@/lib/tenant-demo";
@@ -59,7 +60,11 @@ export default function LoginPage() {
         signupStatus = null;
       }
 
-      const decision = evaluateLoginAccess(data);
+      const decision = mergeLoginAccessWithSignupStatus(
+        evaluateLoginAccess(data),
+        username,
+        signupStatus,
+      );
       if (!decision.allowed) {
         if (signupStatus) {
           saveSignupPending({
