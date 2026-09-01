@@ -134,7 +134,9 @@ export function buildSubscriptionNotifications(
 }
 
 export function shouldShowTrialBillingButton(billing: BillingSnapshot | null | undefined): boolean {
-  return billing?.period_status === "trial_ending";
+  if (!billing) return false;
+  const status = billing.period_status;
+  return status === "trial" || status === "trial_ending";
 }
 
 export function shouldShowSubscriptionNotifications(

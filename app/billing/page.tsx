@@ -17,6 +17,7 @@ import { api, clearSession, persistSession, readAccessMode, readBilling, readUse
 import type { BillingSnapshot } from "@/lib/api";
 import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
+import { shouldRedirectBillingToSignupGate } from "@/lib/tenantProvisioning";
 import { billingAlertDescription, billingDueDateLabel } from "@/lib/billing-ui";
 import { saveRenewalPending } from "@/lib/renewal-pending";
 import { renewalGatePath } from "@/lib/tenant-access";
@@ -48,8 +49,7 @@ export default function BillingPage() {
     if (
       currentUser &&
       billingSnapshot &&
-      !billingSnapshot.setup_fee_approved &&
-      !isIllustrationBilling(billingSnapshot)
+      shouldRedirectBillingToSignupGate(billingSnapshot)
     ) {
       router.replace(`/signup?username=${encodeURIComponent(currentUser.username)}`);
       return;
@@ -62,6 +62,11 @@ export default function BillingPage() {
           | { payment_kind?: string; status?: string; rejection_reason?: string }
           | null
           | undefined;
+
+        if (shouldRedirectBillingToSignupGate(snapshot) && currentUser) {
+          router.replace(`/signup?username=${encodeURIComponent(currentUser.username)}`);
+          return;
+        }
 
         if (isSubscriptionPaymentBlocking(snapshot, pending) && !isIllustrationBilling(snapshot)) {
           const currentUser = readUser();

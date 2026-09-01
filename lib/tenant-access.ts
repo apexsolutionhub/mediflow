@@ -6,7 +6,11 @@ import {
 } from "@/lib/billing-access";
 import type { SignupStatusResponse } from "@/lib/signup-api";
 import { isIllustrationBilling, isIllustrationSignupStatus } from "@/lib/tenant-demo";
-import { isApexProvisionedBilling } from "@/lib/tenantProvisioning";
+import {
+  isActiveFreeTrialBilling,
+  isApexProvisionedBilling,
+  shouldRedirectBillingToSignupGate,
+} from "@/lib/tenantProvisioning";
 
 export type LoginPayload = {
   access: string;
@@ -95,7 +99,22 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
     };
   }
 
+  if (isActiveFreeTrialBilling(billing)) {
+    return {
+      allowed: true,
+      destination: ROLE_HOME[role] || "/manager",
+      accessMode: payload.access_mode || "full",
+    };
+  }
+
   if (!billing?.setup_fee_approved) {
+    if (payload.access_mode === "payment_portal") {
+      return {
+        allowed: true,
+        destination: "/billing",
+        accessMode: "payment_portal",
+      };
+    }
     return {
       allowed: false,
       code: "setup_pending",

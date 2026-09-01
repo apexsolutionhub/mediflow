@@ -1,6 +1,9 @@
 import type { BillingSnapshot } from "@/lib/api";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
-import { isApexProvisionedBilling } from "@/lib/tenantProvisioning";
+import {
+  isActiveFreeTrialBilling,
+  isApexProvisionedBilling,
+} from "@/lib/tenantProvisioning";
 
 export type PendingPaymentSubmission = {
   payment_kind?: string;
@@ -105,7 +108,9 @@ export function isClinicBillingActive(
 ): boolean {
   if (billing?.billing_hold || billing?.period_status === "on_hold") return false;
   if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) return true;
-  if (!billing?.setup_fee_approved) return false;
+  if (!billing?.setup_fee_approved) {
+    return isActiveFreeTrialBilling(billing);
+  }
   if (isSubscriptionPaymentBlocking(billing, pendingSubmission)) return false;
   return true;
 }

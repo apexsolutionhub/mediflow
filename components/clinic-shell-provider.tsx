@@ -36,6 +36,7 @@ import {
   type ClinicUser,
 } from "@/lib/api";
 import { isClinicSessionAllowed, renewalGatePath, signupGatePath } from "@/lib/tenant-access";
+import { shouldRedirectBillingToSignupGate } from "@/lib/tenantProvisioning";
 import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
 import { cacheKey, fetchWithCache, invalidateCacheKey } from "@/lib/api-cache";
@@ -297,10 +298,11 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
     if (!isClinicSessionAllowed(stored, current)) {
       clearSession();
-      const destination =
-        stored && (stored.setup_fee_approved || isIllustrationBilling(stored))
-          ? renewalGatePath(current.username)
-          : signupGatePath(current.username);
+      const destination = stored
+        ? shouldRedirectBillingToSignupGate(stored)
+          ? signupGatePath(current.username)
+          : renewalGatePath(current.username)
+        : signupGatePath(current.username);
       router.replace(destination);
       return;
     }
