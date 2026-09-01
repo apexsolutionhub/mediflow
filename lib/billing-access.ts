@@ -47,7 +47,10 @@ export function getSetupPaymentGate(
   if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) {
     return { blocked: false };
   }
-  if (!billing?.setup_fee_approved && setupFeeApplies(billing)) {
+  if (!billing) {
+    return { blocked: false };
+  }
+  if (!billing.setup_fee_approved && setupFeeApplies(billing)) {
     const pendingKind = String(pendingSubmission?.payment_kind || "").toLowerCase();
     const pendingStatus = String(pendingSubmission?.status || "").toLowerCase();
     const rejectionReason =
