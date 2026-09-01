@@ -43,39 +43,17 @@ export default function LoginPage() {
     try {
       const username = values.username.trim();
 
+      const { data } = await api.post<LoginPayload>("/auth/login/", {
+        username,
+        password: values.password,
+      });
+
       let signupStatus = null;
       try {
         signupStatus = await fetchSignupStatus(username);
       } catch {
         signupStatus = null;
       }
-
-      if (
-        signupStatus &&
-        signupStatus.status !== "approved" &&
-        !isIllustrationSignupStatus(signupStatus)
-      ) {
-        const blocked = loginDecisionFromSignupStatus(username, signupStatus);
-        if (!blocked.allowed) {
-          saveSignupPending({
-            username,
-            clinic_name: signupStatus.clinic_name || "",
-            clinic_tin: signupStatus.clinic_tin,
-            submitted_at: new Date().toISOString(),
-          });
-          setError(blocked.message);
-          const gatePath = gatePathForLoginDecision(blocked);
-          if (gatePath !== "/") {
-            router.push(gatePath);
-          }
-          return;
-        }
-      }
-
-      const { data } = await api.post<LoginPayload>("/auth/login/", {
-        username,
-        password: values.password,
-      });
 
       const decision = evaluateLoginAccess(data);
       if (!decision.allowed) {
@@ -111,9 +89,38 @@ export default function LoginPage() {
       toast.success("Signed in");
       router.push(decision.destination);
     } catch (err: unknown) {
+      const username = values.username.trim();
       const message =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
         "Could not sign in";
+
+      try {
+        const signupStatus = await fetchSignupStatus(username);
+        if (
+          signupStatus &&
+          signupStatus.status !== "approved" &&
+          !isIllustrationSignupStatus(signupStatus)
+        ) {
+          const blocked = loginDecisionFromSignupStatus(username, signupStatus);
+          if (!blocked.allowed) {
+            saveSignupPending({
+              username,
+              clinic_name: signupStatus.clinic_name || "",
+              clinic_tin: signupStatus.clinic_tin,
+              submitted_at: new Date().toISOString(),
+            });
+            setError(blocked.message);
+            const gatePath = gatePathForLoginDecision(blocked);
+            if (gatePath !== "/") {
+              router.push(gatePath);
+            }
+            return;
+          }
+        }
+      } catch {
+        // ignore signup status lookup errors
+      }
+
       setError(String(message));
     } finally {
       setLoading(false);

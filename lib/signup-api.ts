@@ -10,6 +10,7 @@ export type SignupStatusResponse = {
   setup_fee_etb?: number;
   rejection_reason?: string;
   is_illustration?: boolean;
+  provisioned_by_apex?: boolean;
 };
 
 export async function fetchSignupStatus(username: string): Promise<SignupStatusResponse> {

@@ -6,6 +6,7 @@ import {
 } from "@/lib/billing-access";
 import type { SignupStatusResponse } from "@/lib/signup-api";
 import { isIllustrationBilling, isIllustrationSignupStatus } from "@/lib/tenant-demo";
+import { isApexProvisionedBilling } from "@/lib/tenantProvisioning";
 
 export type LoginPayload = {
   access: string;
@@ -86,7 +87,7 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
     };
   }
 
-  if (isIllustrationBilling(billing)) {
+  if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) {
     return {
       allowed: true,
       destination: ROLE_HOME[role] || "/manager",

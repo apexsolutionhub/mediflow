@@ -62,6 +62,7 @@ export type BillingSnapshot = {
   payment_transaction_ref?: string;
   ops_mode?: "online" | "offline" | string;
   is_illustration?: boolean;
+  provisioned_by_apex?: boolean;
 };
 
 export const ROLE_HOME: Record<string, string> = {

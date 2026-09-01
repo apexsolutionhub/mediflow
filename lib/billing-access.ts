@@ -1,5 +1,6 @@
 import type { BillingSnapshot } from "@/lib/api";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
+import { isApexProvisionedBilling } from "@/lib/tenantProvisioning";
 
 export type PendingPaymentSubmission = {
   payment_kind?: string;
@@ -27,6 +28,10 @@ export function getSubscriptionPaymentGate(
   pendingSubmission?: PendingPaymentSubmission | null,
 ): SubscriptionPaymentGate {
   if (isIllustrationBilling(billing)) {
+    return { blocked: false };
+  }
+
+  if (isApexProvisionedBilling(billing)) {
     return { blocked: false };
   }
 
@@ -99,7 +104,7 @@ export function isClinicBillingActive(
   pendingSubmission?: PendingPaymentSubmission | null,
 ): boolean {
   if (billing?.billing_hold || billing?.period_status === "on_hold") return false;
-  if (isIllustrationBilling(billing)) return true;
+  if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) return true;
   if (!billing?.setup_fee_approved) return false;
   if (isSubscriptionPaymentBlocking(billing, pendingSubmission)) return false;
   return true;
