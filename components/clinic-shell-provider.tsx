@@ -232,6 +232,16 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
           BILLING_TTL_MS,
         );
         const snapshot = data.billing as BillingSnapshot;
+        if (
+          snapshot.billing_hold ||
+          snapshot.period_status === "on_hold" ||
+          data.access_mode === "denied"
+        ) {
+          const current = readUser();
+          clearSession();
+          router.replace("/");
+          return data;
+        }
         applyBillingSnapshot(snapshot, String(data.access_mode || "full"));
         const pending = data.pending_submission as
           | { payment_kind?: string; status?: string; rejection_reason?: string }
@@ -267,6 +277,12 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
     const mode = localStorage.getItem("access_mode");
     const stored = readBilling();
+
+    if (stored && (stored.billing_hold || stored.period_status === "on_hold")) {
+      clearSession();
+      router.replace("/");
+      return;
+    }
 
     if (stored && isSubscriptionPaymentBlocking(stored) && !isIllustrationBilling(stored)) {
       clearSession();

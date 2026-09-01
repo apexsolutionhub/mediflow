@@ -98,6 +98,7 @@ export function isClinicBillingActive(
   billing: BillingSnapshot | null | undefined,
   pendingSubmission?: PendingPaymentSubmission | null,
 ): boolean {
+  if (billing?.billing_hold || billing?.period_status === "on_hold") return false;
   if (isIllustrationBilling(billing)) return true;
   if (!billing?.setup_fee_approved) return false;
   if (isSubscriptionPaymentBlocking(billing, pendingSubmission)) return false;

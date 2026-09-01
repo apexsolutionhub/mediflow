@@ -31,6 +31,7 @@ export type LoginAccessDecision =
         | "setup_rejected"
         | "quarterly_pending"
         | "quarterly_rejected"
+        | "billing_hold"
         | "not_approved";
       message: string;
       username?: string;
@@ -61,6 +62,26 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
         accountStatus === "banned"
           ? "This clinic account has been banned."
           : "This clinic account is suspended. Contact Apex support.",
+      username: user.username,
+    };
+  }
+
+  if (billing?.billing_hold || billing?.period_status === "on_hold") {
+    return {
+      allowed: false,
+      code: "billing_hold",
+      message:
+        "This clinic is on billing hold. Login is disabled until Apex releases the hold.",
+      username: user.username,
+    };
+  }
+
+  if (payload.access_mode === "denied") {
+    return {
+      allowed: false,
+      code: "billing_hold",
+      message:
+        "Clinic access is currently disabled. Contact Apex support if you need help.",
       username: user.username,
     };
   }
@@ -175,6 +196,7 @@ export function isClinicSessionAllowed(
 ): boolean {
   if (!user || user.is_active === false) return false;
   if (!billing) return false;
+  if (billing.billing_hold || billing.period_status === "on_hold") return false;
   const accountStatus = String(billing.account_status || "active").toLowerCase();
   if (accountStatus !== "active") return false;
   return isClinicBillingActive(billing, pendingSubmission);
