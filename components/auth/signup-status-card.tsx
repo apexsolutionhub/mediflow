@@ -26,6 +26,7 @@ import {
   type SignupStatusResponse,
 } from "@/lib/signup-api";
 import { isIllustrationSignupStatus } from "@/lib/tenant-demo";
+import { useBillingCatalogPricing } from "@/lib/hooks/useBillingCatalogPricing";
 import {
   clearSignupPending,
   readSignupPending,
@@ -49,6 +50,7 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
   const [status, setStatus] = useState<SignupStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [resubmitting, setResubmitting] = useState(false);
+  const catalogPricing = useBillingCatalogPricing();
 
   const resubmitForm = useForm<ResubmitValues>({
     defaultValues: { payment_channel: "", payment_transaction_ref: "" },
@@ -137,7 +139,7 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
   }
 
   const clinicLabel = status?.clinic_name || pending?.clinic_name || "Your clinic";
-  const setupFee = status?.setup_fee_etb;
+  const setupFee = status?.setup_fee_etb ?? catalogPricing?.setup_fee_etb ?? 0;
   const isExempt = isIllustrationSignupStatus(status);
 
   return (
@@ -221,7 +223,7 @@ export function SignupStatusCard({ initialUsername, onStartFresh }: SignupStatus
               <SignupPaymentSection
                 control={resubmitForm.control}
                 setValue={resubmitForm.setValue}
-                setupFeeETB={setupFee ?? 15000}
+                setupFeeETB={setupFee}
                 compact
               />
               <SubmitButton

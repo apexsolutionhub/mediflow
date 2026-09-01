@@ -16,6 +16,7 @@ export type SignupStatusResponse = {
 export async function fetchSignupStatus(username: string): Promise<SignupStatusResponse> {
   const { data } = await api.get<SignupStatusResponse>("/billing/signup-status/", {
     params: { username: username.trim() },
+    skipAuth: true,
   });
   return data;
 }
@@ -31,6 +32,7 @@ export async function resubmitSetupPayment(payload: ResubmitSetupPaymentPayload)
   const { data } = await api.post<SignupStatusResponse>(
     "/billing/resubmit-setup/",
     payload,
+    { skipAuth: true },
   );
   return data;
 }

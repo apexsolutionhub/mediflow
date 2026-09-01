@@ -43,10 +43,14 @@ export default function LoginPage() {
     try {
       const username = values.username.trim();
 
-      const { data } = await api.post<LoginPayload>("/auth/login/", {
-        username,
-        password: values.password,
-      });
+      const { data } = await api.post<LoginPayload>(
+        "/auth/login/",
+        {
+          username,
+          password: values.password,
+        },
+        { skipAuth: true },
+      );
 
       let signupStatus = null;
       try {

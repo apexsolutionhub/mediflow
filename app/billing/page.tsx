@@ -16,9 +16,11 @@ import { SubmitButton } from "@/components/ui/submit-button";
 import { api, clearSession, persistSession, readAccessMode, readBilling, readUser, updateBillingSession } from "@/lib/api";
 import type { BillingSnapshot } from "@/lib/api";
 import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
+import { applyCatalogFeesToBilling } from "@/lib/billing-fees";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
 import { shouldRedirectBillingToSignupGate } from "@/lib/tenantProvisioning";
 import { billingAlertDescription, billingDueDateLabel } from "@/lib/billing-ui";
+import { useBillingCatalogPricing } from "@/lib/hooks/useBillingCatalogPricing";
 import { saveRenewalPending } from "@/lib/renewal-pending";
 import { renewalGatePath } from "@/lib/tenant-access";
 import {
@@ -38,6 +40,8 @@ export default function BillingPage() {
   const form = useForm({
     defaultValues: { payment_channel: "", transaction_ref: "" },
   });
+
+  const catalogPricing = useBillingCatalogPricing();
 
   useEffect(() => {
     if (!readUser()) {
@@ -94,7 +98,10 @@ export default function BillingPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  const billing = (info?.billing || {}) as BillingSnapshot;
+  const billing = useMemo(() => {
+    const raw = (info?.billing || {}) as BillingSnapshot;
+    return applyCatalogFeesToBilling(raw, catalogPricing);
+  }, [info?.billing, catalogPricing]);
   const status = String(info?.period_status || billing.period_status || "…");
   const dueLabel = billingDueDateLabel(billing);
   const portalLocked = accessMode === "payment_portal";

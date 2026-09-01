@@ -32,6 +32,7 @@ import {
   saveRenewalPending,
   type RenewalPendingRecord,
 } from "@/lib/renewal-pending";
+import { useBillingCatalogPricing } from "@/lib/hooks/useBillingCatalogPricing";
 import { cn } from "@/lib/utils";
 
 type ResubmitValues = {
@@ -49,6 +50,7 @@ export function BillingRenewalCard({ initialUsername }: BillingRenewalCardProps)
   const [status, setStatus] = useState<RenewalStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [resubmitting, setResubmitting] = useState(false);
+  const catalogPricing = useBillingCatalogPricing();
 
   const resubmitForm = useForm<ResubmitValues>({
     defaultValues: { payment_channel: "", payment_transaction_ref: "" },
@@ -158,7 +160,7 @@ export function BillingRenewalCard({ initialUsername }: BillingRenewalCardProps)
   }
 
   const clinicLabel = status?.clinic_name || pending?.clinic_name || "Your clinic";
-  const quarterlyFee = status?.quarterly_fee_etb;
+  const quarterlyFee = status?.quarterly_fee_etb ?? catalogPricing?.quarterly_fee_etb;
   const isRejected = status?.status === "rejected" || pending?.phase === "rejected";
   const isPending = status?.status === "pending" || (!isRejected && status?.status !== "active");
   const isActive = status?.status === "active";

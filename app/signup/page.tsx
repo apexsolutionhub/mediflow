@@ -112,7 +112,7 @@ function SignupPageContent() {
         if (!cancelled) setFeesLoading(false);
       });
     api
-      .get("/billing/sales-agents/")
+      .get("/billing/sales-agents/", { skipAuth: true })
       .then(({ data }) => setAgents(data ?? []))
       .catch(() => setAgents([]))
       .finally(() => setAgentsLoading(false));
@@ -179,7 +179,11 @@ function SignupPageContent() {
 
     setLoading(true);
     try {
-      await api.post("/user/", { ...values, role: "manager" });
+      await api.post(
+        "/user/",
+        { ...values, role: "manager" },
+        { skipAuth: true },
+      );
       const username = values.username.trim();
       saveSignupPending({
         username,

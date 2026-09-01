@@ -16,6 +16,7 @@ export async function fetchRenewalStatus(username: string): Promise<RenewalStatu
   try {
     const { data } = await api.get<RenewalStatusResponse>("/billing/renewal-status/", {
       params: { username: username.trim() },
+      skipAuth: true,
     });
     return data;
   } catch (error: unknown) {
@@ -36,6 +37,7 @@ export async function resubmitQuarterlyPayment(payload: ResubmitQuarterlyPayment
   const { data } = await api.post<RenewalStatusResponse>(
     "/billing/resubmit-quarterly/",
     payload,
+    { skipAuth: true },
   );
   return data;
 }

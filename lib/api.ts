@@ -3,12 +3,19 @@ import axios from "axios";
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "https://mediflow-backend-delta.vercel.app/api";
 
+declare module "axios" {
+  interface AxiosRequestConfig {
+    /** Do not attach stored JWT (public signup, login, billing gates). */
+    skipAuth?: boolean;
+  }
+}
+
 export const api = axios.create({
   baseURL: API_URL,
 });
 
 api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && !config.skipAuth) {
     const token = localStorage.getItem("auth_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -63,6 +70,7 @@ export type BillingSnapshot = {
   ops_mode?: "online" | "offline" | string;
   is_illustration?: boolean;
   provisioned_by_apex?: boolean;
+  fees_manually_set?: boolean;
 };
 
 export const ROLE_HOME: Record<string, string> = {

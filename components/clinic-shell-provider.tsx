@@ -38,6 +38,7 @@ import {
 import { isClinicSessionAllowed, renewalGatePath, sessionRecoveryPath, signupGatePath } from "@/lib/tenant-access";
 import { requiresSetupPaymentPortal } from "@/lib/tenantProvisioning";
 import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
+import { applyCatalogFeesToBilling } from "@/lib/billing-fees";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
 import { cacheKey, fetchWithCache, invalidateCacheKey } from "@/lib/api-cache";
 import {
@@ -50,6 +51,7 @@ import {
   parseClinicOpsMode,
 } from "@/lib/clinicOpsMode";
 import { cn } from "@/lib/utils";
+import { useBillingCatalogPricing } from "@/lib/hooks/useBillingCatalogPricing";
 
 const BILLING_CACHE_KEY = cacheKey(["billing", "me"]);
 const BILLING_TTL_MS = 60_000;
@@ -204,6 +206,11 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
   const [opsModeLabel, setOpsModeLabel] = useState("Online");
   const [billing, setBilling] = useState<BillingSnapshot | null>(() =>
     typeof window === "undefined" ? null : readBilling(),
+  );
+  const catalogPricing = useBillingCatalogPricing();
+  const displayBilling = useMemo(
+    () => (billing ? applyCatalogFeesToBilling(billing, catalogPricing) : null),
+    [billing, catalogPricing],
   );
   const [logoUrl, setLogoUrl] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -485,8 +492,8 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
               <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 md:gap-1.5">
                 {isManager && billing ? (
                   <>
-                    <TrialBillingButton billing={billing} />
-                    <SubscriptionNotificationCenter billing={billing} />
+                    <TrialBillingButton billing={displayBilling ?? billing} />
+                    <SubscriptionNotificationCenter billing={displayBilling ?? billing} />
                     <ClinicFeedbackCenter clinicName={user.clinic_name} />
                   </>
                 ) : null}
@@ -501,9 +508,9 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
               <NavLinks items={visibleNav} pathname={pathname} onNavigate={() => setOpen(false)} />
               {isManager && billing ? (
                 <div className="flex items-center justify-end gap-1 border-t border-white/10 px-4 py-3">
-                  <TrialBillingButton billing={billing} onNavigate={() => setOpen(false)} />
+                  <TrialBillingButton billing={displayBilling ?? billing} onNavigate={() => setOpen(false)} />
                   <SubscriptionNotificationCenter
-                    billing={billing}
+                    billing={displayBilling ?? billing}
                     onNavigate={() => setOpen(false)}
                   />
                   <ClinicFeedbackCenter
