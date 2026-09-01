@@ -3,6 +3,7 @@ import { isIllustrationBilling } from "@/lib/tenant-demo";
 import {
   isActiveFreeTrialBilling,
   isApexProvisionedBilling,
+  requiresSetupPaymentPortal,
 } from "@/lib/tenantProvisioning";
 
 export type PendingPaymentSubmission = {
@@ -107,8 +108,11 @@ export function isClinicBillingActive(
   pendingSubmission?: PendingPaymentSubmission | null,
 ): boolean {
   if (billing?.billing_hold || billing?.period_status === "on_hold") return false;
-  if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) return true;
+  if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) {
+    if (!requiresSetupPaymentPortal(billing)) return true;
+  }
   if (!billing?.setup_fee_approved) {
+    if (requiresSetupPaymentPortal(billing)) return false;
     return isActiveFreeTrialBilling(billing);
   }
   if (isSubscriptionPaymentBlocking(billing, pendingSubmission)) return false;

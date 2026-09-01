@@ -9,6 +9,7 @@ import { isIllustrationBilling, isIllustrationSignupStatus } from "@/lib/tenant-
 import {
   isActiveFreeTrialBilling,
   isApexProvisionedBilling,
+  requiresSetupPaymentPortal,
   shouldRedirectBillingToSignupGate,
 } from "@/lib/tenantProvisioning";
 
@@ -37,7 +38,8 @@ export type LoginAccessDecision =
         | "quarterly_pending"
         | "quarterly_rejected"
         | "billing_hold"
-        | "not_approved";
+        | "not_approved"
+        | "trial_expired";
       message: string;
       username?: string;
       signupStatus?: SignupStatusResponse;
@@ -91,19 +93,36 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
     };
   }
 
-  if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) {
-    return {
-      allowed: true,
-      destination: ROLE_HOME[role] || "/manager",
-      accessMode: "full",
-    };
-  }
-
   if (isActiveFreeTrialBilling(billing)) {
     return {
       allowed: true,
       destination: ROLE_HOME[role] || "/manager",
       accessMode: payload.access_mode || "full",
+    };
+  }
+
+  if (requiresSetupPaymentPortal(billing)) {
+    if (role === "manager") {
+      return {
+        allowed: true,
+        destination: "/billing",
+        accessMode: "payment_portal",
+      };
+    }
+    return {
+      allowed: false,
+      code: "trial_expired",
+      message:
+        "The free trial has ended. Staff sign-in is disabled until your manager submits and Apex approves the setup fee.",
+      username: user.username,
+    };
+  }
+
+  if (isIllustrationBilling(billing) || isApexProvisionedBilling(billing)) {
+    return {
+      allowed: true,
+      destination: ROLE_HOME[role] || "/manager",
+      accessMode: "full",
     };
   }
 
@@ -233,6 +252,9 @@ export function signupGatePath(username: string): string {
 export function gatePathForLoginDecision(
   decision: Extract<LoginAccessDecision, { allowed: false }>,
 ): string {
+  if (decision.code === "trial_expired") {
+    return "/";
+  }
   if (
     decision.code === "quarterly_pending" ||
     decision.code === "quarterly_rejected"
@@ -243,4 +265,19 @@ export function gatePathForLoginDecision(
     return signupGatePath(decision.username || "");
   }
   return "/";
+}
+
+export function sessionRecoveryPath(
+  billing: BillingSnapshot,
+  user: ClinicUser,
+  username: string,
+): string {
+  const role = String(user.role || "").toLowerCase();
+  if (requiresSetupPaymentPortal(billing)) {
+    return role === "manager" ? "/billing" : "/";
+  }
+  if (shouldRedirectBillingToSignupGate(billing)) {
+    return signupGatePath(username);
+  }
+  return renewalGatePath(username);
 }

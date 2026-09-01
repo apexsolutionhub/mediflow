@@ -35,8 +35,8 @@ import {
   type BillingSnapshot,
   type ClinicUser,
 } from "@/lib/api";
-import { isClinicSessionAllowed, renewalGatePath, signupGatePath } from "@/lib/tenant-access";
-import { shouldRedirectBillingToSignupGate } from "@/lib/tenantProvisioning";
+import { isClinicSessionAllowed, renewalGatePath, sessionRecoveryPath, signupGatePath } from "@/lib/tenant-access";
+import { requiresSetupPaymentPortal } from "@/lib/tenantProvisioning";
 import { isSubscriptionPaymentBlocking } from "@/lib/billing-access";
 import { isIllustrationBilling } from "@/lib/tenant-demo";
 import { cacheKey, fetchWithCache, invalidateCacheKey } from "@/lib/api-cache";
@@ -243,6 +243,14 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
           router.replace("/");
           return data;
         }
+        if (requiresSetupPaymentPortal(snapshot)) {
+          const current = readUser();
+          if (current && String(current.role || "").toLowerCase() === "manager") {
+            applyBillingSnapshot(snapshot, "payment_portal");
+            router.replace("/billing");
+            return data;
+          }
+        }
         applyBillingSnapshot(snapshot, String(data.access_mode || "full"));
         const pending = data.pending_submission as
           | { payment_kind?: string; status?: string; rejection_reason?: string }
@@ -297,11 +305,18 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
     }
 
     if (!isClinicSessionAllowed(stored, current)) {
+      if (
+        stored &&
+        requiresSetupPaymentPortal(stored) &&
+        String(current.role || "").toLowerCase() === "manager"
+      ) {
+        updateBillingSession(stored, "payment_portal");
+        router.replace("/billing");
+        return;
+      }
       clearSession();
       const destination = stored
-        ? shouldRedirectBillingToSignupGate(stored)
-          ? signupGatePath(current.username)
-          : renewalGatePath(current.username)
+        ? sessionRecoveryPath(stored, current, current.username)
         : signupGatePath(current.username);
       router.replace(destination);
       return;
