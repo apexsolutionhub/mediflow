@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
@@ -15,10 +16,10 @@ import {
 } from "@/components/ui-chrome";
 import { api, results } from "@/lib/api";
 import { type Appointment, type Encounter, money } from "@/lib/clinic";
-import { setSelectedEncounterId } from "@/lib/clinic-selection";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 
 export default function ReceptionBoardPage() {
+  const router = useRouter();
   const { encounters, selectedId, setSelectedId } = useEncounterBoard("today");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
@@ -39,10 +40,15 @@ export default function ReceptionBoardPage() {
     };
   }, []);
 
+  const openCashier = (encounterId: number) => {
+    setSelectedId(encounterId);
+    router.push("/reception/cashier");
+  };
+
   return (
     <ClinicShell
       title="Today board"
-      subtitle="Select a visit, then open Cashier from the sidebar to collect payment."
+      subtitle="Tap a patient card to open cashier and collect payment."
     >
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <StatTile label="Today on board" value={encounters.length} tone="navy" />
@@ -58,20 +64,12 @@ export default function ReceptionBoardPage() {
         <Button asChild className="rounded-xl shadow-sm">
           <Link href="/reception/register/new">Register arrival</Link>
         </Button>
-        <Button asChild variant="outline" disabled={!selectedId} className="rounded-xl">
-          <Link
-            href="/reception/cashier"
-            onClick={() => selectedId && setSelectedEncounterId(selectedId)}
-          >
-            Open cashier
-          </Link>
-        </Button>
       </div>
 
       <SectionCard
         kicker="Front desk"
         title="Today&apos;s patient board"
-        description="Tap a visit to focus cashier and checkout actions."
+        description="Tap a visit to open payment details in cashier."
       >
         {encounters.length === 0 ? (
           <EmptyState
@@ -87,7 +85,7 @@ export default function ReceptionBoardPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setSelectedId(item.id)}
+                  onClick={() => openCashier(item.id)}
                   className="w-full text-left"
                 >
                   <QueueItem

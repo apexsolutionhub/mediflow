@@ -341,7 +341,14 @@ const CustomFormField = <T extends FieldValues>(
                     <SelectGroup>
                       {options.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                          <span className="flex flex-col items-start gap-0.5">
+                            <span>{option.label}</span>
+                            {option.description ? (
+                              <span className="text-xs font-normal text-muted-foreground">
+                                {option.description}
+                              </span>
+                            ) : null}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectGroup>

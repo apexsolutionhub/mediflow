@@ -8,7 +8,6 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
-import { Button } from "@/components/ui/button";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,15 +18,14 @@ import {
   FieldGroup,
   FieldLabel,
   FieldLegend,
-  FieldSet,
 } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { ctaButtonClass, EmptyState, FormSection, SectionCard } from "@/components/ui-chrome";
-import { api } from "@/lib/api";
+import { api, results } from "@/lib/api";
 import { invalidateEncounterBoardCache } from "@/hooks/use-encounter-board";
 import { fetchClinicCatalog, invalidateClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
-import { type Patient } from "@/lib/clinic";
+import { type Encounter, type Patient } from "@/lib/clinic";
 import { cn } from "@/lib/utils";
 
 export type ArrivalType = "new" | "returning" | "referred";
@@ -44,7 +42,7 @@ const META: Record<
   },
   returning: {
     title: "Returning patient",
-    subtitle: "Find an existing branch patient and open a fresh encounter.",
+    subtitle: "Pick an existing branch patient who is not already on the board.",
     kicker: "Register · Returning",
     submit: "Open returning encounter",
   },
@@ -63,15 +61,27 @@ type FormValues = {
   phone: string;
   address: string;
   patient_id: string;
-  patient_query: string;
   referral_source: string;
   referral_details: string;
   urgent: boolean;
 };
 
+type ReturningPatientOption = Patient & { visit_count: number };
+
+function normalizePatientName(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function visitLabel(count: number) {
+  if (count <= 0) return "No prior visits on record";
+  if (count === 1) return "Visited 1 time";
+  return `Visited ${count} times`;
+}
+
 export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalType }) {
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [encounters, setEncounters] = useState<Encounter[]>([]);
   const [registering, setRegistering] = useState(false);
   const meta = META[arrivalType];
   const registerForm = useForm<FormValues>({
@@ -82,45 +92,69 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
       phone: "",
       address: "",
       patient_id: "",
-      patient_query: "",
       referral_source: "",
       referral_details: "",
       urgent: false,
     },
   });
 
-  const patientQuery = registerForm.watch("patient_query");
   const selectedPatientId = registerForm.watch("patient_id");
 
-  const loadPatients = useCallback(async (force = false) => {
-    const rows = await fetchClinicCatalog<Patient>(
-      "patients",
-      "/clinic/patients/",
-      { page_size: 200 },
-      force,
-    );
-    setPatients(rows);
+  const loadReturningData = useCallback(async (force = false) => {
+    const [patientRows, encounterResponse] = await Promise.all([
+      fetchClinicCatalog<Patient>("patients", "/clinic/patients/", { page_size: 200 }, force),
+      api.get("/clinic/encounters/", { params: { page_size: 200 } }),
+    ]);
+    setPatients(patientRows);
+    setEncounters(results<Encounter>(encounterResponse.data));
   }, []);
 
   useEffect(() => {
     if (arrivalType !== "returning") return;
-    loadPatients().catch(() =>
+    loadReturningData().catch(() =>
       toast.error("Could not load patients", { id: "register-patients" }),
     );
-  }, [arrivalType, loadPatients]);
+  }, [arrivalType, loadReturningData]);
 
-  const filteredPatients = useMemo(() => {
-    const q = patientQuery.trim().toLowerCase();
-    if (!q) return patients;
-    return patients.filter((p) => {
-      const hay = `${p.full_name} ${p.mrn} ${p.phone || ""}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [patients, patientQuery]);
+  const returningOptions = useMemo(() => {
+    const visitCounts = new Map<number, number>();
+    const openPatientIds = new Set<number>();
+
+    for (const encounter of encounters) {
+      const patientId = encounter.patient?.id;
+      if (!patientId) continue;
+      visitCounts.set(patientId, (visitCounts.get(patientId) || 0) + 1);
+      if (String(encounter.status || "").toLowerCase() !== "closed") {
+        openPatientIds.add(patientId);
+      }
+    }
+
+    const available = patients.filter((p) => !openPatientIds.has(p.id));
+
+    // One row per normalized name — keep the record with the most visits (then lowest id).
+    const byName = new Map<string, ReturningPatientOption>();
+    for (const patient of available) {
+      const key = normalizePatientName(patient.full_name || "");
+      if (!key) continue;
+      const visit_count = visitCounts.get(patient.id) || 0;
+      const existing = byName.get(key);
+      if (
+        !existing ||
+        visit_count > existing.visit_count ||
+        (visit_count === existing.visit_count && patient.id < existing.id)
+      ) {
+        byName.set(key, { ...patient, visit_count });
+      }
+    }
+
+    return Array.from(byName.values()).sort((a, b) =>
+      a.full_name.localeCompare(b.full_name, undefined, { sensitivity: "base" }),
+    );
+  }, [encounters, patients]);
 
   const selectedPatient = useMemo(
-    () => patients.find((p) => String(p.id) === selectedPatientId) ?? null,
-    [patients, selectedPatientId],
+    () => returningOptions.find((p) => String(p.id) === selectedPatientId) ?? null,
+    [returningOptions, selectedPatientId],
   );
 
   const register = async (values: FormValues) => {
@@ -259,25 +293,21 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
           <FieldGroup>
             {arrivalType === "returning" ? (
               <>
-                <FormSection title="Find patient" description="Search branch records by name, MRN, or phone.">
-                  <div className="sm:col-span-2">
-                    <CustomFormField
-                      control={registerForm.control}
-                      name="patient_query"
-                      fieldType={formFieldTypes.INPUT}
-                      label="Search by name, MRN, or phone"
-                      placeholder="Type to filter branch patients…"
-                    />
-                  </div>
+                <FormSection
+                  title="Select patient"
+                  description="Patients already checked in (not checked out) are hidden. Duplicate names appear once with visit history."
+                >
                   <div className="sm:col-span-2">
                     <CustomFormField
                       control={registerForm.control}
                       name="patient_id"
                       fieldType={formFieldTypes.SELECT}
                       label="Branch patient"
-                      options={filteredPatients.map((p) => ({
-                        label: `${p.full_name} · ${p.mrn}${p.phone ? ` · ${p.phone}` : ""}`,
+                      placeholder="Choose a returning patient"
+                      options={returningOptions.map((p) => ({
+                        label: `${p.full_name}${p.mrn ? ` · ${p.mrn}` : ""}${p.phone ? ` · ${p.phone}` : ""}`,
                         value: String(p.id),
+                        description: visitLabel(p.visit_count),
                       }))}
                     />
                   </div>
@@ -301,6 +331,9 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
                           {selectedPatient.age != null ? ` · Age ${selectedPatient.age}` : ""}
                           {selectedPatient.gender ? ` · ${selectedPatient.gender}` : ""}
                           {selectedPatient.phone ? ` · ${selectedPatient.phone}` : ""}
+                        </p>
+                        <p className="mt-1 text-sm font-medium text-primary/80">
+                          {visitLabel(selectedPatient.visit_count)}
                         </p>
                       </div>
                     </CardContent>

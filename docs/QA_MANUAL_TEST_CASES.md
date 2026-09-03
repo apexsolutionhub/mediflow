@@ -56,7 +56,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [x] AUTH-06
 - [x] AUTH-07
 - [x] AUTH-08
-- [ ] AUTH-09
+- [x] AUTH-09
 - [x] AUTH-10
 
 **Feedback (section 1):**
@@ -86,14 +86,14 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 **Checklist**
 
-- [ ] UI-01
-- [ ] UI-02
-- [ ] UI-03
-- [ ] UI-04
-- [ ] UI-05
-- [ ] UI-06
-- [ ] UI-07
-- [ ] UI-08
+- [x] UI-01
+- [x] UI-02
+- [x] UI-03
+- [x] UI-04
+- [x] UI-05
+- [x] UI-06
+- [x] UI-07
+- [x] UI-08
 
 **Feedback (section 2):**
 
@@ -122,14 +122,14 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 **Checklist**
 
-- [ ] REG-01
-- [ ] REG-02
-- [ ] REG-03
-- [ ] REG-04
-- [ ] REG-05
-- [ ] REG-06
-- [ ] REG-07
-- [ ] REG-08
+- [x] REG-01
+- [x] REG-02
+- [x] REG-03
+- [x] REG-04
+- [x] REG-05
+- [x] REG-06
+- [x] REG-07
+- [x] REG-08
 
 **Feedback (section 3):**
 
@@ -147,11 +147,11 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 | ID     | Test case               | Steps                             | Expected                               |
 | ------ | ----------------------- | --------------------------------- | -------------------------------------- |
 | REC-01 | Today board load        | Open `/reception`                 | Encounters list loads                  |
-| REC-02 | Select encounter        | Click visit on board              | Selected for cashier                   |
-| REC-03 | Approve payment         | Cashier: amount/method → approve  | Toast; units unlock; loading on button |
+| REC-02 | Open cashier from board | Click visit card on board         | Goes straight to cashier for that visit |
+| REC-03 | Approve payment         | Cashier: tender → approve         | Amount locked to due; units unlock; no re-approve when nothing pending |
 | REC-04 | Checkout                | After payment → checkout          | Success; visit leaves queue            |
 | REC-05 | Checkout before payment | Checkout with unpaid consultation | Blocked with error                     |
-| REC-06 | Invalid amount          | Approve 0 or negative             | Error or validation                    |
+| REC-06 | Mixed tender            | Choose Mixed → pick 2+ methods    | Approves with mix (e.g. cash+card)     |
 | REC-07 | Board cache refresh     | Pay → return to board             | Status updated                         |
 | REC-08 | Appointments list       | `/reception/appointments`         | Today's appointments load              |
 | REC-09 | Appointments empty      | No scheduled visits               | Empty state                            |
@@ -159,20 +159,20 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 **Checklist**
 
-- [ ] REC-01
+- [x] REC-01
 - [ ] REC-02
 - [ ] REC-03
-- [ ] REC-04
-- [ ] REC-05
-- [ ] REC-06
-- [ ] REC-07
+- [x] REC-04
+- [x] REC-05
+- [x] REC-06
+- [x] REC-07
 - [ ] REC-08
 - [ ] REC-09
 
 **Feedback (section 4):**
 
 ```
-
+in today's patient board after i click the card of the patient and you enter open cashier section to go that patient payment details but it should redirect to the cashier page by only clicking the patient card not as now and after required payment is approved the system allows to process again another payment while another payment is not in pending and the amount section input is editable but it shouldn't be because the payment is constant even if it is an insurance and the mixed option if choosen there should be some way to select and enter what mixes are there is it cash and card or cash and insurance... and in returning patient when selecting patients if the patient name is repetitive that should display once and there will be a description of that patient how many times he/she visisted and searching section is not necessary if select is there and in the selector the patients in which that they didn't checked out shouldn't be displayed 
 ```
 
 ---
