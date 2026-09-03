@@ -1,12 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Beaker, ClipboardList, Eye, ScanLine } from "lucide-react";
+import {
+  Beaker,
+  ClipboardList,
+  Eye,
+  Filter,
+  ListFilter,
+  ScanLine,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
-import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/submit-button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   EmptyState,
   QueueItem,
@@ -18,11 +31,11 @@ import { api, results } from "@/lib/api";
 import { type ClinicalOrder, orderTone } from "@/lib/clinic";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | "lab" | "radiology" | "needs_review";
+type FilterKey = "all" | "lab" | "radiology" | "needs_review";
 
 export default function DoctorResultsPage() {
   const [orders, setOrders] = useState<ClinicalOrder[]>([]);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<FilterKey>("all");
   const [busyId, setBusyId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
@@ -53,6 +66,40 @@ export default function DoctorResultsPage() {
     return orders;
   }, [filter, needsReview, orders]);
 
+  const filterOptions = [
+    {
+      id: "all" as const,
+      label: "All reports",
+      count: orders.length,
+      icon: ListFilter,
+      tone: "navy" as const,
+    },
+    {
+      id: "needs_review" as const,
+      label: "Needs review",
+      count: needsReview.length,
+      icon: Eye,
+      tone: "orange" as const,
+    },
+    {
+      id: "lab" as const,
+      label: "Laboratory",
+      count: labCount,
+      icon: Beaker,
+      tone: "navy" as const,
+    },
+    {
+      id: "radiology" as const,
+      label: "Radiology",
+      count: radCount,
+      icon: ScanLine,
+      tone: "orange" as const,
+    },
+  ];
+
+  const activeFilter = filterOptions.find((option) => option.id === filter) ?? filterOptions[0];
+  const ActiveIcon = activeFilter.icon;
+
   return (
     <ClinicShell
       title="Diagnostic results"
@@ -64,37 +111,100 @@ export default function DoctorResultsPage() {
         <StatTile label="Reviewed" value={orders.length - needsReview.length} tone="green" />
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(
-          [
-            { id: "all" as const, label: "All", count: orders.length },
-            { id: "needs_review" as const, label: "Needs review", count: needsReview.length },
-            { id: "lab" as const, label: "Laboratory", count: labCount },
-            { id: "radiology" as const, label: "Radiology", count: radCount },
-          ] as const
-        ).map((item) => (
-          <Button
-            key={item.id}
-            type="button"
-            size="sm"
-            variant={filter === item.id ? "default" : "outline"}
-            className={cn(
-              "rounded-xl",
-              filter === item.id && "bg-primary text-primary-foreground",
-            )}
-            onClick={() => setFilter(item.id)}
-          >
-            {item.label}
-            <span className="ml-1 rounded-full bg-white/15 px-1.5 text-[11px]">{item.count}</span>
-          </Button>
-        ))}
-      </div>
-
       <SectionCard
         kicker="Inbox"
         title="Results from lab & radiology"
         description="Reports appear here after the unit completes and sends them."
-        action={<StatusPill tone="navy">{visible.length} shown</StatusPill>}
+        action={
+          <div className="flex flex-col items-stretch gap-1.5 sm:min-w-58">
+            <span className="hidden text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase sm:block sm:text-right">
+              Show
+            </span>
+            <Select
+              value={filter}
+              onValueChange={(value) => setFilter(value as FilterKey)}
+            >
+              <SelectTrigger
+                className={cn(
+                  "h-11 w-full rounded-2xl border-primary/12 bg-white px-3 shadow-sm",
+                  "hover:border-primary/25 hover:bg-primary/2",
+                  "focus-visible:border-cta/40 focus-visible:ring-cta/15",
+                  "data-[state=open]:border-cta/35 data-[state=open]:ring-2 data-[state=open]:ring-cta/15",
+                )}
+              >
+                <SelectValue placeholder="Filter results">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span
+                      className={cn(
+                        "inline-flex size-7 shrink-0 items-center justify-center rounded-lg ring-1",
+                        activeFilter.tone === "orange"
+                          ? "bg-cta/12 text-amber-800 ring-cta/20"
+                          : "bg-primary/8 text-primary ring-primary/15",
+                      )}
+                    >
+                      <ActiveIcon className="size-3.5" />
+                    </span>
+                    <span className="min-w-0 truncate font-medium text-primary">
+                      {activeFilter.label}
+                    </span>
+                    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/8 px-1.5 text-[11px] font-semibold text-primary tabular-nums">
+                      {activeFilter.count}
+                    </span>
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent
+                align="end"
+                className="w-(--radix-select-trigger-width) min-w-58 rounded-2xl border-primary/10 p-1.5 shadow-xl shadow-primary/10"
+              >
+                <div className="mb-1 flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                  <Filter className="size-3" />
+                  Filter inbox
+                </div>
+                {filterOptions.map((option) => {
+                  const Icon = option.icon;
+                  const selected = filter === option.id;
+                  return (
+                    <SelectItem
+                      key={option.id}
+                      value={option.id}
+                      className={cn(
+                        "cursor-pointer rounded-xl py-2.5 pr-3 pl-2",
+                        selected && "bg-primary/5",
+                      )}
+                    >
+                      <span className="flex w-full min-w-0 items-center gap-2.5">
+                        <span
+                          className={cn(
+                            "inline-flex size-7 shrink-0 items-center justify-center rounded-lg ring-1",
+                            option.tone === "orange"
+                              ? "bg-cta/12 text-amber-800 ring-cta/20"
+                              : "bg-primary/8 text-primary ring-primary/15",
+                          )}
+                        >
+                          <Icon className="size-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                          {option.label}
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                            selected
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {option.count}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        }
       >
         {visible.length === 0 ? (
           <EmptyState

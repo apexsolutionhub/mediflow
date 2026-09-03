@@ -141,7 +141,8 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 | REC-01 | Today board load        | Open `/reception`                 | Encounters list loads                                                  |
 | REC-02 | Open cashier from board | Click visit card on board         | Goes straight to cashier for that visit                                |
 | REC-03 | Approve payment         | Cashier: tender → approve         | Amount locked to due; units unlock; no re-approve when nothing pending |
-| REC-04 | Checkout                | After payment → checkout          | Success; visit leaves queue                                            |
+| REC-04 | Checkout                | After payment → checkout          | Success; prints overall health report; Apex footer on sheet            |
+| REC-04b | Checkout with external Rx | Visit has outside-pharmacy meds | Two sheets: health report + external Rx; Apex footer on both         |
 | REC-05 | Checkout before payment | Checkout with unpaid consultation | Blocked with error                                                     |
 | REC-06 | Mixed tender            | Choose Mixed → pick 2+ methods    | Approves with mix (e.g. cash+card)                                     |
 | REC-07 | Board cache refresh     | Pay → return to board             | Status updated                                                         |

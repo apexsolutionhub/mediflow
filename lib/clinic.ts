@@ -65,6 +65,15 @@ export type Encounter = {
     details: string;
     medicine_name?: string;
   }[];
+  closed_at?: string | null;
+  follow_up_appointments?: Appointment[];
+  referrals?: {
+    id: number;
+    to_department?: string;
+    to_branch?: string;
+    diagnosis?: string;
+    lab_summary?: string;
+  }[];
 };
 
 export type BillableService = {
