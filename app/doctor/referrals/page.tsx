@@ -1,47 +1,89 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
-import { SelectedVisitBanner } from "@/components/selected-visit-banner";
+import { EncounterVisitSelector } from "@/components/encounter-visit-selector";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
-import { api } from "@/lib/api";
-import { type Department } from "@/lib/clinic";
+import { api, results } from "@/lib/api";
+import { type ClinicBranch, type Department } from "@/lib/clinic";
 import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 
 export default function DoctorReferralsPage() {
-  const { current } = useEncounterBoard("doctor");
+  const { encounters, current, selectedId, setSelectedId } = useEncounterBoard("doctor");
+  const [branches, setBranches] = useState<ClinicBranch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const referralForm = useForm({
     defaultValues: { to_department: "", to_branch: "", diagnosis: "", lab_summary: "" },
   });
 
-  const loadDepts = useCallback(async () => {
-    const rows = await fetchClinicCatalog<Department>(
-      "departments",
-      "/clinic/departments/",
-      { page_size: 50 },
-    );
-    setDepartments(rows);
+  const selectedBranch = referralForm.watch("to_branch");
+
+  const loadBranches = useCallback(async () => {
+    try {
+      const { data } = await api.get("/clinic/branches/", { params: { page_size: 100 } });
+      setBranches(results<ClinicBranch>(data).filter((b) => b.is_active !== false));
+    } catch {
+      setBranches([]);
+    }
+  }, []);
+
+  const loadDepts = useCallback(async (branchName?: string) => {
+    const params: Record<string, string | number> = { page_size: 50 };
+    if (branchName) params.branch = branchName;
+    try {
+      const rows = await fetchClinicCatalog<Department>(
+        "departments",
+        "/clinic/departments/",
+        params,
+        true,
+      );
+      setDepartments(rows.filter((d) => d.is_active !== false));
+    } catch {
+      setDepartments([]);
+    }
   }, []);
 
   useEffect(() => {
-    loadDepts().catch(() => toast.error("Could not load departments"));
-  }, [loadDepts]);
+    loadBranches().catch(() => toast.error("Could not load organization branches"));
+  }, [loadBranches]);
+
+  useEffect(() => {
+    if (!selectedBranch) {
+      setDepartments([]);
+      referralForm.setValue("to_department", "");
+      return;
+    }
+    loadDepts(selectedBranch).catch(() => toast.error("Could not load departments"));
+  }, [selectedBranch, loadDepts, referralForm]);
+
+  const branchOptions = useMemo(
+    () =>
+      branches.map((b) => ({
+        label: b.name,
+        value: b.name,
+        description: b.is_main ? "Main branch" : undefined,
+      })),
+    [branches],
+  );
 
   return (
     <ClinicShell
       title="Referrals"
-      subtitle="Send the patient to another department or same-org branch."
+      subtitle="Pick a same-org branch first, then a department at that branch."
     >
-      <SelectedVisitBanner encounter={current} boardHref="/doctor" boardLabel="active visits" />
+      <EncounterVisitSelector
+        encounters={encounters}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+      />
       {current ? (
         <SectionCard
           className="mx-auto max-w-lg"
@@ -52,6 +94,14 @@ export default function DoctorReferralsPage() {
           <form
             className="grid gap-4"
             onSubmit={referralForm.handleSubmit(async (values) => {
+              if (!values.to_branch) {
+                toast.error("Select a destination branch");
+                return;
+              }
+              if (!values.to_department) {
+                toast.error("Select a department at that branch");
+                return;
+              }
               setSubmitting(true);
               try {
                 await api.post("/clinic/referrals/", {
@@ -70,20 +120,25 @@ export default function DoctorReferralsPage() {
           >
             <CustomFormField
               control={referralForm.control}
+              name="to_branch"
+              fieldType={formFieldTypes.SELECT}
+              label="Organization branch"
+              placeholder={
+                branchOptions.length ? "Select branch" : "No branches yet — add in Apex admin"
+              }
+              options={branchOptions}
+            />
+            <CustomFormField
+              control={referralForm.control}
               name="to_department"
               fieldType={formFieldTypes.SELECT}
               label="Department"
+              disabled={!selectedBranch}
+              placeholder={selectedBranch ? "Select department" : "Choose a branch first"}
               options={departments.map((d) => ({
                 label: d.name,
                 value: d.name,
               }))}
-            />
-            <CustomFormField
-              control={referralForm.control}
-              name="to_branch"
-              fieldType={formFieldTypes.INPUT}
-              label="Same-org branch (optional)"
-              placeholder="Leave blank for in-branch"
             />
             <CustomFormField
               control={referralForm.control}

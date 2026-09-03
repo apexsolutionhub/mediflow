@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Package,
   Pill,
-  Stethoscope,
   Tags,
   Server,
   UserPlus,
@@ -52,18 +51,10 @@ export const RECEPTION_NAV: ClinicNavItem[] = [
 ];
 
 export const DOCTOR_NAV: ClinicNavItem[] = [
-  {
-    href: "/doctor",
-    label: "Active visits",
-    icon: Stethoscope,
-    exact: true,
-    children: [
-      { href: "/doctor/chart", label: "Chart", icon: FileText },
-      { href: "/doctor/orders", label: "Orders", icon: Beaker },
-      { href: "/doctor/follow-up", label: "Follow-up", icon: CalendarDays },
-      { href: "/doctor/referrals", label: "Referrals", icon: Users },
-    ],
-  },
+  { href: "/doctor/chart", label: "Chart", icon: FileText },
+  { href: "/doctor/orders", label: "Orders", icon: Beaker },
+  { href: "/doctor/follow-up", label: "Follow-up", icon: CalendarDays },
+  { href: "/doctor/referrals", label: "Referrals", icon: Users },
 ];
 
 export const NURSE_NAV: ClinicNavItem[] = [

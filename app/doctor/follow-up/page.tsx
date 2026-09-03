@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
-import { SelectedVisitBanner } from "@/components/selected-visit-banner";
+import { EncounterVisitSelector } from "@/components/encounter-visit-selector";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { FieldGroup } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +22,7 @@ type FollowUpFormValues = {
 };
 
 export default function DoctorFollowUpPage() {
-  const { current } = useEncounterBoard("doctor");
+  const { encounters, current, selectedId, setSelectedId } = useEncounterBoard("doctor");
   const [scheduling, setScheduling] = useState(false);
   const apptForm = useForm<FollowUpFormValues>({
     defaultValues: { scheduled_at: null, reason: "Follow-up" },
@@ -33,7 +33,11 @@ export default function DoctorFollowUpPage() {
       title="Follow-up"
       subtitle="Schedule the next visit for the selected patient."
     >
-      <SelectedVisitBanner encounter={current} boardHref="/doctor" boardLabel="active visits" />
+      <EncounterVisitSelector
+        encounters={encounters}
+        selectedId={selectedId}
+        onSelect={setSelectedId}
+      />
       {current ? (
         <SectionCard
           className="mx-auto max-w-lg"

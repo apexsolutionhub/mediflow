@@ -76,7 +76,7 @@ export type BillingSnapshot = {
 export const ROLE_HOME: Record<string, string> = {
   manager: "/manager",
   reception: "/reception",
-  doctor: "/doctor",
+  doctor: "/doctor/chart",
   nurse: "/nurse",
   lab: "/lab",
   pharmacist: "/pharmacy",

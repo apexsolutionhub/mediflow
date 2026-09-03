@@ -31,6 +31,8 @@ export type ClinicalOrder = {
   patient_name?: string;
   encounter_number?: string;
   encounter?: number;
+  fulfillment?: "clinic_pharmacy" | "external_print" | string;
+  medicine?: number | null;
 };
 
 export type Encounter = {
@@ -57,6 +59,11 @@ export type Encounter = {
     content: string;
     vitals?: Record<string, unknown>;
     created_at?: string;
+  }[];
+  external_prescriptions?: {
+    id: number;
+    details: string;
+    medicine_name?: string;
   }[];
 };
 
@@ -133,6 +140,15 @@ export type Department = {
   id: number;
   name: string;
   is_active: boolean;
+  branch_name?: string;
+};
+
+export type ClinicBranch = {
+  id: number;
+  name: string;
+  is_active?: boolean;
+  is_main?: boolean;
+  address?: string;
 };
 
 export type Appointment = {

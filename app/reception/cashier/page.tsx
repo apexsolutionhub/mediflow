@@ -104,8 +104,39 @@ export default function ReceptionCashierPage() {
     if (!current) return;
     setCheckingOut(true);
     try {
-      await api.post(`/clinic/encounters/${current.id}/checkout/`);
+      const { data } = await api.post(`/clinic/encounters/${current.id}/checkout/`);
       toast.success("Patient checked out");
+      const external =
+        (data?.external_prescriptions as
+          | { id: number; details: string; medicine_name?: string }[]
+          | undefined) || [];
+      if (external.length > 0 && typeof window !== "undefined") {
+        const patientName = current.patient?.full_name || "Patient";
+        const lines = external
+          .map(
+            (rx, index) =>
+              `${index + 1}. ${rx.medicine_name || "Medicine"}\n   ${rx.details}`,
+          )
+          .join("\n\n");
+        const html = `<!doctype html><html><head><title>External prescription</title>
+          <style>body{font-family:system-ui,sans-serif;padding:24px;color:#0f172a}
+          h1{font-size:18px;margin:0 0 8px}p{margin:4px 0;color:#475569}
+          pre{white-space:pre-wrap;font:14px/1.5 system-ui;border:1px solid #e2e8f0;padding:16px;border-radius:12px}</style></head>
+          <body><h1>Prescription for outside pharmacy</h1>
+          <p><strong>${patientName}</strong> · ${current.number}</p>
+          <p>Give this printout to the patient.</p>
+          <pre>${lines.replace(/</g, "&lt;")}</pre>
+          <script>window.onload=()=>window.print()</script></body></html>`;
+        const win = window.open("", "_blank", "noopener,noreferrer,width=720,height=900");
+        if (win) {
+          win.document.write(html);
+          win.document.close();
+        } else {
+          toast.message("External prescriptions ready", {
+            description: "Allow pop-ups to print the outside-pharmacy Rx.",
+          });
+        }
+      }
       invalidateEncounterBoardCache();
       await load(true);
     } catch (error: unknown) {

@@ -38,15 +38,22 @@ export default function ReceptionBoardPage() {
     };
   }, []);
 
-  const openCashier = (encounterId: number) => {
-    setSelectedId(encounterId);
+  const openCashier = (item: Encounter) => {
+    setSelectedId(item.id);
+    const due = Number(item.amount_due || 0);
+    if (due <= 0) {
+      toast.message("No payment due", {
+        description: "This visit has nothing awaiting cashier approval.",
+      });
+      return;
+    }
     router.push("/reception/cashier");
   };
 
   return (
     <ClinicShell
       title="Today board"
-      subtitle="Tap a patient card to open cashier and collect payment."
+      subtitle="Tap a patient with amount due to open cashier. Paid-up visits stay on the board without redirecting."
     >
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <StatTile label="Today on board" value={encounters.length} tone="navy" />
@@ -61,7 +68,7 @@ export default function ReceptionBoardPage() {
       <SectionCard
         kicker="Front desk"
         title="Today&apos;s patient board"
-        description="Tap a visit to open payment details in cashier."
+        description="Tap a visit with payment due to open cashier. Visits with nothing due are selected only."
       >
         {encounters.length === 0 ? (
           <EmptyState
@@ -77,7 +84,7 @@ export default function ReceptionBoardPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => openCashier(item.id)}
+                  onClick={() => openCashier(item)}
                   className="w-full text-left"
                 >
                   <QueueItem

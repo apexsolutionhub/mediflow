@@ -158,13 +158,13 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [x] REC-05
 - [x] REC-06
 - [x] REC-07
-- [ ] REC-08
-- [ ] REC-09
+- [x] REC-08
+- [x] REC-09
 
 **Feedback (section 4):**
 
 ```
-in today's patient board after i click the card of the patient and you enter open cashier section to go that patient payment details but it should redirect to the cashier page by only clicking the patient card not as now and after required payment is approved the system allows to process again another payment while another payment is not in pending and the amount section input is editable but it shouldn't be because the payment is constant even if it is an insurance and the mixed option if choosen there should be some way to select and enter what mixes are there is it cash and card or cash and insurance... and in returning patient when selecting patients if the patient name is repetitive that should display once and there will be a description of that patient how many times he/she visisted and searching section is not necessary if select is there and in the selector the patients in which that they didn't checked out shouldn't be displayed 
+
 ```
 
 ---
@@ -189,8 +189,8 @@ in today's patient board after i click the card of the patient and you enter ope
 
 **Checklist**
 
-- [ ] DOC-01
-- [ ] DOC-02
+- [x] DOC-01
+- [x] DOC-02
 - [ ] DOC-03
 - [ ] DOC-04
 - [ ] DOC-05
@@ -212,12 +212,12 @@ in today's patient board after i click the card of the patient and you enter ope
 ## 6. Nurse portal
 
 
-| ID     | Test case       | Steps                        | Expected                       |
-| ------ | --------------- | ---------------------------- | ------------------------------ |
-| NUR-01 | Open encounters | `/nurse`                     | List renders                   |
-| NUR-02 | Notes & vitals  | Click encounter card → save  | Opens notes; saved on chart    |
-| NUR-03 | Timeline        | `/nurse/timeline`            | All history; filter by visit   |
-| NUR-04 | No encounter    | Notes without selection      | Empty / banner state           |
+| ID     | Test case       | Steps                       | Expected                     |
+| ------ | --------------- | --------------------------- | ---------------------------- |
+| NUR-01 | Open encounters | `/nurse`                    | List renders                 |
+| NUR-02 | Notes & vitals  | Click encounter card → save | Opens notes; saved on chart  |
+| NUR-03 | Timeline        | `/nurse/timeline`           | All history; filter by visit |
+| NUR-04 | No encounter    | Notes without selection     | Empty / banner state         |
 
 
 **Checklist**
