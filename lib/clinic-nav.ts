@@ -67,16 +67,9 @@ export const DOCTOR_NAV: ClinicNavItem[] = [
 ];
 
 export const NURSE_NAV: ClinicNavItem[] = [
-  {
-    href: "/nurse",
-    label: "Open encounters",
-    icon: HeartPulse,
-    exact: true,
-    children: [
-      { href: "/nurse/notes", label: "Notes & vitals", icon: FileText },
-      { href: "/nurse/timeline", label: "Timeline", icon: ClipboardList },
-    ],
-  },
+  { href: "/nurse", label: "Open encounters", icon: HeartPulse, exact: true },
+  { href: "/nurse/notes", label: "Notes & vitals", icon: FileText },
+  { href: "/nurse/timeline", label: "Timeline", icon: ClipboardList },
 ];
 
 export const LAB_NAV: ClinicNavItem[] = [

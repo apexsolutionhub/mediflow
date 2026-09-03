@@ -215,17 +215,17 @@ in today's patient board after i click the card of the patient and you enter ope
 | ID     | Test case       | Steps                        | Expected                       |
 | ------ | --------------- | ---------------------------- | ------------------------------ |
 | NUR-01 | Open encounters | `/nurse`                     | List renders                   |
-| NUR-02 | Notes & vitals  | Select encounter → save note | Saved; visible on doctor chart |
-| NUR-03 | Timeline        | `/nurse/timeline`            | Events in order                |
+| NUR-02 | Notes & vitals  | Click encounter card → save  | Opens notes; saved on chart    |
+| NUR-03 | Timeline        | `/nurse/timeline`            | All history; filter by visit   |
 | NUR-04 | No encounter    | Notes without selection      | Empty / banner state           |
 
 
 **Checklist**
 
-- [ ] NUR-01
-- [ ] NUR-02
-- [ ] NUR-03
-- [ ] NUR-04
+- [x] NUR-01
+- [x] NUR-02
+- [x] NUR-03
+- [x] NUR-04
 
 **Feedback (section 6):**
 

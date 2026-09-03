@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { ClipboardList, FileText, HeartPulse } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { HeartPulse } from "lucide-react";
 
 import { ClinicShell } from "@/components/clinic-shell";
-import { Button } from "@/components/ui/button";
 import {
   EmptyState,
   QueueItem,
@@ -12,46 +11,38 @@ import {
   StatTile,
   StatusPill,
 } from "@/components/ui-chrome";
-import { setSelectedEncounterId } from "@/lib/clinic-selection";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 
 export default function NurseBoardPage() {
+  const router = useRouter();
   const { encounters, selectedId, setSelectedId } = useEncounterBoard("nurse");
 
   const activeCount = encounters.filter((e) => e.status === "active").length;
 
+  const openNotes = (encounterId: number) => {
+    setSelectedId(encounterId);
+    router.push("/nurse/notes");
+  };
+
   return (
     <ClinicShell
       title="Open encounters"
-      subtitle="Select a patient, then open Notes & vitals or Timeline from the sidebar."
+      subtitle="Tap a patient card to document notes and vitals for that visit."
     >
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <StatTile label="Open encounters" value={encounters.length} tone="navy" />
         <StatTile label="Active care" value={activeCount} tone="green" />
-        <StatTile label="Selected" value={selectedId ? 1 : 0} tone="orange" />
+        <StatTile
+          label="Awaiting notes"
+          value={encounters.filter((e) => !(e.nurse_notes && e.nurse_notes.length > 0)).length}
+          tone="orange"
+        />
       </div>
-
-      {selectedId ? (
-        <div className="mb-5 flex flex-wrap gap-2">
-          <Button asChild className="rounded-xl shadow-sm">
-            <Link href="/nurse/notes" onClick={() => setSelectedEncounterId(selectedId)}>
-              <FileText className="size-4" />
-              Notes & vitals
-            </Link>
-          </Button>
-          <Button asChild variant="outline" className="rounded-xl">
-            <Link href="/nurse/timeline">
-              <ClipboardList className="size-4" />
-              Timeline
-            </Link>
-          </Button>
-        </div>
-      ) : null}
 
       <SectionCard
         kicker="Floor"
         title="Open encounters"
-        description="Tap a patient to document vitals and nursing notes."
+        description="Tap a patient to open Notes & vitals for that encounter."
         action={
           encounters.length > 0 ? (
             <StatusPill tone="orange">{encounters.length} on floor</StatusPill>
@@ -68,7 +59,7 @@ export default function NurseBoardPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setSelectedId(item.id)}
+                  onClick={() => openNotes(item.id)}
                   className="w-full text-left"
                 >
                   <QueueItem
