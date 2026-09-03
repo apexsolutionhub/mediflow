@@ -187,6 +187,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 | DOC-09 | Calendar month/year | Follow-up picker dropdowns         | Not clipped; navigable        |
 | DOC-10 | Past date blocked   | Schedule in the past               | Disabled or rejected          |
 | DOC-11 | Referral            | Department, branch, diagnosis      | Referral recorded             |
+| DOC-12 | Results inbox       | `/doctor/results` after unit sends | Result text visible; mark reviewed |
 
 
 **Checklist**
@@ -204,6 +205,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [ ] DOC-09
 - [ ] DOC-10
 - [ ] DOC-11
+- [ ] DOC-12
 
 **Feedback (section 5):**
 
@@ -244,10 +246,11 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 | ID     | Test case         | Steps                                | Expected                           |
 | ------ | ----------------- | ------------------------------------ | ---------------------------------- |
-| LAB-01 | Work queue        | `/lab` — paid **lab** orders only    | Radiology not mixed in             |
-| LAB-02 | Start + complete  | Start test → enter result → complete | Status updates; loading on buttons |
-| LAB-03 | Print report      | Print after result                   | Pop-up / print layout OK           |
-| LAB-04 | Equipment tickets | `/lab/equipment` → submit ticket     | Ticket created for manager         |
+| LAB-01 | Results portal    | `/lab` — Enter results tab           | Paid lab orders only; textarea     |
+| LAB-02 | Start + complete  | Start → enter result → send to doctor| Status Completed; doctor inbox     |
+| LAB-03 | Print report      | Print after / during result          | Pop-up / print layout OK           |
+| LAB-04 | Sent reports      | Switch to Sent reports tab           | Completed reports listed           |
+| LAB-05 | Equipment tickets | `/lab/equipment` → submit ticket     | Ticket created for manager         |
 
 
 **Checklist**
@@ -256,6 +259,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [ ] LAB-02
 - [ ] LAB-03
 - [ ] LAB-04
+- [ ] LAB-05
 
 **Feedback (section 7):**
 
@@ -270,9 +274,10 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 | ID     | Test case        | Steps                                   | Expected                |
 | ------ | ---------------- | --------------------------------------- | ----------------------- |
-| RAD-01 | Imaging queue    | `/radiology` — paid radiology only      | Lab orders not shown    |
-| RAD-02 | Start + complete | Start imaging → findings → complete     | Doctor sees result      |
-| RAD-03 | Staff login      | Manager creates Radiology staff → login | Lands on `/radiology`   |
+| RAD-01 | Results portal   | `/radiology` — Enter results         | Lab orders not shown    |
+| RAD-02 | Start + complete | Start imaging → findings → send      | Doctor Results inbox    |
+| RAD-03 | Staff login      | Manager creates Radiology staff      | Lands on `/radiology`   |
+| RAD-04 | Sent reports     | Sent reports tab                     | Completed imaging listed |
 
 
 **Checklist**
@@ -280,6 +285,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [ ] RAD-01
 - [ ] RAD-02
 - [ ] RAD-03
+- [ ] RAD-04
 
 **Feedback (section 7b):**
 

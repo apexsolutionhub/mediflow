@@ -167,9 +167,14 @@ export function DoctorDiagnosticOrderPage({ orderType }: { orderType: Diagnostic
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">{order.details}</p>
                         {order.result_text ? (
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            Result: {order.result_text}
-                          </p>
+                          <div className="mt-3 rounded-xl border border-primary/10 bg-primary/3 px-3 py-2.5">
+                            <p className="text-[10px] font-semibold tracking-[0.14em] text-cta uppercase">
+                              Result
+                            </p>
+                            <p className="mt-1 whitespace-pre-wrap text-sm leading-5 text-primary/90">
+                              {order.result_text}
+                            </p>
+                          </div>
                         ) : null}
                         {order.status === "Completed" ? (
                           <Button

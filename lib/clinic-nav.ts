@@ -63,6 +63,7 @@ export const DOCTOR_NAV: ClinicNavItem[] = [
       { href: "/doctor/orders/pharmacy", label: "Pharmacy prescription", icon: Pill },
     ],
   },
+  { href: "/doctor/results", label: "Results", icon: ClipboardList },
   { href: "/doctor/follow-up", label: "Follow-up", icon: CalendarDays },
   { href: "/doctor/referrals", label: "Referrals", icon: Users },
 ];
@@ -74,12 +75,12 @@ export const NURSE_NAV: ClinicNavItem[] = [
 ];
 
 export const LAB_NAV: ClinicNavItem[] = [
-  { href: "/lab", label: "Work queue", icon: Beaker, exact: true },
+  { href: "/lab", label: "Results portal", icon: Beaker, exact: true },
   { href: "/lab/equipment", label: "Equipment", icon: Wrench },
 ];
 
 export const RADIOLOGY_NAV: ClinicNavItem[] = [
-  { href: "/radiology", label: "Imaging queue", icon: ScanLine, exact: true },
+  { href: "/radiology", label: "Results portal", icon: ScanLine, exact: true },
 ];
 
 export const PHARMACY_NAV: ClinicNavItem[] = [

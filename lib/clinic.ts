@@ -194,6 +194,7 @@ export type DashboardStats = {
   pending_payments: number;
   lab_queue: number;
   radiology_queue: number;
+  results_ready: number;
   rx_queue: number;
   low_stock: number;
   open_tickets: number;

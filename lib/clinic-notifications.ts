@@ -56,6 +56,17 @@ export function buildClinicNotifications(
     });
   }
 
+  if (normalized === "doctor") {
+    pushIf(notifications, Number(stats.results_ready || 0) > 0, {
+      id: "results-ready",
+      title: "Results ready",
+      description: `${stats.results_ready} lab/radiology report${stats.results_ready === 1 ? "" : "s"} awaiting review`,
+      href: "/doctor/results",
+      count: Number(stats.results_ready || 0),
+      severity: "warning",
+    });
+  }
+
   if (normalized === "manager" || normalized === "lab") {
     pushIf(notifications, Number(stats.lab_queue || 0) > 0, {
       id: "lab-queue",
