@@ -8,6 +8,7 @@ import {
   HeartPulse,
   KeyRound,
   Pill,
+  ScanLine,
   Shield,
   Stethoscope,
   Trash2,
@@ -66,6 +67,7 @@ const ALL_STAFF_ROLES = [
   { label: "Doctor", value: "doctor", icon: Stethoscope, tone: "orange" as const },
   { label: "Nurse", value: "nurse", icon: HeartPulse, tone: "green" as const },
   { label: "Lab", value: "lab", icon: FlaskConical, tone: "navy" as const },
+  { label: "Radiology", value: "radiology", icon: ScanLine, tone: "navy" as const },
   { label: "Pharmacist", value: "pharmacist", icon: Pill, tone: "orange" as const },
 ] as const;
 

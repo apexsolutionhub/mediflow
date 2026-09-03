@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Package,
   Pill,
+  ScanLine,
   Tags,
   Server,
   UserPlus,
@@ -52,7 +53,16 @@ export const RECEPTION_NAV: ClinicNavItem[] = [
 
 export const DOCTOR_NAV: ClinicNavItem[] = [
   { href: "/doctor/chart", label: "Chart", icon: FileText },
-  { href: "/doctor/orders", label: "Orders", icon: Beaker },
+  {
+    href: "/doctor/orders",
+    label: "Orders",
+    icon: Beaker,
+    children: [
+      { href: "/doctor/orders/laboratory", label: "Laboratory", icon: Beaker },
+      { href: "/doctor/orders/radiology", label: "Radiology", icon: ScanLine },
+      { href: "/doctor/orders/pharmacy", label: "Pharmacy prescription", icon: Pill },
+    ],
+  },
   { href: "/doctor/follow-up", label: "Follow-up", icon: CalendarDays },
   { href: "/doctor/referrals", label: "Referrals", icon: Users },
 ];
@@ -68,6 +78,10 @@ export const LAB_NAV: ClinicNavItem[] = [
   { href: "/lab/equipment", label: "Equipment", icon: Wrench },
 ];
 
+export const RADIOLOGY_NAV: ClinicNavItem[] = [
+  { href: "/radiology", label: "Imaging queue", icon: ScanLine, exact: true },
+];
+
 export const PHARMACY_NAV: ClinicNavItem[] = [
   { href: "/pharmacy", label: "Rx queue", icon: Pill, exact: true },
   { href: "/pharmacy/inventory", label: "Inventory", icon: Package },
@@ -79,6 +93,7 @@ export const ROLE_NAV: Record<string, ClinicNavItem[]> = {
   doctor: DOCTOR_NAV,
   nurse: NURSE_NAV,
   lab: LAB_NAV,
+  radiology: RADIOLOGY_NAV,
   pharmacist: PHARMACY_NAV,
 };
 
@@ -88,6 +103,7 @@ export const ROLE_PORTAL_ROOT: Record<string, string> = {
   doctor: "/doctor",
   nurse: "/nurse",
   lab: "/lab",
+  radiology: "/radiology",
   pharmacist: "/pharmacy",
 };
 

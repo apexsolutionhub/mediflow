@@ -59,10 +59,21 @@ export function buildClinicNotifications(
   if (normalized === "manager" || normalized === "lab") {
     pushIf(notifications, Number(stats.lab_queue || 0) > 0, {
       id: "lab-queue",
-      title: "Lab / radiology queue",
+      title: "Lab queue",
       description: `${stats.lab_queue} order${stats.lab_queue === 1 ? "" : "s"} waiting`,
       href: "/lab",
       count: Number(stats.lab_queue || 0),
+      severity: "warning",
+    });
+  }
+
+  if (normalized === "manager" || normalized === "radiology") {
+    pushIf(notifications, Number(stats.radiology_queue || 0) > 0, {
+      id: "radiology-queue",
+      title: "Radiology queue",
+      description: `${stats.radiology_queue} order${stats.radiology_queue === 1 ? "" : "s"} waiting`,
+      href: "/radiology",
+      count: Number(stats.radiology_queue || 0),
       severity: "warning",
     });
   }

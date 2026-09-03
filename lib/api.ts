@@ -79,6 +79,7 @@ export const ROLE_HOME: Record<string, string> = {
   doctor: "/doctor/chart",
   nurse: "/nurse",
   lab: "/lab",
+  radiology: "/radiology",
   pharmacist: "/pharmacy",
 };
 

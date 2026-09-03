@@ -6,6 +6,7 @@ import {
   Beaker,
   ClipboardList,
   Pill,
+  ScanLine,
   Stethoscope,
   TrendingUp,
   Wallet,
@@ -53,8 +54,9 @@ export default function ManagerOverviewPage() {
         />
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile label="Lab queue" value={stats.lab_queue ?? "—"} tone="navy" />
+        <StatTile label="Radiology queue" value={stats.radiology_queue ?? "—"} tone="navy" />
         <StatTile label="Rx queue" value={stats.rx_queue ?? "—"} tone="orange" />
         <StatTile label="Low stock" value={stats.low_stock ?? "—"} tone="rose" />
         <StatTile label="Open tickets" value={stats.open_tickets ?? "—"} tone="orange" />
@@ -68,7 +70,8 @@ export default function ManagerOverviewPage() {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              { label: "Lab / radiology", value: stats.lab_queue, icon: Beaker, tone: "navy" as const },
+              { label: "Lab", value: stats.lab_queue, icon: Beaker, tone: "navy" as const },
+              { label: "Radiology", value: stats.radiology_queue, icon: ScanLine, tone: "navy" as const },
               { label: "Pharmacy Rx", value: stats.rx_queue, icon: Pill, tone: "orange" as const },
               { label: "Open encounters", value: stats.open_encounters, icon: Stethoscope, tone: "green" as const },
               { label: "Today visits", value: stats.today_encounters, icon: TrendingUp, tone: "navy" as const },

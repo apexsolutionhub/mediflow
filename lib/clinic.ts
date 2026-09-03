@@ -136,6 +136,27 @@ export const MEDICINE_UNITS = [
   { label: "Other", value: "other" },
 ] as const;
 
+/** Common Rx frequency options for doctor prescriptions. */
+export const MEDICINE_FREQUENCY_OPTIONS = [
+  { label: "Morning one · Night one", value: "Morning one · Night one" },
+  { label: "Morning one · Afternoon one · Night one", value: "Morning one · Afternoon one · Night one" },
+  { label: "Morning only", value: "Morning only" },
+  { label: "Night only / bedtime", value: "Night only" },
+  { label: "Once daily (OD)", value: "Once daily (OD)" },
+  { label: "Twice daily (BID)", value: "Twice daily (BID)" },
+  { label: "Three times daily (TID)", value: "Three times daily (TID)" },
+  { label: "Four times daily (QID)", value: "Four times daily (QID)" },
+  { label: "Every 6 hours", value: "Every 6 hours" },
+  { label: "Every 8 hours", value: "Every 8 hours" },
+  { label: "Every 12 hours", value: "Every 12 hours" },
+  { label: "Before meals", value: "Before meals" },
+  { label: "After meals", value: "After meals" },
+  { label: "With meals", value: "With meals" },
+  { label: "As needed (PRN)", value: "As needed (PRN)" },
+  { label: "Weekly", value: "Weekly" },
+  { label: "Monthly", value: "Monthly" },
+] as const;
+
 export type Department = {
   id: number;
   name: string;
@@ -172,6 +193,7 @@ export type DashboardStats = {
   open_encounters: number;
   pending_payments: number;
   lab_queue: number;
+  radiology_queue: number;
   rx_queue: number;
   low_stock: number;
   open_tickets: number;

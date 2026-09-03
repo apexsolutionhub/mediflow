@@ -174,12 +174,14 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 | ID     | Test case           | Steps                              | Expected                      |
 | ------ | ------------------- | ---------------------------------- | ----------------------------- |
-| DOC-01 | Active visits       | `/doctor` — paid visits only       | Unpaid not in queue           |
-| DOC-02 | Select visit        | Pick patient from board            | Banner on chart/orders        |
+| DOC-01 | Active visits       | `/doctor` redirects to Chart       | Encounter selector on Chart   |
+| DOC-02 | Select visit        | Pick patient from selector         | Banner on chart/orders        |
 | DOC-03 | Chart               | Save chart for selected visit      | Chart persists                |
-| DOC-04 | Lab order           | Orders → lab → service → submit    | Order created; awaits payment |
-| DOC-05 | Radiology order     | Orders → radiology                 | Same payment gate             |
-| DOC-06 | Prescription order  | Orders → Rx                        | Pharmacy queue after payment  |
+| DOC-04 | Lab order           | Orders → Laboratory → service      | Order created; awaits payment |
+| DOC-05 | Radiology order     | Orders → Radiology → service       | Same payment gate             |
+| DOC-06 | Clinic Rx           | Orders → Pharmacy → pick inventory | In stock; pharmacy after pay  |
+| DOC-06b | Outside Rx         | Type full name not in inventory    | Dose required; print at checkout |
+| DOC-06c | Batch Rx           | Add multiple medicines → send      | One batch creates N orders    |
 | DOC-07 | No visit selected   | Orders without selection           | Empty / select prompt         |
 | DOC-08 | Follow-up           | Date/time picker → reason → submit | Appointment on reception list |
 | DOC-09 | Calendar month/year | Follow-up picker dropdowns         | Not clipped; navigable        |
@@ -189,12 +191,14 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 **Checklist**
 
-- [x] DOC-01
-- [x] DOC-02
+- [ ] DOC-01
+- [ ] DOC-02
 - [ ] DOC-03
 - [ ] DOC-04
 - [ ] DOC-05
 - [ ] DOC-06
+- [ ] DOC-06b
+- [ ] DOC-06c
 - [ ] DOC-07
 - [ ] DOC-08
 - [ ] DOC-09
@@ -240,7 +244,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 | ID     | Test case         | Steps                                | Expected                           |
 | ------ | ----------------- | ------------------------------------ | ---------------------------------- |
-| LAB-01 | Work queue        | `/lab` — paid orders only            | Unpaid not actionable              |
+| LAB-01 | Work queue        | `/lab` — paid **lab** orders only    | Radiology not mixed in             |
 | LAB-02 | Start + complete  | Start test → enter result → complete | Status updates; loading on buttons |
 | LAB-03 | Print report      | Print after result                   | Pop-up / print layout OK           |
 | LAB-04 | Equipment tickets | `/lab/equipment` → submit ticket     | Ticket created for manager         |
@@ -254,6 +258,30 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [ ] LAB-04
 
 **Feedback (section 7):**
+
+```
+
+```
+
+---
+
+## 7b. Radiology portal
+
+
+| ID     | Test case        | Steps                                   | Expected                |
+| ------ | ---------------- | --------------------------------------- | ----------------------- |
+| RAD-01 | Imaging queue    | `/radiology` — paid radiology only      | Lab orders not shown    |
+| RAD-02 | Start + complete | Start imaging → findings → complete     | Doctor sees result      |
+| RAD-03 | Staff login      | Manager creates Radiology staff → login | Lands on `/radiology`   |
+
+
+**Checklist**
+
+- [ ] RAD-01
+- [ ] RAD-02
+- [ ] RAD-03
+
+**Feedback (section 7b):**
 
 ```
 
