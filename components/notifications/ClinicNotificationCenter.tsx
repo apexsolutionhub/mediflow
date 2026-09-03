@@ -48,12 +48,15 @@ export function ClinicNotificationCenter({
   className?: string;
   onNavigate?: () => void;
 }) {
-  const [stats, setStats] = useState<Partial<DashboardStats>>({});
-  const [seen, setSeen] = useState<ClinicNotificationSeenMap>({});
   const storageKey = useMemo(() => {
     const user = readUser();
     return clinicNotificationSeenKey(role, user?.username);
   }, [role]);
+
+  const [stats, setStats] = useState<Partial<DashboardStats>>({});
+  const [seen, setSeen] = useState<ClinicNotificationSeenMap>(() =>
+    readClinicNotificationSeen(clinicNotificationSeenKey(role, readUser()?.username)),
+  );
 
   useEffect(() => {
     setSeen(readClinicNotificationSeen(storageKey));

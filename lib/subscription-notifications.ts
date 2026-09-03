@@ -106,7 +106,6 @@ export function buildSubscriptionNotifications(
   }
 
   if (status === "grace") {
-    const d = daysLeft != null ? Math.abs(daysLeft) : 0;
     return [
       {
         id: "quarter-grace",
