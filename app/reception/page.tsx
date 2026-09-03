@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
-import { Button } from "@/components/ui/button";
 import {
   EmptyState,
   QueueItem,
@@ -58,12 +56,6 @@ export default function ReceptionBoardPage() {
           tone="orange"
         />
         <StatTile label="Today&apos;s appointments" value={appointments.length} tone="green" />
-      </div>
-
-      <div className="mb-5 flex flex-wrap gap-2">
-        <Button asChild className="rounded-xl shadow-sm">
-          <Link href="/reception/register/new">Register arrival</Link>
-        </Button>
       </div>
 
       <SectionCard

@@ -27,8 +27,6 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 ---
 
-
-
 ## 1. Authentication & access
 
 
@@ -67,8 +65,6 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 ---
 
-
-
 ## 2. Shell, navigation & UI polish
 
 
@@ -102,8 +98,6 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 ```
 
 ---
-
-
 
 ## 3. Reception — patient registration
 
@@ -139,29 +133,27 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 
 ---
 
-
-
 ## 4. Reception — today board & cashier
 
 
-| ID     | Test case               | Steps                             | Expected                               |
-| ------ | ----------------------- | --------------------------------- | -------------------------------------- |
-| REC-01 | Today board load        | Open `/reception`                 | Encounters list loads                  |
-| REC-02 | Open cashier from board | Click visit card on board         | Goes straight to cashier for that visit |
+| ID     | Test case               | Steps                             | Expected                                                               |
+| ------ | ----------------------- | --------------------------------- | ---------------------------------------------------------------------- |
+| REC-01 | Today board load        | Open `/reception`                 | Encounters list loads                                                  |
+| REC-02 | Open cashier from board | Click visit card on board         | Goes straight to cashier for that visit                                |
 | REC-03 | Approve payment         | Cashier: tender → approve         | Amount locked to due; units unlock; no re-approve when nothing pending |
-| REC-04 | Checkout                | After payment → checkout          | Success; visit leaves queue            |
-| REC-05 | Checkout before payment | Checkout with unpaid consultation | Blocked with error                     |
-| REC-06 | Mixed tender            | Choose Mixed → pick 2+ methods    | Approves with mix (e.g. cash+card)     |
-| REC-07 | Board cache refresh     | Pay → return to board             | Status updated                         |
-| REC-08 | Appointments list       | `/reception/appointments`         | Today's appointments load              |
-| REC-09 | Appointments empty      | No scheduled visits               | Empty state                            |
+| REC-04 | Checkout                | After payment → checkout          | Success; visit leaves queue                                            |
+| REC-05 | Checkout before payment | Checkout with unpaid consultation | Blocked with error                                                     |
+| REC-06 | Mixed tender            | Choose Mixed → pick 2+ methods    | Approves with mix (e.g. cash+card)                                     |
+| REC-07 | Board cache refresh     | Pay → return to board             | Status updated                                                         |
+| REC-08 | Appointments list       | `/reception/appointments`         | Today's appointments load                                              |
+| REC-09 | Appointments empty      | No scheduled visits               | Empty state                                                            |
 
 
 **Checklist**
 
 - [x] REC-01
-- [ ] REC-02
-- [ ] REC-03
+- [x] REC-02
+- [x] REC-03
 - [x] REC-04
 - [x] REC-05
 - [x] REC-06
@@ -176,8 +168,6 @@ in today's patient board after i click the card of the patient and you enter ope
 ```
 
 ---
-
-
 
 ## 5. Doctor portal
 
@@ -219,8 +209,6 @@ in today's patient board after i click the card of the patient and you enter ope
 
 ---
 
-
-
 ## 6. Nurse portal
 
 
@@ -247,8 +235,6 @@ in today's patient board after i click the card of the patient and you enter ope
 
 ---
 
-
-
 ## 7. Lab portal
 
 
@@ -274,8 +260,6 @@ in today's patient board after i click the card of the patient and you enter ope
 ```
 
 ---
-
-
 
 ## 8. Pharmacy portal
 
@@ -304,8 +288,6 @@ in today's patient board after i click the card of the patient and you enter ope
 ```
 
 ---
-
-
 
 ## 9. Manager — catalog & staff
 
@@ -349,8 +331,6 @@ in today's patient board after i click the card of the patient and you enter ope
 
 ---
 
-
-
 ## 10. Operating mode (Manager + Apex)
 
 
@@ -387,11 +367,7 @@ in today's patient board after i click the card of the patient and you enter ope
 
 ---
 
-
-
 ## 11. Billing, signup & subscription (critical)
-
-
 
 ### Setup signup & Apex approval
 
@@ -406,8 +382,6 @@ in today's patient board after i click the card of the patient and you enter ope
 | BIL-S6 | Resubmit setup payment    | Pending again until Apex approves            |
 
 
-
-
 ### Quarterly renewal
 
 
@@ -419,8 +393,6 @@ in today's patient board after i click the card of the patient and you enter ope
 | BIL-Q4 | Apex rejects quarterly        | Rejected + resubmit; no clinic access                            |
 | BIL-Q5 | Resubmit quarterly            | Pending until Apex approves                                      |
 | BIL-Q6 | Grace before submit           | Manager → billing portal only; staff blocked                     |
-
-
 
 
 ### Subscription UI
@@ -475,11 +447,7 @@ path("resubmit-quarterly/", ResubmitQuarterlyPaymentView.as_view(), ...),
 
 ---
 
-
-
 ## 12. End-to-end clinical flows
-
-
 
 ### Flow A — New patient full visit
 
@@ -500,8 +468,6 @@ path("resubmit-quarterly/", ResubmitQuarterlyPaymentView.as_view(), ...),
 
 ```
 
-
-
 ### Flow B — Returning patient + Rx
 
 1. [ ] Reception registers **returning** patient
@@ -519,8 +485,6 @@ path("resubmit-quarterly/", ResubmitQuarterlyPaymentView.as_view(), ...),
 
 ```
 
-
-
 ### Flow C — Follow-up loop
 
 1. [ ] Doctor schedules **follow-up** (future date/time)
@@ -533,8 +497,6 @@ path("resubmit-quarterly/", ResubmitQuarterlyPaymentView.as_view(), ...),
 ```
 
 ```
-
-
 
 ### Flow D — Manager catalog → doctor usage
 
@@ -551,8 +513,6 @@ path("resubmit-quarterly/", ResubmitQuarterlyPaymentView.as_view(), ...),
 ```
 
 ---
-
-
 
 ## 13. Performance & reliability
 
@@ -581,8 +541,6 @@ path("resubmit-quarterly/", ResubmitQuarterlyPaymentView.as_view(), ...),
 ```
 
 ---
-
-
 
 ## 14. Regression checks (recent work)
 
@@ -618,8 +576,6 @@ path("resubmit-quarterly/", ResubmitQuarterlyPaymentView.as_view(), ...),
 
 ---
 
-
-
 ## Suggested test data
 
 ```
@@ -638,8 +594,6 @@ Ops mode notes:
 
 ---
 
-
-
 ## Priority order (if time is limited)
 
 1. **P0:** Section 11 (billing/signup), Flow A, AUTH-01, REG-01/02, REC-03/04, DOC-01/04, PHR-02
@@ -647,8 +601,6 @@ Ops mode notes:
 3. **P2:** UI polish, performance (section 13), edge cases
 
 ---
-
-
 
 ## Session log
 
