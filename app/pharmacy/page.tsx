@@ -64,6 +64,7 @@ export default function PharmacyQueuePage() {
           <EmptyState
             title="No prescriptions ready"
             hint="Unpaid Rx never appears here — payment approval is required."
+            icon={<Pill className="size-5" />}
           />
         ) : (
           <div className="space-y-4">

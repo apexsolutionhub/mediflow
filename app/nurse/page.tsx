@@ -50,7 +50,7 @@ export default function NurseBoardPage() {
         }
       >
         {encounters.length === 0 ? (
-          <EmptyState title="Quiet floor" hint="Open encounters will appear here." />
+          <EmptyState title="Quiet floor" hint="Open encounters will appear here." icon={<HeartPulse className="size-5" />} />
         ) : (
           <div className="space-y-3">
             {encounters.map((item) => {
@@ -70,14 +70,16 @@ export default function NurseBoardPage() {
                     }
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <HeartPulse className="size-4 shrink-0 text-primary/70" />
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/15">
+                          <HeartPulse className="size-4" />
+                        </span>
+                        <div className="min-w-0">
                           <p className="truncate font-heading text-base font-semibold text-primary">
                             {item.patient.full_name}
                           </p>
+                          <p className="mt-1 text-xs text-muted-foreground">{item.number}</p>
                         </div>
-                        <p className="mt-1 text-xs text-muted-foreground">{item.number}</p>
                       </div>
                       <StatusPill tone={item.status === "active" ? "green" : "orange"}>
                         {item.status}

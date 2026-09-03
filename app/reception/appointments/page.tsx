@@ -58,6 +58,7 @@ export default function ReceptionAppointmentsPage() {
           <EmptyState
             title="No appointments today"
             hint="Doctors schedule follow-ups from the doctor portal."
+            icon={<CalendarDays className="size-5" />}
           />
         ) : (
           <div className="space-y-3">

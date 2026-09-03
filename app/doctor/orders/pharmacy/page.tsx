@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { EncounterVisitSelector } from "@/components/encounter-visit-selector";
+import { VisitPatientStrip } from "@/components/visit-patient-strip";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -454,6 +455,7 @@ export default function DoctorPharmacyPrescriptionPage() {
               ) : undefined
             }
           >
+            <VisitPatientStrip encounter={current} />
             <div className="mb-5 grid gap-2.5 sm:grid-cols-3">
               <div className="rounded-2xl border border-primary/10 bg-linear-to-br from-white to-primary/4 px-3.5 py-3">
                 <p className="text-[11px] font-medium text-muted-foreground">Lines ready</p>

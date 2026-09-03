@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
@@ -74,6 +75,7 @@ export default function ReceptionBoardPage() {
           <EmptyState
             title="No arrivals yet"
             hint="Use Register in the sidebar to open an encounter."
+            icon={<UserPlus className="size-5" />}
           />
         ) : (
           <div className="space-y-3">
@@ -95,13 +97,22 @@ export default function ReceptionBoardPage() {
                     }
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate font-heading text-base font-semibold text-primary">
-                          {item.patient?.full_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.number} · {item.arrival_type}
-                        </p>
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-[11px] font-bold text-primary ring-1 ring-primary/15">
+                          {(item.patient?.full_name || "?")
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((p) => p[0]?.toUpperCase() || "")
+                            .join("") || "?"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate font-heading text-base font-semibold text-primary">
+                            {item.patient?.full_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {item.number} · {item.arrival_type}
+                          </p>
+                        </div>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1">
                         <StatusPill

@@ -1,11 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Beaker, ClipboardCheck, FileText, ScanLine, Send } from "lucide-react";
+import { Beaker, ClipboardCheck, FileText, Filter, ScanLine, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LoadingButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -147,37 +154,6 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
         <StatTile label="Sent to doctor" value={sent.length} tone="green" />
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={tab === "active" ? "default" : "outline"}
-          className={cn(
-            "rounded-xl",
-            tab === "active" && "bg-primary text-primary-foreground",
-          )}
-          onClick={() => setTab("active")}
-        >
-          <ClipboardCheck className="size-3.5" />
-          Enter results
-          <span className="ml-1 rounded-full bg-white/15 px-1.5 text-[11px]">{active.length}</span>
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={tab === "sent" ? "default" : "outline"}
-          className={cn(
-            "rounded-xl",
-            tab === "sent" && "bg-primary text-primary-foreground",
-          )}
-          onClick={() => setTab("sent")}
-        >
-          <Send className="size-3.5" />
-          Sent reports
-          <span className="ml-1 rounded-full bg-white/15 px-1.5 text-[11px]">{sent.length}</span>
-        </Button>
-      </div>
-
       <SectionCard
         kicker={tab === "active" ? "Work queue" : "History"}
         title={tab === "active" ? "Result entry" : "Reports sent to doctor"}
@@ -187,9 +163,65 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
             : "Completed reports stay here for reprint. Doctors review them under Results."
         }
         action={
-          <StatusPill tone={tab === "active" ? "navy" : "green"}>
-            {visible.length} {tab === "active" ? "open" : "sent"}
-          </StatusPill>
+          <div className="flex flex-col items-stretch gap-1.5 sm:min-w-52">
+            <span className="hidden text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase sm:block sm:text-right">
+              Show
+            </span>
+            <Select value={tab} onValueChange={(value) => setTab(value as "active" | "sent")}>
+              <SelectTrigger
+                className={cn(
+                  "h-11 w-full rounded-2xl border-primary/12 bg-white px-3 shadow-sm",
+                  "hover:border-primary/25 hover:bg-primary/2",
+                  "data-[state=open]:border-cta/35 data-[state=open]:ring-2 data-[state=open]:ring-cta/15",
+                )}
+              >
+                <SelectValue>
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
+                      {tab === "active" ? (
+                        <ClipboardCheck className="size-3.5" />
+                      ) : (
+                        <Send className="size-3.5" />
+                      )}
+                    </span>
+                    <span className="truncate font-medium text-primary">
+                      {tab === "active" ? "Enter results" : "Sent reports"}
+                    </span>
+                    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/8 px-1.5 text-[11px] font-semibold text-primary tabular-nums">
+                      {visible.length}
+                    </span>
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent
+                align="end"
+                className="w-(--radix-select-trigger-width) min-w-52 rounded-2xl border-primary/10 p-1.5 shadow-xl shadow-primary/10"
+              >
+                <div className="mb-1 flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                  <Filter className="size-3" />
+                  Queue view
+                </div>
+                <SelectItem value="active" className="cursor-pointer rounded-xl py-2.5">
+                  <span className="flex w-full items-center gap-2.5">
+                    <ClipboardCheck className="size-3.5 text-primary" />
+                    <span className="flex-1 font-medium">Enter results</span>
+                    <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums">
+                      {active.length}
+                    </span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="sent" className="cursor-pointer rounded-xl py-2.5">
+                  <span className="flex w-full items-center gap-2.5">
+                    <Send className="size-3.5 text-primary" />
+                    <span className="flex-1 font-medium">Sent reports</span>
+                    <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums">
+                      {sent.length}
+                    </span>
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
       >
         {visible.length === 0 ? (

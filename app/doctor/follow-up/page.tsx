@@ -8,9 +8,8 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { EncounterVisitSelector } from "@/components/encounter-visit-selector";
+import { VisitPatientStrip } from "@/components/visit-patient-strip";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { FieldGroup } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
 import { api } from "@/lib/api";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
@@ -40,12 +39,14 @@ export default function DoctorFollowUpPage() {
       />
       {current ? (
         <SectionCard
-          className="mx-auto max-w-lg"
+          className="mx-auto max-w-xl"
           kicker="Scheduling"
           title="Follow-up appointment"
-          description={`Book the next visit for ${current.patient.full_name}. Reception will see it on today's appointments.`}
+          description="Book the next visit. Reception will see it on today's appointments list."
         >
+          <VisitPatientStrip encounter={current} />
           <form
+            className="space-y-4"
             onSubmit={apptForm.handleSubmit(async (values) => {
               if (!values.scheduled_at) {
                 toast.error("Pick a date and time");
@@ -67,7 +68,10 @@ export default function DoctorFollowUpPage() {
               }
             })}
           >
-            <FieldGroup>
+            <div className="space-y-3.5 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-primary/3 p-4 sm:p-5">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+                Appointment
+              </p>
               <CustomFormField
                 control={apptForm.control}
                 name="scheduled_at"
@@ -82,16 +86,18 @@ export default function DoctorFollowUpPage() {
                 fieldType={formFieldTypes.INPUT}
                 label="Reason"
               />
-              <Separator className="bg-primary/8" />
+            </div>
+
+            <div className="rounded-2xl border border-primary/10 bg-white/95 p-3 shadow-sm">
               <SubmitButton
-                className={cn("h-11 rounded-xl", ctaButtonClass)}
+                className={cn("h-11 w-full rounded-xl", ctaButtonClass)}
                 loading={scheduling}
                 loadingLabel="Scheduling…"
               >
                 <CalendarDays className="size-4" />
                 Schedule follow-up
               </SubmitButton>
-            </FieldGroup>
+            </div>
           </form>
         </SectionCard>
       ) : null}

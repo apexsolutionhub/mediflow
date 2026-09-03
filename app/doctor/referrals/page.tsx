@@ -2,18 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Send } from "lucide-react";
+import { Building2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { EncounterVisitSelector } from "@/components/encounter-visit-selector";
+import { VisitPatientStrip } from "@/components/visit-patient-strip";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
 import { api, results } from "@/lib/api";
 import { type ClinicBranch, type Department } from "@/lib/clinic";
 import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
+import { cn } from "@/lib/utils";
 
 export default function DoctorReferralsPage() {
   const { encounters, current, selectedId, setSelectedId } = useEncounterBoard("doctor");
@@ -86,13 +88,14 @@ export default function DoctorReferralsPage() {
       />
       {current ? (
         <SectionCard
-          className="mx-auto max-w-lg"
+          className="mx-auto max-w-xl"
           kicker="Handoff"
           title="Referral"
           description="Route the patient with diagnosis and investigation summary."
         >
+          <VisitPatientStrip encounter={current} />
           <form
-            className="grid gap-4"
+            className="space-y-4"
             onSubmit={referralForm.handleSubmit(async (values) => {
               if (!values.to_branch) {
                 toast.error("Select a destination branch");
@@ -118,44 +121,67 @@ export default function DoctorReferralsPage() {
               }
             })}
           >
-            <CustomFormField
-              control={referralForm.control}
-              name="to_branch"
-              fieldType={formFieldTypes.SELECT}
-              label="Organization branch"
-              placeholder={
-                branchOptions.length ? "Select branch" : "No branches yet — add in Apex admin"
-              }
-              options={branchOptions}
-            />
-            <CustomFormField
-              control={referralForm.control}
-              name="to_department"
-              fieldType={formFieldTypes.SELECT}
-              label="Department"
-              disabled={!selectedBranch}
-              placeholder={selectedBranch ? "Select department" : "Choose a branch first"}
-              options={departments.map((d) => ({
-                label: d.name,
-                value: d.name,
-              }))}
-            />
-            <CustomFormField
-              control={referralForm.control}
-              name="diagnosis"
-              fieldType={formFieldTypes.INPUT}
-              label="Diagnosis payload"
-            />
-            <CustomFormField
-              control={referralForm.control}
-              name="lab_summary"
-              fieldType={formFieldTypes.TEXTAREA}
-              label="Lab / radiology summary"
-            />
-            <SubmitButton className={ctaButtonClass} loading={submitting} loadingLabel="Sending…">
-              <Send className="size-4" />
-              Create referral
-            </SubmitButton>
+            <div className="space-y-3.5 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-primary/3 p-4 sm:p-5">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
+                  <Building2 className="size-3.5" />
+                </span>
+                <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+                  Destination
+                </p>
+              </div>
+              <CustomFormField
+                control={referralForm.control}
+                name="to_branch"
+                fieldType={formFieldTypes.SELECT}
+                label="Organization branch"
+                placeholder={
+                  branchOptions.length ? "Select branch" : "No branches yet — add in Apex admin"
+                }
+                options={branchOptions}
+              />
+              <CustomFormField
+                control={referralForm.control}
+                name="to_department"
+                fieldType={formFieldTypes.SELECT}
+                label="Department"
+                disabled={!selectedBranch}
+                placeholder={selectedBranch ? "Select department" : "Choose a branch first"}
+                options={departments.map((d) => ({
+                  label: d.name,
+                  value: d.name,
+                }))}
+              />
+            </div>
+
+            <div className="space-y-3.5 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-cta/5 p-4 sm:p-5">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+                Clinical payload
+              </p>
+              <CustomFormField
+                control={referralForm.control}
+                name="diagnosis"
+                fieldType={formFieldTypes.INPUT}
+                label="Diagnosis"
+              />
+              <CustomFormField
+                control={referralForm.control}
+                name="lab_summary"
+                fieldType={formFieldTypes.TEXTAREA}
+                label="Lab / radiology summary"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-primary/10 bg-white/95 p-3 shadow-sm">
+              <SubmitButton
+                className={cn("h-11 w-full rounded-xl", ctaButtonClass)}
+                loading={submitting}
+                loadingLabel="Sending…"
+              >
+                <Send className="size-4" />
+                Create referral
+              </SubmitButton>
+            </div>
           </form>
         </SectionCard>
       ) : null}
