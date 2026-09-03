@@ -23,7 +23,15 @@ type ChartValues = {
   treatment_plan: string;
 };
 
-function chartHasContent(chart: ChartValues | null | undefined) {
+type ChartLike = {
+  chief_complaint?: string;
+  examination?: string;
+  diagnosis?: string;
+  clinical_notes?: string;
+  treatment_plan?: string;
+} | null | undefined;
+
+function chartHasContent(chart: ChartLike) {
   if (!chart) return false;
   return Boolean(
     chart.chief_complaint?.trim() ||
