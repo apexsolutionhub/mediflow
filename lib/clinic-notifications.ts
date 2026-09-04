@@ -31,7 +31,7 @@ export function buildClinicNotifications(
     pushIf(notifications, Number(stats.pending_payments || 0) > 0, {
       id: "pending-payments",
       title: "Pending payments",
-      description: `${stats.pending_payments} encounter${stats.pending_payments === 1 ? "" : "s"} awaiting payment`,
+      description: `${stats.pending_payments} visit${stats.pending_payments === 1 ? "" : "s"} awaiting payment`,
       href: normalized === "manager" ? "/manager" : "/reception",
       count: Number(stats.pending_payments || 0),
       severity: "warning",

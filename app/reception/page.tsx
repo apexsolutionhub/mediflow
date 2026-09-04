@@ -54,10 +54,10 @@ export default function ReceptionBoardPage() {
   return (
     <ClinicShell
       title="Today board"
-      subtitle="Tap a patient with amount due to open cashier. Paid-up visits stay on the board without redirecting."
+      subtitle="Open visits at the desk. Tap a patient with amount due to open cashier."
     >
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <StatTile label="Today on board" value={encounters.length} tone="navy" />
+        <StatTile label="Open on board" value={encounters.length} tone="navy" />
         <StatTile
           label="Awaiting payment"
           value={encounters.filter((e) => Number(e.amount_due || 0) > 0).length}
@@ -68,13 +68,13 @@ export default function ReceptionBoardPage() {
 
       <SectionCard
         kicker="Front desk"
-        title="Today&apos;s patient board"
-        description="Tap a visit with payment due to open cashier. Visits with nothing due are selected only."
+        title="Patient board"
+        description="All open visits — including unpaid lab, radiology, and pharmacy orders waiting for cashier approval."
       >
         {encounters.length === 0 ? (
           <EmptyState
-            title="No arrivals yet"
-            hint="Use Register in the sidebar to open an encounter."
+            title="No open visits"
+            hint="Register a patient, or check out closed visits from earlier."
             icon={<UserPlus className="size-5" />}
           />
         ) : (
