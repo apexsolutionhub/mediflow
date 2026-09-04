@@ -2,6 +2,6 @@
 
 import { EquipmentRequestPortal } from "@/components/diagnostics/EquipmentRequestPortal";
 
-export default function LabEquipmentPage() {
-  return <EquipmentRequestPortal kind="lab" />;
+export default function RadiologyEquipmentPage() {
+  return <EquipmentRequestPortal kind="radiology" />;
 }

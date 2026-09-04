@@ -278,7 +278,8 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 | RAD-01 | Results portal   | `/radiology` — Enter results         | Lab orders not shown    |
 | RAD-02 | Start + complete | Start imaging → findings → send      | Doctor Results inbox    |
 | RAD-03 | Staff login      | Manager creates Radiology staff      | Lands on `/radiology`   |
-| RAD-04 | Sent reports     | Sent reports tab                     | Completed imaging listed |
+| RAD-04 | Sent reports     | Sent reports selector                | Completed imaging listed |
+| RAD-05 | Equipment ticket | `/radiology/equipment` → submit      | Ticket created for manager |
 
 
 **Checklist**
@@ -287,6 +288,7 @@ Use this file while testing. Check boxes and write feedback inline — you shoul
 - [ ] RAD-02
 - [ ] RAD-03
 - [ ] RAD-04
+- [ ] RAD-05
 
 **Feedback (section 7b):**
 

@@ -81,6 +81,7 @@ export const LAB_NAV: ClinicNavItem[] = [
 
 export const RADIOLOGY_NAV: ClinicNavItem[] = [
   { href: "/radiology", label: "Results portal", icon: ScanLine, exact: true },
+  { href: "/radiology/equipment", label: "Equipment", icon: Wrench },
 ];
 
 export const PHARMACY_NAV: ClinicNavItem[] = [
