@@ -59,31 +59,32 @@
   --apex-navy-deep: #060e1a;
   --apex-orange: #e8951e;
   --apex-orange-light: #f5b042;
-  --background: #f4f7fb;
-  --foreground: #0f1c2e;
+  /* Stronger canvas + ink so content isn't white-on-white */
+  --background: #dbe4f0;
+  --foreground: #0a1628;
   --card: #ffffff;
-  --card-foreground: #0f1c2e;
+  --card-foreground: #0a1628;
   --popover: #ffffff;
-  --popover-foreground: #0f1c2e;
-  --primary: #12305f;
+  --popover-foreground: #0a1628;
+  --primary: #0f2a56;
   --primary-foreground: #ffffff;
-  --cta: #e8951e;
+  --cta: #d97706;
   --cta-foreground: #0b192e;
-  --secondary: #e8eef7;
-  --secondary-foreground: #12305f;
-  --muted: #e8eef7;
-  --muted-foreground: #5b6b82;
-  --accent: #fff4e5;
-  --accent-foreground: #9a5b08;
+  --secondary: #c5d3e6;
+  --secondary-foreground: #0f2a56;
+  --muted: #c8d4e6;
+  --muted-foreground: #3d4f66;
+  --accent: #ffedd5;
+  --accent-foreground: #7c2d12;
   --destructive: #dc2626;
-  --border: #d7e0ec;
-  --input: #d7e0ec;
-  --ring: #e8951e;
-  --chart-1: #12305f;
-  --chart-2: #e8951e;
+  --border: #9eb0c9;
+  --input: #9eb0c9;
+  --ring: #d97706;
+  --chart-1: #0f2a56;
+  --chart-2: #d97706;
   --chart-3: #0d9488;
   --chart-4: #1e40af;
-  --chart-5: #64748b;
+  --chart-5: #475569;
   --radius: 0.95rem;
   --sidebar: #0b192e;
   --sidebar-foreground: #e8eef7;
@@ -155,50 +156,55 @@
 @layer utilities {
   .clinic-canvas {
     background:
-      radial-gradient(ellipse 70% 45% at 8% -8%, color-mix(in oklab, var(--apex-orange) 12%, transparent), transparent 55%),
-      radial-gradient(ellipse 55% 40% at 95% 0%, color-mix(in oklab, #1e40af 10%, transparent), transparent 50%),
-      linear-gradient(180deg, #f7f9fc 0%, #eef3f9 100%);
+      radial-gradient(ellipse 70% 45% at 8% -8%, color-mix(in oklab, var(--apex-orange) 22%, transparent), transparent 55%),
+      radial-gradient(ellipse 55% 40% at 95% 0%, color-mix(in oklab, #1e40af 16%, transparent), transparent 50%),
+      linear-gradient(180deg, #cfdceb 0%, #b8c9de 100%);
   }
 
   .clinic-glass {
-    background: color-mix(in oklab, white 86%, transparent);
-    border: 1px solid color-mix(in oklab, white 55%, var(--border));
+    background: color-mix(in oklab, white 92%, transparent);
+    border: 1px solid color-mix(in oklab, var(--border) 70%, white);
     box-shadow:
       0 1px 0 color-mix(in oklab, white 70%, transparent) inset,
-      0 18px 40px -28px color-mix(in oklab, var(--apex-navy) 35%, transparent);
+      0 18px 40px -24px color-mix(in oklab, var(--apex-navy) 45%, transparent);
     backdrop-filter: blur(14px);
   }
 
   .clinic-panel {
-    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
-    border: 1px solid color-mix(in oklab, var(--border) 85%, white);
+    background: #ffffff;
+    border: 1px solid color-mix(in oklab, var(--border) 88%, #0f2a56);
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 22px 50px -34px rgba(11, 25, 46, 0.35);
+      0 1px 0 rgba(255, 255, 255, 0.9) inset,
+      0 14px 36px -18px rgba(11, 25, 46, 0.45);
   }
 
   .clinic-panel-glow {
     box-shadow:
-      0 0 0 1px color-mix(in oklab, var(--apex-orange) 14%, transparent),
-      0 22px 50px -28px color-mix(in oklab, var(--apex-navy) 28%, transparent);
+      0 0 0 1px color-mix(in oklab, var(--apex-orange) 28%, transparent),
+      0 16px 40px -20px color-mix(in oklab, var(--apex-navy) 42%, transparent);
   }
 
   .clinic-kicker {
-    @apply text-[11px] font-semibold tracking-[0.18em] text-cta uppercase;
+    @apply text-[11px] font-bold tracking-[0.18em] text-cta uppercase;
   }
 
   .clinic-gradient-text {
-    background: linear-gradient(135deg, #12305f 10%, #1e4d8c 45%, #e8951e 100%);
+    background: linear-gradient(135deg, #0f2a56 10%, #1e4d8c 45%, #d97706 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .clinic-nav-active {
-    border-color: color-mix(in oklab, var(--apex-orange) 28%, transparent);
-    background: color-mix(in oklab, var(--apex-orange) 16%, transparent);
-    color: var(--apex-orange-light);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-color: color-mix(in oklab, var(--apex-orange) 45%, transparent);
+    background: color-mix(in oklab, var(--apex-orange) 22%, transparent);
+    color: #ffd89a;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  /* Header icon buttons on dark shell */
+  .clinic-header-icon {
+    @apply text-white/90 hover:bg-white/15 hover:text-white;
   }
 }
 

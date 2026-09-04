@@ -499,13 +499,13 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
                     {pageMeta.title}
                   </h1>
                   {pageMeta.subtitle ? (
-                    <p className="mt-0.5 max-w-2xl text-sm leading-6 text-white/55">
+                    <p className="mt-0.5 max-w-2xl text-sm leading-6 text-white/75">
                       {pageMeta.subtitle}
                     </p>
                   ) : null}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-0.5 sm:gap-1 md:gap-1.5">
+              <div className="flex shrink-0 items-center gap-0.5 text-white sm:gap-1 md:gap-1.5 [&_button]:text-white/90 [&_button]:hover:bg-white/15 [&_button]:hover:text-white [&_button_svg]:text-white/90">
                 {isManager && billing ? (
                   <>
                     <TrialBillingButton billing={displayBilling ?? billing} />
