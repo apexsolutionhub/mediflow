@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { AlertTriangle, Check, Package, Pencil, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, Package, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
+import { MedicineBatchForm } from "@/components/manager/MedicineBatchForm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -249,18 +250,19 @@ export default function ManagerInventoryPage() {
         />
       </div>
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <div className="mx-auto flex max-w-4xl flex-col gap-6">
         <SectionCard
           id="medicine-form"
           kicker="Stock in"
-          title={editingMedicineId ? "Edit medicine" : "Add medicine"}
+          title={editingMedicineId ? "Edit medicine" : "Add medicines"}
           description={
             editingMedicineId
               ? "Update SKU details — pharmacy picks from active items only."
-              : "New SKUs appear in the pharmacy dispense workflow when active."
+              : "Add one or many SKUs in a single submit. New items appear in pharmacy when active."
           }
           action={editingMedicineId ? <StatusPill tone="orange">Editing</StatusPill> : undefined}
         >
+          {editingMedicineId ? (
           <form className="grid gap-5" onSubmit={medForm.handleSubmit(saveMedicine)}>
             <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
               <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
@@ -388,40 +390,32 @@ export default function ManagerInventoryPage() {
             />
 
             <div className="flex flex-wrap gap-2">
-              {editingMedicineId ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="h-11 rounded-xl"
-                  disabled={savingMedicine}
-                  onClick={resetMedicineForm}
-                >
-                  <X className="size-4" />
-                  Cancel edit
-                </Button>
-              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="h-11 rounded-xl"
+                disabled={savingMedicine}
+                onClick={resetMedicineForm}
+              >
+                <X className="size-4" />
+                Cancel edit
+              </Button>
               <SubmitButton
                 size="lg"
                 disabled={savingMedicine}
                 className={cn("w-full sm:w-auto", ctaButtonClass)}
                 loading={savingMedicine}
-                loadingLabel={editingMedicineId ? "Updating…" : "Saving…"}
+                loadingLabel="Updating…"
               >
-                {editingMedicineId ? (
-                  <>
-                    <Check className="size-4" />
-                    Update medicine
-                  </>
-                ) : (
-                  <>
-                    <Plus className="size-4" />
-                    Save medicine
-                  </>
-                )}
+                <Check className="size-4" />
+                Update medicine
               </SubmitButton>
             </div>
           </form>
+          ) : (
+            <MedicineBatchForm onSaved={() => load(true)} />
+          )}
         </SectionCard>
 
         <SectionCard

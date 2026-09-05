@@ -7,7 +7,6 @@ import {
   Check,
   ChevronDown,
   Pencil,
-  Plus,
   Tags,
   Trash2,
   X,
@@ -16,6 +15,8 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
+import { DepartmentBatchForm } from "@/components/manager/DepartmentBatchForm";
+import { ServiceBatchForm } from "@/components/manager/ServiceBatchForm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -185,14 +186,13 @@ export default function ManagerBillablesPage() {
   const [pendingDeleteService, setPendingDeleteService] = useState<BillableService | null>(null);
   const [deletingServiceId, setDeletingServiceId] = useState<number | null>(null);
   const [savingService, setSavingService] = useState(false);
-  const [addingDept, setAddingDept] = useState(false);
   const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [preferredServiceDepartment, setPreferredServiceDepartment] = useState("");
 
   const serviceForm = useForm<ServiceFormValues>({
     defaultValues: defaultServiceValues(),
   });
-  const deptForm = useForm({ defaultValues: { name: "" } });
 
   const activeDepartments = useMemo(
     () => departments.filter((d) => d.is_active !== false),
@@ -379,10 +379,12 @@ export default function ManagerBillablesPage() {
     [services],
   );
 
-  const selectedDepartment = serviceForm.watch("department");
+  const selectedDepartment =
+    preferredServiceDepartment || serviceForm.watch("department");
 
   const focusDepartmentInServiceForm = (deptName: string) => {
     setServicesOpen(true);
+    setPreferredServiceDepartment(deptName);
     serviceForm.setValue("department", deptName);
     requestAnimationFrame(() => {
       document.getElementById("billable-service-form")?.scrollIntoView({
@@ -403,7 +405,7 @@ export default function ManagerBillablesPage() {
         <StatTile label="Active catalog" value={activeServiceCount} tone="orange" />
       </div>
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <div className="mx-auto flex max-w-4xl flex-col gap-6">
         <BillablesCollapsibleSection
           open={departmentsOpen}
           onOpenChange={setDepartmentsOpen}
@@ -470,63 +472,10 @@ export default function ManagerBillablesPage() {
           <SectionCard
           id="billable-dept-form"
           kicker="Structure"
-          title="Add department"
-          description="Departments group billable services for reception and doctor orders."
+          title="Add departments"
+          description="Add one or many departments in a single submit — groups billable services for reception and doctor orders."
         >
-          <form
-            className="grid gap-5"
-            onSubmit={deptForm.handleSubmit(async (values) => {
-              setAddingDept(true);
-              try {
-                await api.post("/clinic/departments/", values);
-                toast.success("Department added");
-                deptForm.reset();
-                await load(true);
-              } catch (error: unknown) {
-                toast.error(
-                  String(
-                    (error as { response?: { data?: { detail?: string; name?: string[] } } })
-                      ?.response?.data?.name?.[0] ||
-                      (error as { response?: { data?: { detail?: string } } })?.response?.data
-                        ?.detail ||
-                      "Could not add department",
-                  ),
-                );
-              } finally {
-                setAddingDept(false);
-              }
-            })}
-          >
-            <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
-              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                <Building2 className="size-5" />
-              </span>
-              <div>
-                <p className="font-heading text-sm font-semibold text-primary">Clinic department</p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Create departments before billable services — e.g. Consultation, Laboratory, Imaging.
-                </p>
-              </div>
-            </div>
-
-            <CustomFormField
-              control={deptForm.control}
-              name="name"
-              fieldType={formFieldTypes.INPUT}
-              label="Department name"
-              placeholder="e.g. Consultation"
-            />
-
-            <SubmitButton
-              variant="outline"
-              className="h-11 w-full rounded-xl sm:w-auto"
-              loading={addingDept}
-              loadingLabel="Adding…"
-            >
-              <Building2 className="size-4" />
-              Add department
-            </SubmitButton>
-          </form>
+          <DepartmentBatchForm onSaved={() => load(true)} />
         </SectionCard>
 
         <SectionCard
@@ -691,11 +640,11 @@ export default function ManagerBillablesPage() {
         <SectionCard
           id="billable-service-form"
           kicker="Catalog"
-          title={editingServiceId ? "Edit billable service" : "Add billable service"}
+          title={editingServiceId ? "Edit billable service" : "Add billable services"}
           description={
             editingServiceId
               ? "Update catalog details — changes apply to new orders and cashier entries."
-              : "Reception and doctors charge against these codes. Patient-facing text goes in description."
+              : "Add one or many services in a single submit. Reception and doctors charge against these codes."
           }
           action={
             editingServiceId ? (
@@ -708,7 +657,7 @@ export default function ManagerBillablesPage() {
               title="Add a department first"
               hint="Create a department above before adding billable services."
             />
-          ) : (
+          ) : editingServiceId ? (
             <form className="grid gap-5" onSubmit={serviceForm.handleSubmit(saveService)}>
               <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
                 <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
@@ -839,40 +788,41 @@ export default function ManagerBillablesPage() {
               />
 
               <div className="flex flex-wrap gap-2">
-                {editingServiceId ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    className="h-11 rounded-xl"
-                    disabled={savingService}
-                    onClick={resetServiceForm}
-                  >
-                    <X className="size-4" />
-                    Cancel edit
-                  </Button>
-                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="h-11 rounded-xl"
+                  disabled={savingService}
+                  onClick={resetServiceForm}
+                >
+                  <X className="size-4" />
+                  Cancel edit
+                </Button>
                 <SubmitButton
                   size="lg"
                   disabled={savingService}
                   className={cn("w-full sm:w-auto", ctaButtonClass)}
                   loading={savingService}
-                  loadingLabel={editingServiceId ? "Updating…" : "Saving…"}
+                  loadingLabel="Updating…"
                 >
-                  {editingServiceId ? (
-                    <>
-                      <Check className="size-4" />
-                      Update service
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="size-4" />
-                      Save service
-                    </>
-                  )}
+                  <Check className="size-4" />
+                  Update service
                 </SubmitButton>
               </div>
             </form>
+          ) : (
+            <ServiceBatchForm
+              departmentOptions={departmentOptions}
+              defaultDepartment={activeDepartments[0]?.name ?? ""}
+              preferredDepartment={preferredServiceDepartment}
+              autoAddHint={
+                autoAddService
+                  ? `Currently: ${autoAddService.name}. Enabling replaces the existing auto-add service.`
+                  : undefined
+              }
+              onSaved={() => load(true)}
+            />
           )}
         </SectionCard>
 
