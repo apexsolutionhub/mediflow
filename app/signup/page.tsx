@@ -43,6 +43,9 @@ type SignupValues = {
   password: string;
   clinic_name: string;
   clinic_tin: string;
+  branch_name: string;
+  branch_address: string;
+  is_main_branch: boolean;
   logoUrl: string;
   payment_channel: string;
   payment_transaction_ref: string;
@@ -55,8 +58,15 @@ const SIGNUP_STEPS = [
     label: "Clinic",
     title: "Clinic & manager account",
     description:
-      "Your branch details, operations mode, and the first manager login for all six staff roles.",
-    fields: ["clinic_name", "clinic_tin", "username", "password"] as const,
+      "Your main branch details, operations mode, and the first manager login for staff roles at that location.",
+    fields: [
+      "clinic_name",
+      "clinic_tin",
+      "branch_name",
+      "branch_address",
+      "username",
+      "password",
+    ] as const,
   },
   {
     label: "Payment",
@@ -84,6 +94,9 @@ function SignupPageContent() {
       password: "",
       clinic_name: "",
       clinic_tin: "",
+      branch_name: "",
+      branch_address: "",
+      is_main_branch: true,
       logoUrl: "",
       payment_channel: "",
       payment_transaction_ref: "",
@@ -293,7 +306,7 @@ function SignupPageContent() {
                 <>
                   <SignupSection
                     title="Clinic details"
-                    description="Legal name and TIN for your branch."
+                    description="Legal name, TIN, and the first branch location for your organization."
                   >
                     <div className="grid gap-4 sm:grid-cols-2">
                       <CustomFormField
@@ -309,6 +322,28 @@ function SignupPageContent() {
                         fieldType={formFieldTypes.INPUT}
                         label="Clinic TIN"
                         placeholder="0000000000"
+                      />
+                      <CustomFormField
+                        control={form.control}
+                        name="branch_name"
+                        fieldType={formFieldTypes.INPUT}
+                        label="Branch name"
+                        placeholder="e.g. Bole"
+                      />
+                      <CustomFormField
+                        control={form.control}
+                        name="branch_address"
+                        fieldType={formFieldTypes.INPUT}
+                        label="Branch address"
+                        placeholder="Neighborhood, city, landmark"
+                      />
+                      <CustomFormField
+                        control={form.control}
+                        name="is_main_branch"
+                        fieldType={formFieldTypes.SWITCH}
+                        label="Main branch"
+                        description="On by default. Turn off only if this location is a satellite site."
+                        className="sm:col-span-2"
                       />
                     </div>
                   </SignupSection>
