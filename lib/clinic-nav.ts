@@ -3,12 +3,14 @@ import {
   Beaker,
   CalendarDays,
   ClipboardList,
+  FileBarChart,
   FileText,
   HeartPulse,
   LayoutDashboard,
   Package,
   Pill,
   ScanLine,
+  Share2,
   Tags,
   Server,
   UserPlus,
@@ -28,9 +30,11 @@ export type ClinicNavItem = {
 
 export const MANAGER_NAV: ClinicNavItem[] = [
   { href: "/manager", label: "Overview", icon: LayoutDashboard, exact: true },
+  { href: "/manager/reports", label: "Reports", icon: FileBarChart },
   { href: "/manager/staff", label: "Staff", icon: Users },
   { href: "/manager/billables", label: "Billables", icon: Tags },
   { href: "/manager/inventory", label: "Inventory", icon: Package },
+  { href: "/manager/referrals", label: "Referrals", icon: Share2 },
   { href: "/manager/requests", label: "Requests", icon: Wrench },
   { href: "/manager/ops-mode", label: "Operating mode", icon: Server },
 ];
@@ -48,6 +52,7 @@ export const RECEPTION_NAV: ClinicNavItem[] = [
     ],
   },
   { href: "/reception/cashier", label: "Cashier", icon: Wallet },
+  { href: "/reception/referrals", label: "Referral prints", icon: Share2 },
   { href: "/reception/appointments", label: "Appointments", icon: CalendarDays },
 ];
 

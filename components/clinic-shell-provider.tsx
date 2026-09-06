@@ -17,6 +17,7 @@ import { SubscriptionNotificationCenter } from "@/components/subscription/subscr
 import { TrialBillingButton } from "@/components/subscription/trial-billing-button";
 import { ChangeOwnPasswordButton } from "@/components/account/ChangeOwnPasswordButton";
 import { ClinicFeedbackCenter } from "@/components/feedback/ClinicFeedbackCenter";
+import { ManagerOrgChatCenter } from "@/components/manager/ManagerOrgChatCenter";
 import { ClinicNotificationCenter } from "@/components/notifications/ClinicNotificationCenter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -511,6 +512,7 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
                     <TrialBillingButton billing={displayBilling ?? billing} />
                     <SubscriptionNotificationCenter billing={displayBilling ?? billing} />
                     <ClinicFeedbackCenter clinicName={user.clinic_name} />
+                    <ManagerOrgChatCenter />
                   </>
                 ) : null}
                 <ClinicNotificationCenter role={role} />
@@ -533,6 +535,7 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
                     clinicName={user.clinic_name}
                     onNavigate={() => setOpen(false)}
                   />
+                  <ManagerOrgChatCenter onNavigate={() => setOpen(false)} />
                 </div>
               ) : null}
               <div className="flex items-center justify-end gap-1 border-t border-white/10 px-4 py-3">

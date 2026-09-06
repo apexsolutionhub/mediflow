@@ -67,13 +67,25 @@ export type Encounter = {
   }[];
   closed_at?: string | null;
   follow_up_appointments?: Appointment[];
-  referrals?: {
-    id: number;
-    to_department?: string;
-    to_branch?: string;
-    diagnosis?: string;
-    lab_summary?: string;
-  }[];
+  referrals?: Referral[];
+};
+
+export type Referral = {
+  id: number;
+  encounter?: number;
+  destination_kind?: "internal" | "external" | string;
+  to_department?: string;
+  to_branch?: string;
+  external_institution?: string;
+  diagnosis?: string;
+  lab_summary?: string;
+  approval_status?: "pending" | "approved" | "rejected" | string;
+  approved_at?: string | null;
+  created_at?: string;
+  patient_name?: string;
+  encounter_number?: string;
+  created_by_name?: string;
+  approved_by_name?: string;
 };
 
 export type BillableService = {
@@ -179,6 +191,7 @@ export type ClinicBranch = {
   is_active?: boolean;
   is_main?: boolean;
   address?: string;
+  branch_tin?: string;
 };
 
 export type Appointment = {
@@ -209,6 +222,32 @@ export type DashboardStats = {
   low_stock: number;
   open_tickets: number;
   today_revenue: number | string;
+};
+
+export type ManagerReportPeriod =
+  | "day"
+  | "month"
+  | "quarter"
+  | "half_year"
+  | "year";
+
+export type ManagerReport = {
+  period: ManagerReportPeriod | string;
+  period_label: string;
+  start_date: string;
+  end_date: string;
+  branch_name: string;
+  visits: number;
+  new_patients: number;
+  closed_encounters: number;
+  revenue: number | string;
+  payment_count: number;
+  lab_orders: number;
+  radiology_orders: number;
+  prescriptions: number;
+  referrals: number;
+  low_stock: number;
+  open_tickets: number;
 };
 
 export function paymentTone(

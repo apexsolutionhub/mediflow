@@ -9,7 +9,6 @@ import {
   BatchField,
   BatchLineCard,
 } from "@/components/manager/batch-ops";
-import { DatePicker } from "@/components/date-picker";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -39,11 +38,12 @@ type MedicineLine = {
   sku: string;
   category: string;
   batch_number: string;
-  expiry_date: Date | null;
+  /** YYYY-MM-DD for native date input (avoids heavy DatePicker per line). */
+  expiry_date: string;
   unit_of_measure: string;
-  on_hand: number;
-  min_threshold: number;
-  unit_price: number;
+  on_hand: string;
+  min_threshold: string;
+  unit_price: string;
   is_active: boolean;
   internal_notes: string;
 };
@@ -56,22 +56,19 @@ function emptyMedicineLine(): MedicineLine {
     sku: "",
     category: "other",
     batch_number: "",
-    expiry_date: null,
+    expiry_date: "",
     unit_of_measure: "tablet",
-    on_hand: 20,
-    min_threshold: 5,
-    unit_price: 10,
+    on_hand: "20",
+    min_threshold: "5",
+    unit_price: "10",
     is_active: true,
     internal_notes: "",
   };
 }
 
-function toApiDateString(value: Date | null | undefined): string | null {
-  if (!value || !(value instanceof Date) || Number.isNaN(value.getTime())) return null;
-  const y = value.getFullYear();
-  const m = String(value.getMonth() + 1).padStart(2, "0");
-  const d = String(value.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+function parseQty(raw: string, fallback = 0) {
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
 }
 
 export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> }) {
@@ -105,13 +102,13 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
           name: line.name.trim(),
           description: line.description.trim(),
           sku: line.sku.trim(),
-          category: line.category,
+          category: line.category || "other",
           batch_number: line.batch_number.trim(),
-          expiry_date: toApiDateString(line.expiry_date),
-          unit_of_measure: line.unit_of_measure,
-          on_hand: Number(line.on_hand),
-          min_threshold: Number(line.min_threshold),
-          unit_price: Number(line.unit_price),
+          expiry_date: line.expiry_date.trim() || null,
+          unit_of_measure: line.unit_of_measure || "tablet",
+          on_hand: parseQty(line.on_hand),
+          min_threshold: parseQty(line.min_threshold),
+          unit_price: parseQty(line.unit_price),
           is_active: line.is_active,
           internal_notes: line.internal_notes.trim(),
         };
@@ -159,7 +156,7 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="max-h-[min(70vh,40rem)] space-y-3 overflow-y-auto overscroll-contain pr-1">
         {lines.map((line, index) => (
           <BatchLineCard
             key={line.key}
@@ -193,7 +190,9 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
               <BatchField label="Category">
                 <Select
                   value={line.category}
-                  onValueChange={(v) => patchLine(line.key, { category: v })}
+                  onValueChange={(v) => {
+                    if (v) patchLine(line.key, { category: v });
+                  }}
                 >
                   <SelectTrigger className="h-11 w-full rounded-xl">
                     <SelectValue />
@@ -210,7 +209,9 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
               <BatchField label="Unit of measure">
                 <Select
                   value={line.unit_of_measure}
-                  onValueChange={(v) => patchLine(line.key, { unit_of_measure: v })}
+                  onValueChange={(v) => {
+                    if (v) patchLine(line.key, { unit_of_measure: v });
+                  }}
                 >
                   <SelectTrigger className="h-11 w-full rounded-xl">
                     <SelectValue />
@@ -228,10 +229,9 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
                 <Input
                   id={`med-price-${line.key}`}
                   type="number"
+                  inputMode="decimal"
                   value={line.unit_price}
-                  onChange={(e) =>
-                    patchLine(line.key, { unit_price: Number(e.target.value) || 0 })
-                  }
+                  onChange={(e) => patchLine(line.key, { unit_price: e.target.value })}
                   className="h-11 rounded-xl tabular-nums"
                 />
               </BatchField>
@@ -244,21 +244,22 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
                   className="h-11 rounded-xl"
                 />
               </BatchField>
-              <BatchField label="Expiry date">
-                <DatePicker
+              <BatchField label="Expiry date" htmlFor={`med-exp-${line.key}`}>
+                <Input
+                  id={`med-exp-${line.key}`}
+                  type="date"
                   value={line.expiry_date}
-                  onChange={(date) => patchLine(line.key, { expiry_date: date ?? null })}
-                  placeholder="Pick expiry date"
+                  onChange={(e) => patchLine(line.key, { expiry_date: e.target.value })}
+                  className="h-11 rounded-xl"
                 />
               </BatchField>
               <BatchField label="On hand" htmlFor={`med-onhand-${line.key}`}>
                 <Input
                   id={`med-onhand-${line.key}`}
                   type="number"
+                  inputMode="numeric"
                   value={line.on_hand}
-                  onChange={(e) =>
-                    patchLine(line.key, { on_hand: Number(e.target.value) || 0 })
-                  }
+                  onChange={(e) => patchLine(line.key, { on_hand: e.target.value })}
                   className="h-11 rounded-xl tabular-nums"
                 />
               </BatchField>
@@ -266,10 +267,9 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
                 <Input
                   id={`med-min-${line.key}`}
                   type="number"
+                  inputMode="numeric"
                   value={line.min_threshold}
-                  onChange={(e) =>
-                    patchLine(line.key, { min_threshold: Number(e.target.value) || 0 })
-                  }
+                  onChange={(e) => patchLine(line.key, { min_threshold: e.target.value })}
                   className="h-11 rounded-xl tabular-nums"
                 />
               </BatchField>
@@ -292,13 +292,14 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
               <span>Active in pharmacy</span>
               <Switch
                 checked={line.is_active}
-                onCheckedChange={(v) => patchLine(line.key, { is_active: v })}
+                onCheckedChange={(v) => patchLine(line.key, { is_active: Boolean(v) })}
               />
             </label>
           </BatchLineCard>
         ))}
-        <BatchAddLineButton onClick={addLine} label="Add another medicine" disabled={saving} />
       </div>
+
+      <BatchAddLineButton onClick={addLine} label="Add another medicine" disabled={saving} />
 
       <SubmitButton
         size="lg"

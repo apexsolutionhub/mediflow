@@ -10,23 +10,41 @@ import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { EncounterVisitSelector } from "@/components/encounter-visit-selector";
 import { VisitPatientStrip } from "@/components/visit-patient-strip";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { ctaButtonClass, SectionCard } from "@/components/ui-chrome";
+import { ctaButtonClass, SectionCard, StatusPill } from "@/components/ui-chrome";
 import { api, results } from "@/lib/api";
-import { type ClinicBranch, type Department } from "@/lib/clinic";
+import { type ClinicBranch, type Department, type Referral } from "@/lib/clinic";
 import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 import { cn } from "@/lib/utils";
+
+type ReferralFormValues = {
+  destination_kind: "internal" | "external";
+  to_branch: string;
+  to_department: string;
+  external_institution: string;
+  diagnosis: string;
+  lab_summary: string;
+};
 
 export default function DoctorReferralsPage() {
   const { encounters, current, selectedId, setSelectedId } = useEncounterBoard("doctor");
   const [branches, setBranches] = useState<ClinicBranch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const referralForm = useForm({
-    defaultValues: { to_department: "", to_branch: "", diagnosis: "", lab_summary: "" },
+  const [recent, setRecent] = useState<Referral[]>([]);
+  const referralForm = useForm<ReferralFormValues>({
+    defaultValues: {
+      destination_kind: "internal",
+      to_department: "",
+      to_branch: "",
+      external_institution: "",
+      diagnosis: "",
+      lab_summary: "",
+    },
   });
 
   const selectedBranch = referralForm.watch("to_branch");
+  const destinationKind = referralForm.watch("destination_kind");
 
   const loadBranches = useCallback(async () => {
     try {
@@ -53,18 +71,28 @@ export default function DoctorReferralsPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadBranches().catch(() => toast.error("Could not load organization branches"));
-  }, [loadBranches]);
+  const loadRecent = useCallback(async () => {
+    try {
+      const { data } = await api.get("/clinic/referrals/", { params: { page_size: 20 } });
+      setRecent(results<Referral>(data));
+    } catch {
+      setRecent([]);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!selectedBranch) {
+    loadBranches().catch(() => toast.error("Could not load organization branches"));
+    loadRecent().catch(() => undefined);
+  }, [loadBranches, loadRecent]);
+
+  useEffect(() => {
+    if (destinationKind !== "internal" || !selectedBranch) {
       setDepartments([]);
       referralForm.setValue("to_department", "");
       return;
     }
     loadDepts(selectedBranch).catch(() => toast.error("Could not load departments"));
-  }, [selectedBranch, loadDepts, referralForm]);
+  }, [selectedBranch, destinationKind, loadDepts, referralForm]);
 
   const branchOptions = useMemo(
     () =>
@@ -79,7 +107,7 @@ export default function DoctorReferralsPage() {
   return (
     <ClinicShell
       title="Referrals"
-      subtitle="Pick a same-org branch first, then a department at that branch."
+      subtitle="Same-org branch or outside facility — manager approval is required before reception can print."
     >
       <EncounterVisitSelector
         encounters={encounters}
@@ -91,31 +119,47 @@ export default function DoctorReferralsPage() {
           className="mx-auto max-w-xl"
           kicker="Handoff"
           title="Referral"
-          description="Route the patient with diagnosis and investigation summary."
+          description="Route inside the organization or outside. Print waits for manager approval."
         >
           <VisitPatientStrip encounter={current} />
           <form
             className="space-y-4"
             onSubmit={referralForm.handleSubmit(async (values) => {
-              if (!values.to_branch) {
-                toast.error("Select a destination branch");
-                return;
-              }
-              if (!values.to_department) {
-                toast.error("Select a department at that branch");
-                return;
+              if (values.destination_kind === "internal") {
+                if (!values.to_branch) {
+                  toast.error("Select a destination branch");
+                  return;
+                }
+                if (!values.to_department) {
+                  toast.error("Select a department at that branch");
+                  return;
+                }
               }
               setSubmitting(true);
               try {
                 await api.post("/clinic/referrals/", {
                   encounter: current.id,
-                  to_department: values.to_department,
-                  to_branch: values.to_branch,
+                  destination_kind: values.destination_kind,
+                  to_department:
+                    values.destination_kind === "internal" ? values.to_department : "",
+                  to_branch: values.destination_kind === "internal" ? values.to_branch : "",
+                  external_institution:
+                    values.destination_kind === "external"
+                      ? values.external_institution.trim()
+                      : "",
                   diagnosis: values.diagnosis || current.chart?.diagnosis || "",
                   lab_summary: values.lab_summary,
                 });
-                toast.success("Referral recorded");
-                referralForm.reset();
+                toast.success("Referral sent — waiting for manager approval");
+                referralForm.reset({
+                  destination_kind: "internal",
+                  to_department: "",
+                  to_branch: "",
+                  external_institution: "",
+                  diagnosis: "",
+                  lab_summary: "",
+                });
+                await loadRecent();
               } finally {
                 setSubmitting(false);
               }
@@ -130,28 +174,57 @@ export default function DoctorReferralsPage() {
                   Destination
                 </p>
               </div>
+
               <CustomFormField
                 control={referralForm.control}
-                name="to_branch"
+                name="destination_kind"
                 fieldType={formFieldTypes.SELECT}
-                label="Organization branch"
-                placeholder={
-                  branchOptions.length ? "Select branch" : "No branches yet — add in Apex admin"
-                }
-                options={branchOptions}
+                label="Referral type"
+                options={[
+                  { label: "Same organization branch", value: "internal" },
+                  { label: "Outside organization", value: "external" },
+                ]}
               />
-              <CustomFormField
-                control={referralForm.control}
-                name="to_department"
-                fieldType={formFieldTypes.SELECT}
-                label="Department"
-                disabled={!selectedBranch}
-                placeholder={selectedBranch ? "Select department" : "Choose a branch first"}
-                options={departments.map((d) => ({
-                  label: d.name,
-                  value: d.name,
-                }))}
-              />
+
+              {destinationKind === "internal" ? (
+                <>
+                  <CustomFormField
+                    control={referralForm.control}
+                    name="to_branch"
+                    fieldType={formFieldTypes.SELECT}
+                    label="Organization branch"
+                    placeholder={
+                      branchOptions.length
+                        ? "Select branch"
+                        : "No branches yet — add in Apex admin"
+                    }
+                    options={branchOptions}
+                  />
+                  <CustomFormField
+                    control={referralForm.control}
+                    name="to_department"
+                    fieldType={formFieldTypes.SELECT}
+                    label="Department"
+                    disabled={!selectedBranch}
+                    placeholder={
+                      selectedBranch ? "Select department" : "Choose a branch first"
+                    }
+                    options={departments.map((d) => ({
+                      label: d.name,
+                      value: d.name,
+                    }))}
+                  />
+                </>
+              ) : (
+                <CustomFormField
+                  control={referralForm.control}
+                  name="external_institution"
+                  fieldType={formFieldTypes.INPUT}
+                  label="Health institution (optional)"
+                  placeholder="e.g. Black Lion Hospital — leave blank if unknown"
+                  description="Outside referrals can name a specific facility or stay general."
+                />
+              )}
             </div>
 
             <div className="space-y-3.5 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-cta/5 p-4 sm:p-5">
@@ -179,10 +252,46 @@ export default function DoctorReferralsPage() {
                 loadingLabel="Sending…"
               >
                 <Send className="size-4" />
-                Create referral
+                Send for manager approval
               </SubmitButton>
             </div>
           </form>
+        </SectionCard>
+      ) : null}
+
+      {recent.length > 0 ? (
+        <SectionCard
+          className="mx-auto max-w-xl"
+          kicker="Recent"
+          title="Your referrals"
+          description="Pending until the branch manager approves print."
+        >
+          <div className="space-y-3">
+            {recent.slice(0, 8).map((r) => {
+              const pending = (r.approval_status || "pending") === "pending";
+              const outside = r.destination_kind === "external";
+              return (
+                <div
+                  key={r.id}
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-border/70 bg-white/90 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-heading text-sm font-semibold text-primary">
+                      {outside
+                        ? r.external_institution?.trim() || "Outside organization"
+                        : `${r.to_branch} · ${r.to_department}`}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {r.patient_name || "Patient"} · {r.diagnosis || "No diagnosis"}
+                    </p>
+                  </div>
+                  <StatusPill tone={pending ? "orange" : r.approval_status === "approved" ? "green" : "muted"}>
+                    {r.approval_status || "pending"}
+                  </StatusPill>
+                </div>
+              );
+            })}
+          </div>
         </SectionCard>
       ) : null}
     </ClinicShell>
