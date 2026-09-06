@@ -175,6 +175,56 @@ export function QueueItem({
   );
 }
 
+/** Lists stay full-height until this many items, then become an inner scroll region. */
+export const CATALOG_SCROLL_THRESHOLD = 10;
+
+export function catalogScrollClassName(
+  itemCount: number,
+  {
+    threshold = CATALOG_SCROLL_THRESHOLD,
+    maxHeightClass = "max-h-[min(60vh,36rem)]",
+    className,
+  }: {
+    threshold?: number;
+    maxHeightClass?: string;
+    className?: string;
+  } = {},
+) {
+  if (itemCount <= threshold) return className;
+  return cn(
+    maxHeightClass,
+    "overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]",
+    className,
+  );
+}
+
+/** Catalog / queue lists: no nested scroll until there are more than `threshold` items. */
+export function ScrollableCatalog({
+  itemCount,
+  threshold = CATALOG_SCROLL_THRESHOLD,
+  maxHeightClass,
+  className,
+  children,
+}: {
+  itemCount: number;
+  threshold?: number;
+  maxHeightClass?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={catalogScrollClassName(itemCount, {
+        threshold,
+        maxHeightClass,
+        className,
+      })}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function FormSection({
   title,
   description,

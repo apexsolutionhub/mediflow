@@ -30,6 +30,7 @@ import {
   ctaButtonClass,
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -433,7 +434,8 @@ export default function ManagerInventoryPage() {
               hint="Add your first SKU above to enable pharmacy dispensing."
             />
           ) : (
-            <div className="space-y-3">
+            <ScrollableCatalog itemCount={medicines.length}>
+              <div className="space-y-3">
               {medicines.map((m) => {
                 const inactive = m.is_active === false;
                 const isLow = !inactive && m.on_hand <= m.min_threshold;
@@ -526,7 +528,8 @@ export default function ManagerInventoryPage() {
                   </QueueItem>
                 );
               })}
-            </div>
+              </div>
+            </ScrollableCatalog>
           )}
         </SectionCard>
       </div>

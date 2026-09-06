@@ -6,10 +6,10 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -83,7 +83,7 @@ export default function ReceptionReferralsPage() {
             icon={<Share2 className="size-5" />}
           />
         ) : (
-          <ScrollArea className="max-h-[36rem] pr-3">
+          <ScrollableCatalog itemCount={rows.length}>
             <div className="space-y-3">
               {rows.map((r) => {
                 const approved = r.approval_status === "approved";
@@ -160,7 +160,7 @@ export default function ReceptionReferralsPage() {
                 );
               })}
             </div>
-          </ScrollArea>
+          </ScrollableCatalog>
         )}
       </SectionCard>
     </ClinicShell>

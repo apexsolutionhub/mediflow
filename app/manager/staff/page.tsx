@@ -43,6 +43,7 @@ import {
   ctaButtonClass,
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -58,9 +59,6 @@ type StaffFormValues = {
   password: string;
   confirm_password: string;
 };
-
-const catalogScrollClass =
-  "max-h-[32rem] overflow-y-auto overscroll-contain scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
 
 const ALL_STAFF_ROLES = [
   { label: "Reception", value: "reception", icon: UserRound, tone: "navy" as const },
@@ -406,7 +404,7 @@ export default function ManagerStaffPage() {
               hint="Create the first staff credential above to open a clinical portal."
             />
           ) : (
-            <div className={catalogScrollClass}>
+            <ScrollableCatalog itemCount={staff.length}>
               <div className="space-y-3 pr-1">
                 {managers.map((person) => {
                   const role = (person.role || "").toLowerCase();
@@ -496,7 +494,7 @@ export default function ManagerStaffPage() {
                   );
                 })}
               </div>
-            </div>
+            </ScrollableCatalog>
           )}
 
           {staff.length > 0 ? (

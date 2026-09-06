@@ -72,6 +72,30 @@ export function BatchAddLineButton({
   );
 }
 
+/** Batch entry lines: full height until 10+, then scroll so the form card stays usable. */
+export function BatchLinesRegion({
+  lineCount,
+  children,
+  className,
+}: {
+  lineCount: number;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "space-y-3",
+        lineCount > 10 &&
+          "max-h-[min(60vh,36rem)] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function BatchSelectionBar({
   actionableIds,
   selectedIds,

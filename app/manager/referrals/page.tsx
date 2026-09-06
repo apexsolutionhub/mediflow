@@ -6,10 +6,10 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -87,7 +87,7 @@ export default function ManagerReferralsPage() {
             icon={<Share2 className="size-5" />}
           />
         ) : (
-          <ScrollArea className="max-h-[36rem] pr-3">
+          <ScrollableCatalog itemCount={pending.length}>
             <div className="space-y-3">
               {pending.map((r) => {
                 const outside = r.destination_kind === "external";
@@ -142,7 +142,7 @@ export default function ManagerReferralsPage() {
                 );
               })}
             </div>
-          </ScrollArea>
+          </ScrollableCatalog>
         )}
       </SectionCard>
     </ClinicShell>

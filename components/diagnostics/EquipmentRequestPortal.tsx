@@ -8,11 +8,11 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ctaButtonClass,
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -124,7 +124,7 @@ export function EquipmentRequestPortal({ kind }: { kind: UnitKind }) {
               icon={<Wrench className="size-5" />}
             />
           ) : (
-            <ScrollArea className="max-h-96 pr-3">
+            <ScrollableCatalog itemCount={tickets.length}>
               <div className="space-y-3">
                 {tickets.map((t) => (
                   <QueueItem key={t.id}>
@@ -141,7 +141,7 @@ export function EquipmentRequestPortal({ kind }: { kind: UnitKind }) {
                   </QueueItem>
                 ))}
               </div>
-            </ScrollArea>
+            </ScrollableCatalog>
           )}
         </SectionCard>
       </div>

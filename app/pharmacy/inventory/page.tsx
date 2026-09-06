@@ -7,6 +7,7 @@ import { ClinicShell } from "@/components/clinic-shell";
 import {
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -55,24 +56,26 @@ export default function PharmacyInventoryPage() {
             hint="Manager can seed the catalog from inventory tools."
           />
         ) : (
-          <div className="space-y-3">
-            {medicines.map((m) => {
-              const low = m.on_hand <= m.min_threshold;
-              return (
-                <QueueItem key={m.id}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-heading font-semibold text-primary">{m.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {money(m.unit_price)} ETB · min {m.min_threshold}
-                      </p>
+          <ScrollableCatalog itemCount={medicines.length}>
+            <div className="space-y-3">
+              {medicines.map((m) => {
+                const low = m.on_hand <= m.min_threshold;
+                return (
+                  <QueueItem key={m.id}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-heading font-semibold text-primary">{m.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {money(m.unit_price)} ETB · min {m.min_threshold}
+                        </p>
+                      </div>
+                      <StatusPill tone={low ? "red" : "green"}>{m.on_hand}</StatusPill>
                     </div>
-                    <StatusPill tone={low ? "red" : "green"}>{m.on_hand}</StatusPill>
-                  </div>
-                </QueueItem>
-              );
-            })}
-          </div>
+                  </QueueItem>
+                );
+              })}
+            </div>
+          </ScrollableCatalog>
         )}
       </SectionCard>
     </ClinicShell>

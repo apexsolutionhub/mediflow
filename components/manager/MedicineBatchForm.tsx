@@ -8,6 +8,7 @@ import {
   BatchAddLineButton,
   BatchField,
   BatchLineCard,
+  BatchLinesRegion,
 } from "@/components/manager/batch-ops";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -156,7 +157,7 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
         </div>
       </div>
 
-      <div className="space-y-4">
+      <BatchLinesRegion lineCount={lines.length}>
         {lines.map((line, index) => (
           <BatchLineCard
             key={line.key}
@@ -297,7 +298,7 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
             </label>
           </BatchLineCard>
         ))}
-      </div>
+      </BatchLinesRegion>
 
       <BatchAddLineButton onClick={addLine} label="Add another medicine" disabled={saving} />
 

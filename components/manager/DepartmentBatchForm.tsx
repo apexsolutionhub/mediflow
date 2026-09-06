@@ -8,6 +8,7 @@ import {
   BatchAddLineButton,
   BatchField,
   BatchLineCard,
+  BatchLinesRegion,
 } from "@/components/manager/batch-ops";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -96,7 +97,7 @@ export function DepartmentBatchForm({ onSaved }: { onSaved: () => Promise<void> 
         </div>
       </div>
 
-      <div className="space-y-3">
+      <BatchLinesRegion lineCount={lines.length}>
         {lines.map((line, index) => (
           <BatchLineCard
             key={line.key}
@@ -115,8 +116,8 @@ export function DepartmentBatchForm({ onSaved }: { onSaved: () => Promise<void> 
             </BatchField>
           </BatchLineCard>
         ))}
-        <BatchAddLineButton onClick={addLine} label="Add another department" disabled={saving} />
-      </div>
+      </BatchLinesRegion>
+      <BatchAddLineButton onClick={addLine} label="Add another department" disabled={saving} />
 
       <SubmitButton
         variant="outline"

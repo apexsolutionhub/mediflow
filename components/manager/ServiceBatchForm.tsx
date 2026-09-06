@@ -8,6 +8,7 @@ import {
   BatchAddLineButton,
   BatchField,
   BatchLineCard,
+  BatchLinesRegion,
 } from "@/components/manager/batch-ops";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -196,7 +197,7 @@ export function ServiceBatchForm({
         </div>
       </div>
 
-      <div className="space-y-3">
+      <BatchLinesRegion lineCount={lines.length}>
         {lines.map((line, index) => (
           <BatchLineCard
             key={line.key}
@@ -326,8 +327,8 @@ export function ServiceBatchForm({
             </div>
           </BatchLineCard>
         ))}
-        <BatchAddLineButton onClick={addLine} label="Add another service" disabled={saving} />
-      </div>
+      </BatchLinesRegion>
+      <BatchAddLineButton onClick={addLine} label="Add another service" disabled={saving} />
 
       <SubmitButton
         size="lg"

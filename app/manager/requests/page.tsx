@@ -8,10 +8,10 @@ import { ClinicShell } from "@/components/clinic-shell";
 import { BatchSelectionBar } from "@/components/manager/batch-ops";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -131,7 +131,7 @@ export default function ManagerRequestsPage() {
               />
             ) : null}
 
-            <ScrollArea className="max-h-[36rem] pr-3">
+            <ScrollableCatalog itemCount={tickets.length}>
               <div className="space-y-3">
                 {tickets.map((t) => {
                   const isOpen = t.status === "Open";
@@ -205,7 +205,7 @@ export default function ManagerRequestsPage() {
                   );
                 })}
               </div>
-            </ScrollArea>
+            </ScrollableCatalog>
           </div>
         )}
       </SectionCard>

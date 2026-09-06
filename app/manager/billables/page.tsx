@@ -45,6 +45,7 @@ import {
   ctaButtonClass,
   EmptyState,
   QueueItem,
+  ScrollableCatalog,
   SectionCard,
   StatTile,
   StatusPill,
@@ -72,24 +73,6 @@ type ServiceFormValues = {
   requires_payment_before_work: boolean;
   internal_notes: string;
 };
-
-const hiddenScrollbarClass =
-  "overflow-y-auto overscroll-contain scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
-
-/** Scroll when more than 3 catalog rows (~3 QueueItems + gaps). */
-function catalogListScrollClass(itemCount: number) {
-  return itemCount > 3 ? cn(hiddenScrollbarClass, "max-h-[21rem]") : undefined;
-}
-
-/** Scroll when more than 2 rows of department map cards. */
-function departmentMapScrollClass(itemCount: number) {
-  if (itemCount <= 2) return undefined;
-  return cn(
-    hiddenScrollbarClass,
-    "max-h-[13.5rem]",
-    itemCount <= 4 && "sm:max-h-none sm:overflow-visible",
-  );
-}
 
 const defaultServiceValues = (): ServiceFormValues => ({
   code: "",
@@ -432,7 +415,10 @@ export default function ManagerBillablesPage() {
                 ) : undefined
               }
             >
-              <div className={departmentMapScrollClass(activeDepartments.length)}>
+              <ScrollableCatalog
+                itemCount={activeDepartments.length}
+                maxHeightClass="max-h-[min(50vh,28rem)]"
+              >
                 <div className="grid gap-3 sm:grid-cols-2">
                   {activeDepartments.map((dept) => {
                   const count = servicesByDepartment.get(dept.name) ?? 0;
@@ -465,7 +451,7 @@ export default function ManagerBillablesPage() {
                   );
                 })}
                 </div>
-              </div>
+              </ScrollableCatalog>
             </SectionCard>
           ) : null}
 
@@ -491,7 +477,7 @@ export default function ManagerBillablesPage() {
             />
           ) : (
             <>
-              <div className={catalogListScrollClass(departments.length)}>
+              <ScrollableCatalog itemCount={departments.length}>
                 <div className="space-y-3 pr-1">
                   {departments.map((d) => {
                     const inUse = (servicesByDepartment.get(d.name) ?? 0) > 0;
@@ -611,7 +597,7 @@ export default function ManagerBillablesPage() {
                     );
                   })}
                 </div>
-              </div>
+              </ScrollableCatalog>
               <div className="mt-4 flex items-center gap-2 rounded-2xl border border-primary/10 bg-slate-50/80 px-4 py-3 text-xs text-muted-foreground">
                 <Building2 className="size-4 shrink-0 text-primary/70" />
                 Renaming a department updates every linked billable service automatically.
@@ -839,7 +825,7 @@ export default function ManagerBillablesPage() {
             />
           ) : (
             <>
-              <div className={catalogListScrollClass(services.length)}>
+              <ScrollableCatalog itemCount={services.length}>
                 <div className="space-y-3 pr-1">
                   {services.map((s) => {
                     const inactive = s.is_active === false;
@@ -933,7 +919,7 @@ export default function ManagerBillablesPage() {
                     );
                   })}
                 </div>
-              </div>
+              </ScrollableCatalog>
               <div className="mt-4 flex items-center gap-2 rounded-2xl border border-primary/10 bg-slate-50/80 px-4 py-3 text-xs text-muted-foreground">
                 <Tags className="size-4 shrink-0 text-primary/70" />
                 Default quantity sets how many units reception adds when this service attaches to a visit.
