@@ -37,7 +37,7 @@ export default function NurseNotesPage() {
       <SelectedVisitBanner encounter={current} boardHref="/nurse" boardLabel="open encounters" />
       {current ? (
         <SectionCard
-          className="mx-auto max-w-2xl"
+          className="mx-auto w-full max-w-2xl"
           kicker="Documentation"
           title="Nursing note"
           description="Vitals and notes sync to the doctor chart for this visit."

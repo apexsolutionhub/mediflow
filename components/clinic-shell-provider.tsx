@@ -547,7 +547,7 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
           <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 md:px-7">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(232,149,30,0.08),transparent)]" />
-            <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
+            <div className="relative flex min-h-0 w-full min-w-0 flex-1 flex-col">{children}</div>
           </main>
         </div>
       </div>

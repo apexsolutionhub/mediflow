@@ -59,7 +59,7 @@ export default function AccountPasswordPage() {
       subtitle="Update the password for your own MediFlow account."
     >
       <SectionCard
-        className="mx-auto max-w-lg"
+        className="mx-auto w-full max-w-lg"
         kicker="Account security"
         title="Change password"
         description="Enter your current password, then choose a new one."

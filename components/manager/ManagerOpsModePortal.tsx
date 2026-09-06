@@ -278,7 +278,7 @@ export function ManagerOpsModePortal() {
 
   if (loading && !status) {
     return (
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto w-full max-w-4xl space-y-6">
         <Skeleton className="h-10 w-24 rounded-xl" />
         <Skeleton className="h-44 w-full rounded-3xl" />
         <Skeleton className="h-28 w-full rounded-2xl" />
@@ -290,7 +290,7 @@ export function ManagerOpsModePortal() {
   if (!status) return null;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
         <Button
           type="button"

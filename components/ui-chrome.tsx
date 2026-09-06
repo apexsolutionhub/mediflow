@@ -136,7 +136,7 @@ export function SectionCard({
     <Card
       id={id}
       className={cn(
-        "clinic-panel clinic-panel-glow flex flex-col gap-0 overflow-hidden rounded-3xl border-2 py-0 shadow-md",
+        "clinic-panel clinic-panel-glow flex w-full flex-col gap-0 overflow-hidden rounded-3xl border-2 py-0 shadow-md",
         className,
       )}
     >
@@ -237,7 +237,7 @@ export function FormSection({
   className?: string;
 }) {
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("w-full space-y-3", className)}>
       <div className="space-y-1">
         <p className="text-[11px] font-bold tracking-[0.16em] text-cta uppercase">
           {title}
@@ -247,7 +247,7 @@ export function FormSection({
         ) : null}
       </div>
       <Separator className="bg-primary/20" />
-      <div className="grid gap-3 pt-1 sm:grid-cols-2">{children}</div>
+      <div className="grid w-full gap-3 pt-1 sm:grid-cols-2">{children}</div>
     </div>
   );
 }

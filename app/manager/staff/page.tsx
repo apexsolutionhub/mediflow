@@ -302,7 +302,7 @@ export default function ManagerStaffPage() {
         </div>
       </SectionCard>
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <SectionCard
           kicker="Credentials"
           title="Grant staff access"

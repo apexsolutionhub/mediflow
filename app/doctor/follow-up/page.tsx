@@ -39,7 +39,7 @@ export default function DoctorFollowUpPage() {
       />
       {current ? (
         <SectionCard
-          className="mx-auto max-w-xl"
+          className="mx-auto w-full max-w-xl"
           kicker="Scheduling"
           title="Follow-up appointment"
           description="Book the next visit. Reception will see it on today's appointments list."

@@ -116,7 +116,7 @@ export default function DoctorReferralsPage() {
       />
       {current ? (
         <SectionCard
-          className="mx-auto max-w-xl"
+          className="mx-auto w-full max-w-xl"
           kicker="Handoff"
           title="Referral"
           description="Route inside the organization or outside. Print waits for manager approval."
@@ -261,7 +261,7 @@ export default function DoctorReferralsPage() {
 
       {recent.length > 0 ? (
         <SectionCard
-          className="mx-auto max-w-xl"
+          className="mx-auto w-full max-w-xl"
           kicker="Recent"
           title="Your referrals"
           description="Pending until the branch manager approves print."

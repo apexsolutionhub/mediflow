@@ -284,7 +284,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
   return (
     <ClinicShell title={meta.title} subtitle={meta.subtitle}>
       <SectionCard
-        className="mx-auto max-w-2xl"
+        className="mx-auto w-full max-w-2xl"
         kicker={meta.kicker}
         title={meta.title}
         description={meta.subtitle}
