@@ -55,7 +55,7 @@ type MedicineFormValues = {
 };
 
 const catalogScrollClass =
-  "max-h-[32rem] overflow-y-auto overscroll-contain scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]";
 
 const defaultMedicineValues = (): MedicineFormValues => ({
   name: "",
@@ -240,28 +240,31 @@ export default function ManagerInventoryPage() {
       title="Medicine inventory"
       subtitle="Govern pharmacy stock — low-stock thresholds feed the overview."
     >
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        <StatTile label="Medicines" value={medicines.length} tone="navy" />
-        <StatTile label="Low stock alerts" value={lowStock.length} tone="rose" />
-        <StatTile
-          label={expiredCount > 0 ? "Expired SKUs" : "Active SKUs"}
-          value={expiredCount > 0 ? expiredCount : activeCount}
-          tone={expiredCount > 0 ? "orange" : "green"}
-        />
-      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+        <div className="grid shrink-0 gap-3 sm:grid-cols-3">
+          <StatTile label="Medicines" value={medicines.length} tone="navy" />
+          <StatTile label="Low stock alerts" value={lowStock.length} tone="rose" />
+          <StatTile
+            label={expiredCount > 0 ? "Expired SKUs" : "Active SKUs"}
+            value={expiredCount > 0 ? expiredCount : activeCount}
+            tone={expiredCount > 0 ? "orange" : "green"}
+          />
+        </div>
 
-      <div className="mx-auto flex max-w-4xl flex-col gap-6">
-        <SectionCard
-          id="medicine-form"
-          kicker="Stock in"
-          title={editingMedicineId ? "Edit medicine" : "Add medicines"}
-          description={
-            editingMedicineId
-              ? "Update SKU details — pharmacy picks from active items only."
-              : "Add one or many SKUs in a single submit. New items appear in pharmacy when active."
-          }
-          action={editingMedicineId ? <StatusPill tone="orange">Editing</StatusPill> : undefined}
-        >
+        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 overflow-hidden">
+          <SectionCard
+            id="medicine-form"
+            className="shrink-0"
+            contentClassName="max-h-[min(42vh,22rem)] overflow-y-auto overscroll-contain"
+            kicker="Stock in"
+            title={editingMedicineId ? "Edit medicine" : "Add medicines"}
+            description={
+              editingMedicineId
+                ? "Update SKU details — pharmacy picks from active items only."
+                : "Add one or many SKUs in a single submit. New items appear in pharmacy when active."
+            }
+            action={editingMedicineId ? <StatusPill tone="orange">Editing</StatusPill> : undefined}
+          >
           {editingMedicineId ? (
           <form className="grid gap-5" onSubmit={medForm.handleSubmit(saveMedicine)}>
             <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
@@ -419,6 +422,8 @@ export default function ManagerInventoryPage() {
         </SectionCard>
 
         <SectionCard
+          className="flex min-h-0 flex-1 flex-col"
+          contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
           kicker="On hand"
           title="Medicine catalog"
           description="Live stock pharmacy dispenses from — updates when Rx is confirmed."
@@ -431,13 +436,15 @@ export default function ManagerInventoryPage() {
           }
         >
           {medicines.length === 0 ? (
-            <EmptyState
-              title="No medicines yet"
-              hint="Add your first SKU above to enable pharmacy dispensing."
-            />
+            <div className="p-5">
+              <EmptyState
+                title="No medicines yet"
+                hint="Add your first SKU above to enable pharmacy dispensing."
+              />
+            </div>
           ) : (
-            <div className={catalogScrollClass}>
-              <div className="space-y-3 pr-1">
+            <div className={cn(catalogScrollClass, "p-5")}>
+              <div className="space-y-3">
                 {medicines.map((m) => {
                   const inactive = m.is_active === false;
                   const isLow = !inactive && m.on_hand <= m.min_threshold;
@@ -534,6 +541,7 @@ export default function ManagerInventoryPage() {
             </div>
           )}
         </SectionCard>
+        </div>
       </div>
 
       <AlertDialog

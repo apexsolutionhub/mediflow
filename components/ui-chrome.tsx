@@ -136,11 +136,11 @@ export function SectionCard({
     <Card
       id={id}
       className={cn(
-        "clinic-panel clinic-panel-glow gap-0 overflow-hidden rounded-3xl border-2 py-0 shadow-md",
+        "clinic-panel clinic-panel-glow flex flex-col gap-0 overflow-hidden rounded-3xl border-2 py-0 shadow-md",
         className,
       )}
     >
-      <CardHeader className="border-b-2 border-primary/15 bg-linear-to-r from-primary/10 via-white to-cta/10 px-5 py-4">
+      <CardHeader className="shrink-0 border-b-2 border-primary/15 bg-linear-to-r from-primary/10 via-white to-cta/10 px-5 py-4">
         {kicker ? <p className="clinic-kicker">{kicker}</p> : null}
         <CardTitle className="font-heading text-xl font-bold text-primary">{title}</CardTitle>
         {description ? (
@@ -150,7 +150,7 @@ export function SectionCard({
         ) : null}
         {action ? <CardAction>{action}</CardAction> : null}
       </CardHeader>
-      <CardContent className={cn("bg-white p-5", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn("min-h-0 flex-1 bg-white p-5", contentClassName)}>{children}</CardContent>
     </Card>
   );
 }

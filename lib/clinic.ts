@@ -231,12 +231,32 @@ export type ManagerReportPeriod =
   | "half_year"
   | "year";
 
+export type ManagerReportSummary = {
+  visits: number;
+  new_patients: number;
+  open_encounters: number;
+  closed_encounters: number;
+  revenue: number | string;
+  refunds: number | string;
+  net_revenue: number | string;
+  payment_count: number;
+  avg_revenue_per_visit: number | string;
+  billable_items: number;
+  lab_orders: number;
+  radiology_orders: number;
+  prescriptions: number;
+  referrals: number;
+  low_stock: number;
+  open_tickets: number;
+};
+
 export type ManagerReport = {
   period: ManagerReportPeriod | string;
   period_label: string;
   start_date: string;
   end_date: string;
   branch_name: string;
+  summary?: ManagerReportSummary;
   visits: number;
   new_patients: number;
   closed_encounters: number;
@@ -248,6 +268,17 @@ export type ManagerReport = {
   referrals: number;
   low_stock: number;
   open_tickets: number;
+  revenue_by_day?: { date: string; total: number | string; count: number }[];
+  tender_breakdown?: { method: string; total: number | string; count: number }[];
+  arrival_breakdown?: { arrival_type: string; count: number }[];
+  referral_breakdown?: { kind: string; status: string; count: number }[];
+  top_services?: {
+    description: string;
+    department: string;
+    count: number;
+    revenue: number | string;
+  }[];
+  order_status_breakdown?: { order_type: string; status: string; count: number }[];
 };
 
 export function paymentTone(

@@ -405,7 +405,7 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
   return (
     <ClinicShellMetaContext.Provider value={metaContext}>
-      <div className="clinic-canvas flex min-h-dvh text-foreground">
+      <div className="clinic-canvas flex h-dvh overflow-hidden text-foreground">
         <aside className="sticky top-0 hidden h-dvh w-68 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,rgba(11,25,46,0.98),rgba(6,14,26,0.99))] text-sidebar-foreground shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] md:flex">
           <div
             aria-hidden
@@ -479,8 +479,8 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-10 border-b border-white/10 bg-[linear-gradient(180deg,rgba(11,25,46,0.94),rgba(11,25,46,0.82))] px-4 py-3.5 backdrop-blur-xl md:px-7">
+        <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
+          <header className="sticky top-0 z-10 shrink-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(11,25,46,0.94),rgba(11,25,46,0.82))] px-4 py-3.5 backdrop-blur-xl md:px-7">
             <div className="flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-start gap-3">
                 <Button
@@ -545,9 +545,9 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
             </div>
           ) : null}
 
-          <main className="relative flex-1 px-4 py-6 md:px-7">
+          <main className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-6 md:px-7">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(232,149,30,0.08),transparent)]" />
-            <div className="relative">{children}</div>
+            <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>
           </main>
         </div>
       </div>

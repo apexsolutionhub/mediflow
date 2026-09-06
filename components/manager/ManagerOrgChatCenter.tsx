@@ -9,10 +9,17 @@ import {
   useState,
   type ChangeEvent,
 } from "react";
-import { ImagePlus, MessagesSquare, Send, X } from "lucide-react";
+import { Building2, ImagePlus, MessagesSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -41,6 +48,8 @@ import { useBrowserOnline } from "@/lib/use-browser-online";
 import { cn } from "@/lib/utils";
 
 const IMAGE_ACCEPT = "image/png,image/jpeg,image/jpg,image/webp,image/jfif";
+const UNREAD_POLL_MS = 45_000;
+const THREAD_POLL_MS = 20_000;
 
 function formatMessageTime(iso: string) {
   const date = new Date(iso);
@@ -107,6 +116,10 @@ export function ManagerOrgChatCenter({ onNavigate }: { onNavigate?: () => void }
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const peerTinRef = useRef(peerTin);
+  const stickToBottomRef = useRef(true);
+
+  peerTinRef.current = peerTin;
 
   const selectedPeer = useMemo(
     () => peers.find((p) => p.clinic_tin === peerTin) || null,
@@ -125,34 +138,39 @@ export function ManagerOrgChatCenter({ onNavigate }: { onNavigate?: () => void }
     try {
       const data = await fetchOrgChatPeers();
       setPeers(data.peers);
-      if (!peerTin && data.peers[0]) setPeerTin(data.peers[0].clinic_tin);
+      setPeerTin((current) => {
+        if (current && data.peers.some((p) => p.clinic_tin === current)) return current;
+        return data.peers[0]?.clinic_tin || "";
+      });
     } catch {
       setPeers([]);
     }
-  }, [peerTin]);
+  }, []);
 
-  const loadThread = useCallback(async (tin: string) => {
+  const loadThread = useCallback(async (tin: string, opts?: { silent?: boolean }) => {
     if (!tin) {
       setMessages([]);
       return;
     }
-    setLoading(true);
+    if (!opts?.silent) setLoading(true);
     try {
       const data = await fetchOrgChatThread(tin);
+      if (peerTinRef.current !== tin) return;
       setMessages(data.messages);
-      await refreshUnread();
-      await loadPeers();
+      if (!opts?.silent) void refreshUnread();
     } catch {
-      setMessages([]);
-      toast.error("Could not load chat");
+      if (!opts?.silent) {
+        setMessages([]);
+        toast.error("Could not load chat");
+      }
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
-  }, [loadPeers, refreshUnread]);
+  }, [refreshUnread]);
 
   useEffect(() => {
     void refreshUnread();
-    const id = window.setInterval(() => void refreshUnread(), 30_000);
+    const id = window.setInterval(() => void refreshUnread(), UNREAD_POLL_MS);
     return () => window.clearInterval(id);
   }, [refreshUnread]);
 
@@ -164,22 +182,25 @@ export function ManagerOrgChatCenter({ onNavigate }: { onNavigate?: () => void }
   useEffect(() => {
     if (!open || !peerTin) return;
     void loadThread(peerTin);
-    const id = window.setInterval(() => void loadThread(peerTin), 12_000);
+    const id = window.setInterval(() => void loadThread(peerTin, { silent: true }), THREAD_POLL_MS);
     return () => window.clearInterval(id);
   }, [open, peerTin, loadThread]);
 
   useEffect(() => {
+    if (!stickToBottomRef.current) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
   const send = async (imageUrl = "") => {
     if (!peerTin || (!body.trim() && !imageUrl)) return;
     setBusy(true);
+    stickToBottomRef.current = true;
     try {
       const message = await sendOrgChatMessage(peerTin, body.trim(), imageUrl);
       setMessages((prev) => [...prev, message]);
       setBody("");
-      await refreshUnread();
+      void refreshUnread();
+      void loadPeers();
     } catch {
       toast.error("Could not send message");
     } finally {
@@ -243,40 +264,52 @@ export function ManagerOrgChatCenter({ onNavigate }: { onNavigate?: () => void }
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex gap-2 overflow-x-auto border-b border-border/60 px-3 py-2">
+        <div className="border-b border-border/60 bg-muted/20 px-4 py-3">
+          <p className="mb-1.5 text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+            Conversation
+          </p>
           {peers.length === 0 ? (
-            <p className="px-1 py-2 text-xs text-muted-foreground">
+            <p className="rounded-xl border border-dashed border-border/70 bg-background/60 px-3 py-3 text-xs text-muted-foreground">
               No other branch managers yet.
             </p>
           ) : (
-            peers.map((peer) => (
-              <button
-                key={peer.clinic_tin}
-                type="button"
-                className={cn(
-                  "shrink-0 rounded-xl border px-3 py-2 text-left text-xs transition",
-                  peerTin === peer.clinic_tin
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border/70 bg-muted/30 text-muted-foreground hover:bg-muted/50",
-                )}
-                onClick={() => setPeerTin(peer.clinic_tin)}
-              >
-                <span className="block font-medium text-foreground">
-                  {peer.branch_name || peer.username}
-                </span>
-                <span className="block opacity-80">@{peer.username}</span>
-                {peer.unread_count > 0 ? (
-                  <span className="mt-1 inline-flex rounded-full bg-cta/15 px-1.5 text-[10px] font-semibold text-cta">
-                    {peer.unread_count} new
-                  </span>
-                ) : null}
-              </button>
-            ))
+            <Select value={peerTin || undefined} onValueChange={setPeerTin}>
+              <SelectTrigger className="h-12 rounded-xl border-border/70 bg-background/90 shadow-sm">
+                <SelectValue placeholder="Select a branch manager" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="rounded-xl">
+                {peers.map((peer) => (
+                  <SelectItem key={peer.clinic_tin} value={peer.clinic_tin} className="rounded-lg py-2.5">
+                    <span className="flex min-w-0 items-center gap-2.5">
+                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Building2 className="size-3.5" />
+                      </span>
+                      <span className="min-w-0 text-left">
+                        <span className="block truncate font-medium text-foreground">
+                          {peer.branch_name || peer.username}
+                        </span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          @{peer.username}
+                          {peer.unread_count > 0 ? ` · ${peer.unread_count} new` : ""}
+                        </span>
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div
+            className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+            onScroll={(event) => {
+              const el = event.currentTarget;
+              stickToBottomRef.current =
+                el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+            }}
+          >
             {loading && messages.length === 0 ? (
               <div className="flex justify-center py-10">
                 <Spinner />
@@ -342,17 +375,6 @@ export function ManagerOrgChatCenter({ onNavigate }: { onNavigate?: () => void }
               >
                 {busy ? <Spinner /> : <Send className="size-4" />}
               </Button>
-              {body ? (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="shrink-0"
-                  onClick={() => setBody("")}
-                >
-                  <X className="size-4" />
-                </Button>
-              ) : null}
             </div>
           </div>
         </div>
