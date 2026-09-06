@@ -150,7 +150,7 @@ export function SectionCard({
         ) : null}
         {action ? <CardAction>{action}</CardAction> : null}
       </CardHeader>
-      <CardContent className={cn("min-h-0 flex-1 bg-white p-5", contentClassName)}>{children}</CardContent>
+      <CardContent className={cn("bg-white p-5", contentClassName)}>{children}</CardContent>
     </Card>
   );
 }
