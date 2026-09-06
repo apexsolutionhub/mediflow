@@ -54,9 +54,6 @@ type MedicineFormValues = {
   internal_notes: string;
 };
 
-const catalogScrollClass =
-  "min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]";
-
 const defaultMedicineValues = (): MedicineFormValues => ({
   name: "",
   description: "",
@@ -240,8 +237,8 @@ export default function ManagerInventoryPage() {
       title="Medicine inventory"
       subtitle="Govern pharmacy stock — low-stock thresholds feed the overview."
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-        <div className="grid shrink-0 gap-3 sm:grid-cols-3">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+        <div className="grid gap-3 sm:grid-cols-3">
           <StatTile label="Medicines" value={medicines.length} tone="navy" />
           <StatTile label="Low stock alerts" value={lowStock.length} tone="rose" />
           <StatTile
@@ -251,179 +248,174 @@ export default function ManagerInventoryPage() {
           />
         </div>
 
-        <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 overflow-hidden">
-          <SectionCard
-            id="medicine-form"
-            className="shrink-0"
-            contentClassName="max-h-[min(42vh,22rem)] overflow-y-auto overscroll-contain"
-            kicker="Stock in"
-            title={editingMedicineId ? "Edit medicine" : "Add medicines"}
-            description={
-              editingMedicineId
-                ? "Update SKU details — pharmacy picks from active items only."
-                : "Add one or many SKUs in a single submit. New items appear in pharmacy when active."
-            }
-            action={editingMedicineId ? <StatusPill tone="orange">Editing</StatusPill> : undefined}
-          >
+        <SectionCard
+          id="medicine-form"
+          kicker="Stock in"
+          title={editingMedicineId ? "Edit medicine" : "Add medicines"}
+          description={
+            editingMedicineId
+              ? "Update SKU details — pharmacy picks from active items only."
+              : "Add one or many SKUs in a single submit. New items appear in pharmacy when active."
+          }
+          action={editingMedicineId ? <StatusPill tone="orange">Editing</StatusPill> : undefined}
+        >
           {editingMedicineId ? (
-          <form className="grid gap-5" onSubmit={medForm.handleSubmit(saveMedicine)}>
-            <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
-              <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                <Package className="size-5" />
-              </span>
-              <div>
-                <p className="font-heading text-sm font-semibold text-primary">Pharmacy SKU</p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Track category, batch, and expiry for regulated stock. Counts drop when pharmacy
-                  confirms a dispense.
+            <form className="grid gap-5" onSubmit={medForm.handleSubmit(saveMedicine)}>
+              <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
+                <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <Package className="size-5" />
+                </span>
+                <div>
+                  <p className="font-heading text-sm font-semibold text-primary">Pharmacy SKU</p>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    Track category, batch, and expiry for regulated stock. Counts drop when pharmacy
+                    confirms a dispense.
+                  </p>
+                </div>
+              </div>
+
+              <CustomFormField
+                control={medForm.control}
+                name="name"
+                fieldType={formFieldTypes.INPUT}
+                label="Medicine name"
+                placeholder="e.g. Amoxicillin 500mg"
+              />
+
+              <CustomFormField
+                control={medForm.control}
+                name="description"
+                fieldType={formFieldTypes.TEXTAREA}
+                label="Description (optional)"
+                placeholder="Strength, form, or dispensing notes for pharmacy staff"
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CustomFormField
+                  control={medForm.control}
+                  name="sku"
+                  fieldType={formFieldTypes.INPUT}
+                  label="SKU / code"
+                  placeholder="AMX-500"
+                />
+                <CustomFormField
+                  control={medForm.control}
+                  name="category"
+                  fieldType={formFieldTypes.SELECT}
+                  label="Category"
+                  options={MEDICINE_CATEGORIES.map((c) => ({ label: c.label, value: c.value }))}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <CustomFormField
+                  control={medForm.control}
+                  name="unit_of_measure"
+                  fieldType={formFieldTypes.SELECT}
+                  label="Unit of measure"
+                  options={MEDICINE_UNITS.map((u) => ({ label: u.label, value: u.value }))}
+                />
+                <CustomFormField
+                  control={medForm.control}
+                  name="unit_price"
+                  fieldType={formFieldTypes.INPUT}
+                  type="number"
+                  label="Unit price (ETB)"
+                />
+              </div>
+
+              <div className="rounded-2xl border border-primary/10 bg-slate-50/60 p-4">
+                <p className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Batch & expiry
                 </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <CustomFormField
+                    control={medForm.control}
+                    name="batch_number"
+                    fieldType={formFieldTypes.INPUT}
+                    label="Batch / lot number"
+                    placeholder="Optional"
+                  />
+                  <CustomFormField
+                    control={medForm.control}
+                    name="expiry_date"
+                    fieldType={formFieldTypes.CALENDAR}
+                    label="Expiry date"
+                    placeholder="Pick expiry date"
+                    description="Leave unset if not tracked."
+                    className="h-11 w-full justify-between rounded-xl px-3.5 font-normal"
+                  />
+                </div>
               </div>
-            </div>
 
-            <CustomFormField
-              control={medForm.control}
-              name="name"
-              fieldType={formFieldTypes.INPUT}
-              label="Medicine name"
-              placeholder="e.g. Amoxicillin 500mg"
-            />
-
-            <CustomFormField
-              control={medForm.control}
-              name="description"
-              fieldType={formFieldTypes.TEXTAREA}
-              label="Description (optional)"
-              placeholder="Strength, form, or dispensing notes for pharmacy staff"
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <CustomFormField
-                control={medForm.control}
-                name="sku"
-                fieldType={formFieldTypes.INPUT}
-                label="SKU / code"
-                placeholder="AMX-500"
-              />
-              <CustomFormField
-                control={medForm.control}
-                name="category"
-                fieldType={formFieldTypes.SELECT}
-                label="Category"
-                options={MEDICINE_CATEGORIES.map((c) => ({ label: c.label, value: c.value }))}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <CustomFormField
-                control={medForm.control}
-                name="unit_of_measure"
-                fieldType={formFieldTypes.SELECT}
-                label="Unit of measure"
-                options={MEDICINE_UNITS.map((u) => ({ label: u.label, value: u.value }))}
-              />
-              <CustomFormField
-                control={medForm.control}
-                name="unit_price"
-                fieldType={formFieldTypes.INPUT}
-                type="number"
-                label="Unit price (ETB)"
-              />
-            </div>
-
-            <div className="rounded-2xl border border-primary/10 bg-slate-50/60 p-4">
-              <p className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Batch & expiry
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <CustomFormField
-                  control={medForm.control}
-                  name="batch_number"
-                  fieldType={formFieldTypes.INPUT}
-                  label="Batch / lot number"
-                  placeholder="Optional"
-                />
-                <CustomFormField
-                  control={medForm.control}
-                  name="expiry_date"
-                  fieldType={formFieldTypes.CALENDAR}
-                  label="Expiry date"
-                  placeholder="Pick expiry date"
-                  description="Leave unset if not tracked."
-                  className="h-11 w-full justify-between rounded-xl px-3.5 font-normal"
-                />
+              <div className="rounded-2xl border border-primary/10 bg-slate-50/60 p-4">
+                <p className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  Stock levels
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <CustomFormField
+                    control={medForm.control}
+                    name="on_hand"
+                    fieldType={formFieldTypes.INPUT}
+                    type="number"
+                    label="On hand"
+                  />
+                  <CustomFormField
+                    control={medForm.control}
+                    name="min_threshold"
+                    fieldType={formFieldTypes.INPUT}
+                    type="number"
+                    label="Low-stock threshold"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="rounded-2xl border border-primary/10 bg-slate-50/60 p-4">
-              <p className="mb-4 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Stock levels
-              </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <CustomFormField
-                  control={medForm.control}
-                  name="on_hand"
-                  fieldType={formFieldTypes.INPUT}
-                  type="number"
-                  label="On hand"
-                />
-                <CustomFormField
-                  control={medForm.control}
-                  name="min_threshold"
-                  fieldType={formFieldTypes.INPUT}
-                  type="number"
-                  label="Low-stock threshold"
-                />
+              <CustomFormField
+                control={medForm.control}
+                name="is_active"
+                fieldType={formFieldTypes.SWITCH}
+                label="Active in pharmacy"
+                description="Inactive SKUs are hidden from new dispense picks."
+              />
+
+              <CustomFormField
+                control={medForm.control}
+                name="internal_notes"
+                fieldType={formFieldTypes.TEXTAREA}
+                label="Internal notes (staff only)"
+                placeholder="Supplier, storage shelf, reorder contact…"
+              />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="h-11 rounded-xl"
+                  disabled={savingMedicine}
+                  onClick={resetMedicineForm}
+                >
+                  <X className="size-4" />
+                  Cancel edit
+                </Button>
+                <SubmitButton
+                  size="lg"
+                  disabled={savingMedicine}
+                  className={cn("w-full sm:w-auto", ctaButtonClass)}
+                  loading={savingMedicine}
+                  loadingLabel="Updating…"
+                >
+                  <Check className="size-4" />
+                  Update medicine
+                </SubmitButton>
               </div>
-            </div>
-
-            <CustomFormField
-              control={medForm.control}
-              name="is_active"
-              fieldType={formFieldTypes.SWITCH}
-              label="Active in pharmacy"
-              description="Inactive SKUs are hidden from new dispense picks."
-            />
-
-            <CustomFormField
-              control={medForm.control}
-              name="internal_notes"
-              fieldType={formFieldTypes.TEXTAREA}
-              label="Internal notes (staff only)"
-              placeholder="Supplier, storage shelf, reorder contact…"
-            />
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="h-11 rounded-xl"
-                disabled={savingMedicine}
-                onClick={resetMedicineForm}
-              >
-                <X className="size-4" />
-                Cancel edit
-              </Button>
-              <SubmitButton
-                size="lg"
-                disabled={savingMedicine}
-                className={cn("w-full sm:w-auto", ctaButtonClass)}
-                loading={savingMedicine}
-                loadingLabel="Updating…"
-              >
-                <Check className="size-4" />
-                Update medicine
-              </SubmitButton>
-            </div>
-          </form>
+            </form>
           ) : (
             <MedicineBatchForm onSaved={() => load(true)} />
           )}
         </SectionCard>
 
         <SectionCard
-          className="flex min-h-0 flex-1 flex-col"
-          contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0"
           kicker="On hand"
           title="Medicine catalog"
           description="Live stock pharmacy dispenses from — updates when Rx is confirmed."
@@ -436,112 +428,107 @@ export default function ManagerInventoryPage() {
           }
         >
           {medicines.length === 0 ? (
-            <div className="p-5">
-              <EmptyState
-                title="No medicines yet"
-                hint="Add your first SKU above to enable pharmacy dispensing."
-              />
-            </div>
+            <EmptyState
+              title="No medicines yet"
+              hint="Add your first SKU above to enable pharmacy dispensing."
+            />
           ) : (
-            <div className={cn(catalogScrollClass, "p-5")}>
-              <div className="space-y-3">
-                {medicines.map((m) => {
-                  const inactive = m.is_active === false;
-                  const isLow = !inactive && m.on_hand <= m.min_threshold;
-                  const expired = !inactive && isExpired(m.expiry_date);
-                  const isEditing = editingMedicineId === m.id;
-                  const expiryText = formatExpiry(m.expiry_date);
+            <div className="space-y-3">
+              {medicines.map((m) => {
+                const inactive = m.is_active === false;
+                const isLow = !inactive && m.on_hand <= m.min_threshold;
+                const expired = !inactive && isExpired(m.expiry_date);
+                const isEditing = editingMedicineId === m.id;
+                const expiryText = formatExpiry(m.expiry_date);
 
-                  return (
-                    <QueueItem
-                      key={m.id}
-                      className={cn(
-                        inactive && "opacity-60",
-                        isLow && "border-rose-200/80 bg-linear-to-r from-rose-50/40 to-white",
-                        expired && "border-amber-200/80 bg-linear-to-r from-amber-50/50 to-white",
-                        isEditing && "border-cta/35 bg-cta/5 shadow-md shadow-cta/10",
-                      )}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
-                            <Package className="size-4.5" />
-                          </span>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-heading font-semibold text-primary">{m.name}</p>
-                              {inactive ? <StatusPill tone="muted">Inactive</StatusPill> : null}
-                              {expired ? <StatusPill tone="orange">Expired</StatusPill> : null}
-                              {isLow ? (
-                                <AlertTriangle className="size-3.5 text-rose-600" />
-                              ) : null}
-                              {isEditing ? <StatusPill tone="orange">Editing</StatusPill> : null}
-                            </div>
-                            {m.description ? (
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                {m.description}
-                              </p>
+                return (
+                  <QueueItem
+                    key={m.id}
+                    className={cn(
+                      inactive && "opacity-60",
+                      isLow && "border-rose-200/80 bg-linear-to-r from-rose-50/40 to-white",
+                      expired && "border-amber-200/80 bg-linear-to-r from-amber-50/50 to-white",
+                      isEditing && "border-cta/35 bg-cta/5 shadow-md shadow-cta/10",
+                    )}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
+                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                          <Package className="size-4.5" />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-heading font-semibold text-primary">{m.name}</p>
+                            {inactive ? <StatusPill tone="muted">Inactive</StatusPill> : null}
+                            {expired ? <StatusPill tone="orange">Expired</StatusPill> : null}
+                            {isLow ? (
+                              <AlertTriangle className="size-3.5 text-rose-600" />
                             ) : null}
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {categoryLabel(m.category || "other")}
-                              {m.sku ? ` · ${m.sku}` : ""} ·{" "}
-                              {unitLabel(m.unit_of_measure || "tablet")} · {money(m.unit_price)} ETB
+                            {isEditing ? <StatusPill tone="orange">Editing</StatusPill> : null}
+                          </div>
+                          {m.description ? (
+                            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                              {m.description}
                             </p>
-                            {m.batch_number || expiryText ? (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {m.batch_number ? `Batch ${m.batch_number}` : ""}
-                                {m.batch_number && expiryText ? " · " : ""}
-                                {expiryText ? `Exp ${expiryText}` : ""}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-2">
-                          <StatusPill tone={isLow ? "red" : "green"}>
-                            {m.on_hand} {unitLabel(m.unit_of_measure || "tablet").toLowerCase()}
-                          </StatusPill>
-                          <div className="flex items-center gap-1.5">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  size="icon-sm"
-                                  variant="outline"
-                                  className="rounded-xl"
-                                  onClick={() => startEditMedicine(m)}
-                                >
-                                  <Pencil className="size-4" />
-                                  <span className="sr-only">Edit {m.name}</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Edit medicine</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  size="icon-sm"
-                                  variant="outline"
-                                  className="rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
-                                  onClick={() => setPendingDeleteMedicine(m)}
-                                >
-                                  <Trash2 className="size-4" />
-                                  <span className="sr-only">Delete {m.name}</span>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Delete SKU</TooltipContent>
-                            </Tooltip>
-                          </div>
+                          ) : null}
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {categoryLabel(m.category || "other")}
+                            {m.sku ? ` · ${m.sku}` : ""} ·{" "}
+                            {unitLabel(m.unit_of_measure || "tablet")} · {money(m.unit_price)} ETB
+                          </p>
+                          {m.batch_number || expiryText ? (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {m.batch_number ? `Batch ${m.batch_number}` : ""}
+                              {m.batch_number && expiryText ? " · " : ""}
+                              {expiryText ? `Exp ${expiryText}` : ""}
+                            </p>
+                          ) : null}
                         </div>
                       </div>
-                    </QueueItem>
-                  );
-                })}
-              </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <StatusPill tone={isLow ? "red" : "green"}>
+                          {m.on_hand} {unitLabel(m.unit_of_measure || "tablet").toLowerCase()}
+                        </StatusPill>
+                        <div className="flex items-center gap-1.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="outline"
+                                className="rounded-xl"
+                                onClick={() => startEditMedicine(m)}
+                              >
+                                <Pencil className="size-4" />
+                                <span className="sr-only">Edit {m.name}</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit medicine</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="outline"
+                                className="rounded-xl border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800"
+                                onClick={() => setPendingDeleteMedicine(m)}
+                              >
+                                <Trash2 className="size-4" />
+                                <span className="sr-only">Delete {m.name}</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete SKU</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    </div>
+                  </QueueItem>
+                );
+              })}
             </div>
           )}
         </SectionCard>
-        </div>
       </div>
 
       <AlertDialog

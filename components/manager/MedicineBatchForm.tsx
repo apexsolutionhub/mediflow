@@ -156,7 +156,7 @@ export function MedicineBatchForm({ onSaved }: { onSaved: () => Promise<void> })
         </div>
       </div>
 
-      <div className="max-h-[min(70vh,40rem)] space-y-3 overflow-y-auto overscroll-contain pr-1">
+      <div className="space-y-4">
         {lines.map((line, index) => (
           <BatchLineCard
             key={line.key}
