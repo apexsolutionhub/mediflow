@@ -13,13 +13,7 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { LoadingButton } from "@/components/ui/submit-button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import {
   EmptyState,
   QueueItem,
@@ -28,7 +22,9 @@ import {
   StatusPill,
 } from "@/components/ui-chrome";
 import { api, results } from "@/lib/api";
-import { type ClinicalOrder, orderTone } from "@/lib/clinic";
+import { RadiologyReportView } from "@/components/diagnostics/RadiologyReport";
+import { LabResultTable } from "@/components/diagnostics/LabResultTable";
+import { abnormalSummary, type ClinicalOrder, formatStatus, orderTone } from "@/lib/clinic";
 import { cn } from "@/lib/utils";
 
 type FilterKey = "all" | "lab" | "radiology" | "needs_review";
@@ -120,89 +116,63 @@ export default function DoctorResultsPage() {
             <span className="hidden text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase sm:block sm:text-right">
               Show
             </span>
-            <Select
+            <Combobox
               value={filter}
               onValueChange={(value) => setFilter(value as FilterKey)}
-            >
-              <SelectTrigger
-                className={cn(
-                  "h-11 w-full rounded-2xl border-primary/12 bg-white px-3 shadow-sm",
-                  "hover:border-primary/25 hover:bg-primary/2",
-                  "focus-visible:border-cta/40 focus-visible:ring-cta/15",
-                  "data-[state=open]:border-cta/35 data-[state=open]:ring-2 data-[state=open]:ring-cta/15",
-                )}
-              >
-                <SelectValue placeholder="Filter results">
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <span
-                      className={cn(
-                        "inline-flex size-7 shrink-0 items-center justify-center rounded-lg ring-1",
-                        activeFilter.tone === "orange"
-                          ? "bg-cta/12 text-amber-800 ring-cta/20"
-                          : "bg-primary/8 text-primary ring-primary/15",
-                      )}
-                    >
-                      <ActiveIcon className="size-3.5" />
-                    </span>
-                    <span className="min-w-0 truncate font-medium text-primary">
-                      {activeFilter.label}
-                    </span>
-                    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/8 px-1.5 text-[11px] font-semibold text-primary tabular-nums">
-                      {activeFilter.count}
-                    </span>
+              align="end"
+              searchable={false}
+              className="h-11 rounded-2xl px-3"
+              contentClassName="min-w-58"
+              renderValue={() => (
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className={cn(
+                      "inline-flex size-7 shrink-0 items-center justify-center rounded-lg ring-1",
+                      activeFilter.tone === "orange"
+                        ? "bg-cta/12 text-amber-800 ring-cta/20"
+                        : "bg-primary/8 text-primary ring-primary/15",
+                    )}
+                  >
+                    <ActiveIcon className="size-3.5" />
                   </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="end"
-                className="w-(--radix-select-trigger-width) min-w-58 rounded-2xl border-primary/10 p-1.5 shadow-xl shadow-primary/10"
-              >
-                <div className="mb-1 flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-                  <Filter className="size-3" />
-                  Filter inbox
-                </div>
-                {filterOptions.map((option) => {
-                  const Icon = option.icon;
-                  const selected = filter === option.id;
-                  return (
-                    <SelectItem
-                      key={option.id}
-                      value={option.id}
-                      className={cn(
-                        "cursor-pointer rounded-xl py-2.5 pr-3 pl-2",
-                        selected && "bg-primary/5",
-                      )}
-                    >
-                      <span className="flex w-full min-w-0 items-center gap-2.5">
-                        <span
-                          className={cn(
-                            "inline-flex size-7 shrink-0 items-center justify-center rounded-lg ring-1",
-                            option.tone === "orange"
-                              ? "bg-cta/12 text-amber-800 ring-cta/20"
-                              : "bg-primary/8 text-primary ring-primary/15",
-                          )}
-                        >
-                          <Icon className="size-3.5" />
-                        </span>
-                        <span className="min-w-0 flex-1 truncate font-medium">
-                          {option.label}
-                        </span>
-                        <span
-                          className={cn(
-                            "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
-                            selected
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {option.count}
-                        </span>
+                  <span className="min-w-0 truncate font-medium text-primary">{activeFilter.label}</span>
+                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/8 px-1.5 text-[11px] font-semibold text-primary tabular-nums">
+                    {activeFilter.count}
+                  </span>
+                </span>
+              )}
+              options={filterOptions.map((option) => {
+                const Icon = option.icon;
+                const selected = filter === option.id;
+                return {
+                  value: option.id,
+                  label: option.label,
+                  content: (
+                    <span className="flex w-full min-w-0 items-center gap-2.5">
+                      <span
+                        className={cn(
+                          "inline-flex size-7 shrink-0 items-center justify-center rounded-lg ring-1",
+                          option.tone === "orange"
+                            ? "bg-cta/12 text-amber-800 ring-cta/20"
+                            : "bg-primary/8 text-primary ring-primary/15",
+                        )}
+                      >
+                        <Icon className="size-3.5" />
                       </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+                      <span className="min-w-0 flex-1 truncate font-medium">{option.label}</span>
+                      <span
+                        className={cn(
+                          "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                          selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {option.count}
+                      </span>
+                    </span>
+                  ),
+                };
+              })}
+            />
           </div>
         }
       >
@@ -240,28 +210,52 @@ export default function DoctorResultsPage() {
                       <p className="text-base font-semibold text-primary">
                         {order.patient_name}
                       </p>
-                      <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                        {order.details}
+                      <p className="font-heading text-lg font-semibold text-cta">
+                        {order.test_name || order.details}
                       </p>
+                      {order.test_name && order.details && order.details !== order.test_name ? (
+                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                          <span className="font-medium text-primary/70">Note: </span>
+                          {order.details}
+                        </p>
+                      ) : null}
                     </div>
-                    <StatusPill tone={orderTone(order.status)}>{order.status}</StatusPill>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <StatusPill tone={orderTone(order.status)}>{formatStatus(order.status)}</StatusPill>
+                      {abnormalSummary(order).count > 0 ? (
+                        <StatusPill tone="red">
+                          {abnormalSummary(order).critical
+                            ? "Critical result"
+                            : `${abnormalSummary(order).count} abnormal`}
+                        </StatusPill>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-primary/10 bg-linear-to-br from-primary/3 to-white px-4 py-3.5">
-                    <p className="text-[11px] font-semibold tracking-[0.14em] text-cta uppercase">
+                    <p className="text-[11px] font-semibold tracking-[0.14em] text-(--role-ink) uppercase">
                       {isLab ? "Lab result" : "Imaging findings"}
                     </p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-primary/90">
-                      {order.result_text || "No result text recorded."}
-                    </p>
+                    {order.radiology_report ? (
+                      <div className="mt-2">
+                        <RadiologyReportView report={order.radiology_report} />
+                      </div>
+                    ) : order.result_values?.length ? (
+                      <div className="mt-2">
+                        <LabResultTable values={order.result_values} />
+                      </div>
+                    ) : (
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-primary/90">
+                        {order.result_text || "No result text recorded."}
+                      </p>
+                    )}
                   </div>
 
                   {order.status === "Completed" ? (
                     <div className="mt-3">
                       <LoadingButton
                         size="sm"
-                        variant="outline"
-                        className="rounded-xl border-primary/15 bg-white"
+                        className="h-9 rounded-xl bg-linear-to-r from-(--role) to-(--role-2) px-4 font-semibold text-white shadow-md shadow-(--role)/30 hover:brightness-105"
                         loading={busyId === order.id}
                         loadingLabel="Marking…"
                         onClick={async () => {

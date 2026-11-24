@@ -6,6 +6,7 @@ import {
   Building2,
   Check,
   ChevronDown,
+  FlaskConical,
   Pencil,
   Tags,
   Trash2,
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
+import { LabParameterEditor } from "@/components/manager/LabParameterEditor";
 import { DepartmentBatchForm } from "@/components/manager/DepartmentBatchForm";
 import { ServiceBatchForm } from "@/components/manager/ServiceBatchForm";
 import {
@@ -127,12 +129,13 @@ function BillablesCollapsibleSection({
 }) {
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
-      <section className="clinic-panel clinic-panel-glow overflow-hidden rounded-3xl">
+      <section className="clinic-panel clinic-panel-glow overflow-hidden rounded-2xl">
+        <div aria-hidden className="clinic-accent-bar h-1 w-full" />
         <CollapsibleTrigger
           type="button"
-          className="flex w-full cursor-pointer items-start justify-between gap-3 border-b border-primary/8 bg-linear-to-r from-primary/4 via-transparent to-cta/5 px-5 py-4 text-left transition-colors hover:from-primary/6 data-[state=closed]:border-b-0"
+          className="flex w-full cursor-pointer flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-(--role)/15 clinic-band px-5 py-4 text-left transition-all hover:brightness-[0.98] data-[state=closed]:border-b-0"
         >
-          <div className="min-w-0 space-y-1">
+          <div className="min-w-0 flex-1 basis-64 space-y-1">
             {kicker ? <p className="clinic-kicker">{kicker}</p> : null}
             <h2 className="font-heading text-xl font-semibold text-primary">{title}</h2>
             {description ? (
@@ -171,6 +174,7 @@ export default function ManagerBillablesPage() {
   const [savingService, setSavingService] = useState(false);
   const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [paramService, setParamService] = useState<BillableService | null>(null);
   const [preferredServiceDepartment, setPreferredServiceDepartment] = useState("");
 
   const serviceForm = useForm<ServiceFormValues>({
@@ -388,7 +392,7 @@ export default function ManagerBillablesPage() {
         <StatTile label="Active catalog" value={activeServiceCount} tone="orange" />
       </div>
 
-      <div className="mx-auto flex max-w-4xl flex-col gap-6">
+      <div className="flex w-full flex-col gap-6">
         <BillablesCollapsibleSection
           open={departmentsOpen}
           onOpenChange={setDepartmentsOpen}
@@ -436,7 +440,7 @@ export default function ManagerBillablesPage() {
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="inline-flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                        <span className="inline-flex size-10 items-center justify-center rounded-2xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                           <Building2 className="size-4.5" />
                         </span>
                         <StatusPill tone={count > 0 ? "green" : "muted"}>
@@ -488,12 +492,12 @@ export default function ManagerBillablesPage() {
                         key={d.id}
                         className={cn(
                           inUse && "border-emerald-200/60 bg-linear-to-r from-emerald-50/30 to-white",
-                          isEditing && "border-cta/35 bg-cta/5 shadow-md shadow-cta/10",
+                          isEditing && "border-(--role)/45 bg-(--role)/6 shadow-md shadow-(--role)/15",
                         )}
                       >
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="flex min-w-0 flex-1 items-center gap-3">
-                            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                               <Building2 className="size-4.5" />
                             </span>
                             {isEditing ? (
@@ -625,6 +629,7 @@ export default function ManagerBillablesPage() {
         >
         <SectionCard
           id="billable-service-form"
+          className={editingServiceId ? "order-0" : "order-2"}
           kicker="Catalog"
           title={editingServiceId ? "Edit billable service" : "Add billable services"}
           description={
@@ -646,7 +651,7 @@ export default function ManagerBillablesPage() {
           ) : editingServiceId ? (
             <form className="grid gap-5" onSubmit={serviceForm.handleSubmit(saveService)}>
               <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
-                <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                   <Tags className="size-5" />
                 </span>
                 <div>
@@ -813,6 +818,7 @@ export default function ManagerBillablesPage() {
         </SectionCard>
 
         <SectionCard
+          className="order-1"
           kicker="Live catalog"
           title="Billable services"
           description="What reception sees when collecting payment — edit or deactivate from here."
@@ -821,7 +827,7 @@ export default function ManagerBillablesPage() {
           {services.length === 0 ? (
             <EmptyState
               title="No services yet"
-              hint="Add a department, then create your first billable service above."
+              hint="Add a department, then create your first billable service below."
             />
           ) : (
             <>
@@ -839,12 +845,12 @@ export default function ManagerBillablesPage() {
                           inactive && "opacity-60",
                           s.auto_add_on_registration &&
                             "border-amber-200/70 bg-linear-to-r from-amber-50/40 to-white",
-                          isEditing && "border-cta/35 bg-cta/5 shadow-md shadow-cta/10",
+                          isEditing && "border-(--role)/45 bg-(--role)/6 shadow-md shadow-(--role)/15",
                         )}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="flex min-w-0 flex-1 items-start gap-3">
-                            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                               <Tags className="size-4.5" />
                             </span>
                             <div className="min-w-0">
@@ -882,6 +888,25 @@ export default function ManagerBillablesPage() {
                               ) : null}
                             </div>
                             <div className="flex items-center gap-1.5">
+                              {s.service_type === "lab" ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      size="icon-sm"
+                                      variant="outline"
+                                      className="rounded-xl"
+                                      onClick={() => setParamService(s)}
+                                    >
+                                      <FlaskConical className="size-4" />
+                                      <span className="sr-only">Result fields for {s.name}</span>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Result fields ({s.parameters?.length ?? 0})
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : null}
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button
@@ -930,6 +955,11 @@ export default function ManagerBillablesPage() {
         </BillablesCollapsibleSection>
       </div>
 
+      <LabParameterEditor
+        service={paramService}
+        onClose={() => setParamService(null)}
+        onSaved={() => void load(true)}
+      />
       <AlertDialog
         open={pendingDeleteDept != null}
         onOpenChange={(open) => {

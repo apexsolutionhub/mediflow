@@ -69,7 +69,7 @@ export default function DoctorFollowUpPage() {
             })}
           >
             <div className="space-y-3.5 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-primary/3 p-4 sm:p-5">
-              <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-(--role-ink) uppercase">
                 Appointment
               </p>
               <CustomFormField

@@ -12,6 +12,7 @@ import {
   ScanLine,
   Share2,
   Tags,
+  Truck,
   Server,
   UserPlus,
   Users,
@@ -34,6 +35,7 @@ export const MANAGER_NAV: ClinicNavItem[] = [
   { href: "/manager/staff", label: "Staff", icon: Users },
   { href: "/manager/billables", label: "Billables", icon: Tags },
   { href: "/manager/inventory", label: "Inventory", icon: Package },
+  { href: "/manager/suppliers", label: "Suppliers", icon: Truck },
   { href: "/manager/referrals", label: "Referrals", icon: Share2 },
   { href: "/manager/requests", label: "Requests", icon: Wrench },
   { href: "/manager/ops-mode", label: "Operating mode", icon: Server },
@@ -48,7 +50,6 @@ export const RECEPTION_NAV: ClinicNavItem[] = [
     children: [
       { href: "/reception/register/new", label: "New patient", icon: UserPlus },
       { href: "/reception/register/returning", label: "Returning", icon: Users },
-      { href: "/reception/register/referred", label: "Referred", icon: ClipboardList },
     ],
   },
   { href: "/reception/cashier", label: "Cashier", icon: Wallet },

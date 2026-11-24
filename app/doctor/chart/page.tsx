@@ -145,7 +145,7 @@ function FormSection({
   return (
     <div className="space-y-3 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-primary/3 p-4 sm:p-5">
       <div>
-        <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">{title}</p>
+        <p className="text-[11px] font-semibold tracking-[0.16em] text-(--role-ink) uppercase">{title}</p>
         {description ? (
           <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
         ) : null}
@@ -427,7 +427,7 @@ export default function DoctorChartPage() {
                     <QueueItem key={n.id}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-2.5">
-                          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/15">
+                          <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                             <HeartPulse className="size-4" />
                           </span>
                           <div className="min-w-0">

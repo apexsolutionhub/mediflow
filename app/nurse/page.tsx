@@ -65,13 +65,13 @@ export default function NurseBoardPage() {
                   <QueueItem
                     className={
                       active
-                        ? "border-cta/35 bg-cta/5 shadow-md shadow-cta/10"
+                        ? "border-(--role)/45 bg-(--role)/6 shadow-md shadow-(--role)/15"
                         : undefined
                     }
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
-                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-primary ring-1 ring-primary/15">
+                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                           <HeartPulse className="size-4" />
                         </span>
                         <div className="min-w-0">

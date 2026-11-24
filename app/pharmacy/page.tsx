@@ -14,13 +14,13 @@ import {
   StatusPill,
 } from "@/components/ui-chrome";
 import { api, results } from "@/lib/api";
-import { type ClinicalOrder, type Medicine, orderTone } from "@/lib/clinic";
+import { type ClinicalOrder, type Medicine, formatStatus, orderTone } from "@/lib/clinic";
 import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
+import { capacityFor, countWord, stockText, unitLabel, type SaleUnit } from "@/lib/medicine-stock";
 
 export default function PharmacyQueuePage() {
   const [queue, setQueue] = useState<ClinicalOrder[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [pick, setPick] = useState<Record<number, { medicine: string; quantity: string }>>({});
   const [dispensingId, setDispensingId] = useState<number | null>(null);
 
   const load = useCallback(async (forceMeds = false) => {
@@ -69,7 +69,37 @@ export default function PharmacyQueuePage() {
         ) : (
           <div className="space-y-4">
             {queue.map((order) => {
-              const sel = pick[order.id] || { medicine: "", quantity: "1" };
+              // The doctor's order decides the medicine; the bill decides the quantity.
+              const linked = order.medicine != null;
+              const med = medicines.find((m) => m.id === order.medicine);
+              const medName = order.medicine_name || med?.name || "";
+              const qty = Math.max(1, order.dispense_quantity ?? 1);
+              const saleUnit: SaleUnit = order.sale_unit === "loose" ? "loose" : "pack";
+              // Words for what is being sold: "12 tablets" (loose) or "2 boxes" (whole packs).
+              const unitWord = countWord(
+                saleUnit === "loose"
+                  ? (order.medicine_loose_unit || med?.loose_unit || "piece").toLowerCase()
+                  : unitLabel(order.medicine_unit || med?.unit_of_measure).toLowerCase(),
+                qty,
+              );
+              // Prefer the server's view of stock; fall back to the catalog on older servers.
+              const stockNow = order.medicine_stock_text || (med ? stockText(med) : "");
+              const stockAfter = order.medicine_stock_after_text ?? "";
+              const enough =
+                order.medicine_can_dispense ?? (med ? capacityFor(med, saleUnit) >= qty : true);
+              const short = linked && !enough;
+              const canDispense = linked && enough;
+              // "Name · Freq: … · Duration: … · Fulfillment: …" -> just the directions.
+              const directions = (order.details || "")
+                .split(" · ")
+                .map((part) => part.trim())
+                .filter(
+                  (part, i) =>
+                    part &&
+                    !/^fulfillment:/i.test(part) &&
+                    !(i === 0 && medName && part.toLowerCase() === medName.toLowerCase()),
+                )
+                .join(" · ");
               return (
                 <QueueItem key={order.id}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -86,64 +116,69 @@ export default function PharmacyQueuePage() {
                       <p className="text-base font-semibold text-primary">
                         {order.patient_name}
                       </p>
-                      <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                        {order.details}
-                      </p>
+                      {directions ? (
+                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                          <span className="font-medium text-primary/70">Directions: </span>
+                          {directions}
+                        </p>
+                      ) : null}
                     </div>
-                    <StatusPill tone={orderTone(order.status)}>{order.status}</StatusPill>
+                    <StatusPill tone={orderTone(order.status)}>{formatStatus(order.status)}</StatusPill>
                   </div>
-                  <div className="mt-4 flex flex-wrap items-end gap-3">
-                    <label className="grid min-w-60 gap-1.5 text-xs font-semibold text-muted-foreground">
-                      Medicine
-                      <select
-                        className="h-11 min-w-45 rounded-xl border border-primary/10 bg-slate-50 px-3.5 text-sm text-foreground shadow-inner outline-none transition focus:border-cta/40 focus:bg-white"
-                        value={sel.medicine}
-                        onChange={(e) =>
-                          setPick((p) => ({
-                            ...p,
-                            [order.id]: { ...sel, medicine: e.target.value },
-                          }))
-                        }
-                      >
-                        <option value="">Select…</option>
-                        {medicines.map((m) => (
-                          <option key={m.id} value={String(m.id)}>
-                            {m.name} ({m.on_hand} on hand)
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="grid gap-1.5 text-xs font-semibold text-muted-foreground">
-                      Qty
-                      <input
-                        type="number"
-                        min={1}
-                        className="h-11 w-22 rounded-xl border border-primary/10 bg-slate-50 px-3.5 text-sm shadow-inner outline-none transition focus:border-cta/40 focus:bg-white"
-                        value={sel.quantity}
-                        onChange={(e) =>
-                          setPick((p) => ({
-                            ...p,
-                            [order.id]: { ...sel, quantity: e.target.value },
-                          }))
-                        }
-                      />
-                    </label>
+                  <div className="mt-4 space-y-3 rounded-2xl border border-(--role)/20 bg-linear-to-br from-(--role)/6 to-white p-3.5">
+                    {linked ? (
+                      <>
+                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-semibold tracking-[0.14em] text-(--role-ink) uppercase">
+                              Medicine to dispense
+                            </p>
+                            <p className="font-heading text-lg leading-snug font-semibold text-primary">
+                              {medName || "Ordered medicine"}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-(--role)/25">
+                              {unitWord}
+                            </span>
+                            {stockNow ? (
+                              <StatusPill tone={short ? "red" : "green"}>
+                                {stockNow} on hand
+                                {!short && stockAfter ? ` → ${stockAfter} after` : ""}
+                              </StatusPill>
+                            ) : null}
+                          </div>
+                        </div>
+                        {short ? (
+                          <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                            Not enough stock: {unitWord} needed, {stockNow} on hand. Restock
+                            in Inventory before dispensing.
+                          </p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        This prescription isn&apos;t linked to a medicine in the clinic
+                        inventory, so it can&apos;t be stocked out. Ask the doctor to re-issue
+                        it from the medicine list.
+                      </p>
+                    )}
                     <LoadingButton
-                      className="shadow-sm"
+                      className="h-10 w-full rounded-xl font-semibold shadow-sm sm:w-auto"
+                      disabled={!canDispense}
                       loading={dispensingId === order.id}
                       loadingLabel="Dispensing…"
                       onClick={async () => {
-                        if (!sel.medicine) {
-                          toast.error("Pick a medicine");
-                          return;
-                        }
                         setDispensingId(order.id);
                         try {
+                          // Older servers still read these; newer ones use the order itself.
                           await api.post(`/clinic/orders/${order.id}/dispense/`, {
-                            medicine: Number(sel.medicine),
-                            quantity: Number(sel.quantity) || 1,
+                            medicine: order.medicine,
+                            quantity: qty,
                           });
-                          toast.success("Dispensed — stock updated");
+                          toast.success(
+                            `Dispensed ${unitWord} of ${medName || "medicine"} — stock updated`,
+                          );
                           await load(true);
                         } catch (error: unknown) {
                           toast.error(
@@ -157,7 +192,8 @@ export default function PharmacyQueuePage() {
                         }
                       }}
                     >
-                      Dispense / stock-out
+                      <Pill className="size-4" />
+                      Dispense &amp; stock out
                     </LoadingButton>
                   </div>
                 </QueueItem>

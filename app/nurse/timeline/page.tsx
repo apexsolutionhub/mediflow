@@ -11,14 +11,7 @@ import {
   StatTile,
   StatusPill,
 } from "@/components/ui-chrome";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { api, results } from "@/lib/api";
 import { type Encounter } from "@/lib/clinic";
 import { cn } from "@/lib/utils";
@@ -135,7 +128,7 @@ export default function NurseTimelinePage() {
         description="Default view shows all of your documented entries. Narrow by encounter when reviewing one patient."
         action={
           filteredEntries.length > 0 ? (
-            <StatusPill tone="navy">{filteredEntries.length} entries</StatusPill>
+            <StatusPill tone="navy">{filteredEntries.length} {filteredEntries.length === 1 ? "entry" : "entries"}</StatusPill>
           ) : undefined
         }
       >
@@ -146,7 +139,7 @@ export default function NurseTimelinePage() {
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+              <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-(--role-ink) uppercase">
                 <Filter className="size-3.5" />
                 Filter timeline
               </p>
@@ -155,33 +148,37 @@ export default function NurseTimelinePage() {
               </p>
             </div>
             <div className="w-full sm:max-w-xs">
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="h-11 w-full rounded-xl border-primary/15 bg-white shadow-sm">
-                  <SelectValue placeholder="All history" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value={ALL_FILTER}>
+              <Combobox
+                value={filter}
+                onValueChange={setFilter}
+                placeholder="All history"
+                searchPlaceholder="Search visits…"
+                className="h-11"
+                options={[
+                  {
+                    value: ALL_FILTER,
+                    label: "All",
+                    keywords: "full nursing history",
+                    content: (
                       <span className="flex flex-col items-start gap-0.5">
                         <span>All</span>
-                        <span className="text-xs font-normal text-muted-foreground">
-                          Full nursing history
-                        </span>
+                        <span className="text-xs font-normal text-muted-foreground">Full nursing history</span>
                       </span>
-                    </SelectItem>
-                    {filterOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <span className="flex flex-col items-start gap-0.5">
-                          <span>{option.label}</span>
-                          <span className="text-xs font-normal text-muted-foreground">
-                            {option.description}
-                          </span>
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                    ),
+                  },
+                  ...filterOptions.map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                    keywords: option.description,
+                    content: (
+                      <span className="flex flex-col items-start gap-0.5">
+                        <span>{option.label}</span>
+                        <span className="text-xs font-normal text-muted-foreground">{option.description}</span>
+                      </span>
+                    ),
+                  })),
+                ]}
+              />
             </div>
           </div>
         </div>

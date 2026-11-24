@@ -87,7 +87,7 @@ export function BatchLinesRegion({
       className={cn(
         "space-y-3",
         lineCount > 10 &&
-          "max-h-[min(60vh,36rem)] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]",
+          "relative max-h-[min(60vh,36rem)] overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]",
         className,
       )}
     >

@@ -167,10 +167,10 @@ export default function DoctorReferralsPage() {
           >
             <div className="space-y-3.5 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-primary/3 p-4 sm:p-5">
               <div className="flex items-center gap-2">
-                <span className="inline-flex size-8 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
+                <span className="inline-flex size-8 items-center justify-center rounded-lg bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                   <Building2 className="size-3.5" />
                 </span>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+                <p className="text-[11px] font-semibold tracking-[0.16em] text-(--role-ink) uppercase">
                   Destination
                 </p>
               </div>
@@ -228,7 +228,7 @@ export default function DoctorReferralsPage() {
             </div>
 
             <div className="space-y-3.5 rounded-3xl border border-primary/10 bg-linear-to-br from-white via-white to-cta/5 p-4 sm:p-5">
-              <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-(--role-ink) uppercase">
                 Clinical payload
               </p>
               <CustomFormField

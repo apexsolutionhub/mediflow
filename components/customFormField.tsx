@@ -32,14 +32,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
@@ -325,35 +318,16 @@ const CustomFormField = <T extends FieldValues>(
               ) : null}
 
               {fieldType === formFieldTypes.SELECT ? (
-                <Select
+                <Combobox
+                  id={String(name)}
                   value={(field.value as string) ?? ""}
                   onValueChange={field.onChange}
+                  options={options}
+                  placeholder={placeholder}
                   disabled={disabled}
-                >
-                  <SelectTrigger
-                    id={String(name)}
-                    className={cn("w-full", className)}
-                    aria-invalid={hasError}
-                  >
-                    <SelectValue placeholder={placeholder} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {options.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <span className="flex flex-col items-start gap-0.5">
-                            <span>{option.label}</span>
-                            {option.description ? (
-                              <span className="text-xs font-normal text-muted-foreground">
-                                {option.description}
-                              </span>
-                            ) : null}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  aria-invalid={hasError}
+                  className={className}
+                />
               ) : null}
 
               {fieldType === formFieldTypes.PHONE_INPUT ? (

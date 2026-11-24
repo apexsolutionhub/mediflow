@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
+import { isSplittable, looseUnitPrice, stockText, unitLabel } from "@/lib/medicine-stock";
+import { StockLevelChart } from "@/components/charts/StockLevelChart";
 import {
   EmptyState,
   QueueItem,
@@ -12,7 +14,6 @@ import {
   StatTile,
   StatusPill,
 } from "@/components/ui-chrome";
-import { api } from "@/lib/api";
 import { type Medicine, money } from "@/lib/clinic";
 import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
 
@@ -26,7 +27,7 @@ export default function PharmacyInventoryPage() {
       { page_size: 200 },
       force,
     );
-    setMedicines(rows);
+    setMedicines(rows.filter((m) => m.is_active !== false));
   }, []);
 
   useEffect(() => {
@@ -40,10 +41,19 @@ export default function PharmacyInventoryPage() {
       title="Inventory"
       subtitle="On-hand stock and low-threshold alerts."
     >
-      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+      <div className="mb-6 grid grid-cols-2 gap-3">
         <StatTile label="Catalog size" value={medicines.length} tone="navy" />
         <StatTile label="Low stock alerts" value={lowStockCount} tone="rose" />
       </div>
+
+      <SectionCard
+        className="mb-6"
+        kicker="Stock health"
+        title="Closest to running out"
+        description="On-hand units against the reorder level, lowest cover first."
+      >
+        <StockLevelChart medicines={medicines} />
+      </SectionCard>
 
       <SectionCard
         kicker="Pharmacy stock"
@@ -60,16 +70,34 @@ export default function PharmacyInventoryPage() {
             <div className="space-y-3">
               {medicines.map((m) => {
                 const low = m.on_hand <= m.min_threshold;
+                const expiry = m.expiry_date ? new Date(`${m.expiry_date.slice(0, 10)}T23:59:59`) : null;
+                const expired = expiry !== null && expiry.getTime() < Date.now();
                 return (
                   <QueueItem key={m.id}>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1 basis-48">
                         <p className="font-heading font-semibold text-primary">{m.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {money(m.unit_price)} ETB · min {m.min_threshold}
+                          {money(m.unit_price)} ETB / {unitLabel(m.unit_of_measure).toLowerCase()}
+                          {isSplittable(m)
+                            ? ` · ${money(looseUnitPrice(m))} / ${(m.loose_unit || "piece").toLowerCase()}`
+                            : ""}
+                          {` · min ${m.min_threshold}`}
                         </p>
+                        {m.batch_number || expiry ? (
+                          <p className="text-xs text-muted-foreground">
+                            {m.batch_number ? `Batch ${m.batch_number}` : ""}
+                            {m.batch_number && expiry ? " · " : ""}
+                            {expiry ? (
+                              <span className={expired ? "font-semibold text-rose-600" : undefined}>
+                                {expired ? "Expired " : "Exp "}
+                                {expiry.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                              </span>
+                            ) : null}
+                          </p>
+                        ) : null}
                       </div>
-                      <StatusPill tone={low ? "red" : "green"}>{m.on_hand}</StatusPill>
+                      <StatusPill tone={low ? "red" : "green"}>{m.stock_text || stockText(m)} on hand</StatusPill>
                     </div>
                   </QueueItem>
                 );

@@ -83,7 +83,7 @@ export function DepartmentBatchForm({ onSaved }: { onSaved: () => Promise<void> 
   return (
     <form className="grid gap-5" onSubmit={(e) => void onSubmit(e)}>
       <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
-        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
           <Building2 className="size-5" />
         </span>
         <div>

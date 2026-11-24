@@ -10,9 +10,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-cta text-cta-foreground shadow-sm hover:bg-cta/90",
+          "bg-linear-to-b from-apex-orange-light to-cta text-cta-foreground shadow-sm shadow-cta/25 hover:brightness-105 hover:shadow-md hover:shadow-cta/30",
         outline:
-          "border-primary/20 bg-background text-primary hover:bg-primary/5 hover:text-primary aria-expanded:bg-primary/10 dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-primary/15 bg-white text-primary shadow-xs hover:border-(--role)/40 hover:bg-(--role)/8 hover:text-primary aria-expanded:bg-primary/10 dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:

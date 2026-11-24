@@ -20,14 +20,15 @@ import {
   StatusPill,
 } from "@/components/ui-chrome";
 import { api, readUser } from "@/lib/api";
-import { money, paymentTone } from "@/lib/clinic";
+import { formatStatus, money, paymentTone } from "@/lib/clinic";
 import { printCheckoutDocuments, type CheckoutPrintPayload } from "@/lib/checkout-print";
 import { invalidateEncounterBoardCache, useEncounterBoard } from "@/hooks/use-encounter-board";
 import { cn } from "@/lib/utils";
 
 const MIX_OPTIONS = [
   { id: "cash", label: "Cash" },
-  { id: "card", label: "Card" },
+  { id: "bank", label: "Bank" },
+  { id: "telebirr", label: "Telebirr" },
   { id: "insurance", label: "Insurance" },
 ] as const;
 
@@ -49,7 +50,7 @@ export default function ReceptionCashierPage() {
   const [approving, setApproving] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
   const payForm = useForm<PayFormValues>({
-    defaultValues: { amount: 0, tender_method: "cash", mix_parts: ["cash", "card"] },
+    defaultValues: { amount: 0, tender_method: "cash", mix_parts: ["cash", "bank"] },
   });
 
   const tenderMethod = payForm.watch("tender_method");
@@ -103,6 +104,12 @@ export default function ReceptionCashierPage() {
 
   const checkout = async () => {
     if (!current) return;
+    if (amountDue > 0) {
+      toast.error(`Payment still due: ${money(amountDue)} ETB`, {
+        description: `${unpaidCount} billable line${unpaidCount === 1 ? "" : "s"} not approved yet. Approve payment first, then check out.`,
+      });
+      return;
+    }
     setCheckingOut(true);
     try {
       const { data } = await api.post<CheckoutPrintPayload>(
@@ -178,7 +185,7 @@ export default function ReceptionCashierPage() {
                           </p>
                         </div>
                         <StatusPill tone={paymentTone(b.payment_status)}>
-                          {b.payment_status}
+                          {formatStatus(b.payment_status)}
                         </StatusPill>
                       </div>
                     </QueueItem>
@@ -214,7 +221,8 @@ export default function ReceptionCashierPage() {
                   disabled={!canApprove}
                   options={[
                     { label: "Cash", value: "cash" },
-                    { label: "Card", value: "card" },
+                    { label: "Bank", value: "bank" },
+                    { label: "Telebirr", value: "telebirr" },
                     { label: "Insurance", value: "insurance" },
                     { label: "Mixed", value: "mixed" },
                   ]}

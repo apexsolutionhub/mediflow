@@ -41,20 +41,13 @@ export default function ReceptionBoardPage() {
 
   const openCashier = (item: Encounter) => {
     setSelectedId(item.id);
-    const due = Number(item.amount_due || 0);
-    if (due <= 0) {
-      toast.message("No payment due", {
-        description: "This visit has nothing awaiting cashier approval.",
-      });
-      return;
-    }
     router.push("/reception/cashier");
   };
 
   return (
     <ClinicShell
       title="Today board"
-      subtitle="Open visits at the desk. Tap a patient with amount due to open cashier."
+      subtitle="Open visits at the desk. Tap a patient to open cashier, approve payment and check out."
     >
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <StatTile label="Open on board" value={encounters.length} tone="navy" />
@@ -92,13 +85,13 @@ export default function ReceptionBoardPage() {
                   <QueueItem
                     className={
                       active
-                        ? "border-cta/35 bg-cta/5 shadow-md shadow-cta/10"
+                        ? "border-(--role)/45 border-l-(--role) bg-(--role)/6 shadow-md shadow-(--role)/15"
                         : undefined
                     }
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 items-start gap-3">
-                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/8 text-[11px] font-bold text-primary ring-1 ring-primary/15">
+                        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-[11px] font-bold text-white shadow-sm shadow-(--role)/25">
                           {(item.patient?.full_name || "?")
                             .split(/\s+/)
                             .slice(0, 2)
@@ -127,7 +120,7 @@ export default function ReceptionBoardPage() {
                           {item.status}
                         </StatusPill>
                         {due > 0 ? (
-                          <span className="text-xs font-semibold text-cta">
+                          <span className="text-xs font-bold text-amber-600">
                             {money(due)} ETB due
                           </span>
                         ) : (

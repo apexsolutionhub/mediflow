@@ -10,14 +10,10 @@ import { ClinicShell } from "@/components/clinic-shell";
 import CustomFormField, { formFieldTypes } from "@/components/customFormField";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
-  FieldContent,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
 } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
@@ -28,7 +24,7 @@ import { fetchClinicCatalog, invalidateClinicCatalog } from "@/lib/hooks/use-cli
 import { type Encounter, type Patient } from "@/lib/clinic";
 import { cn } from "@/lib/utils";
 
-export type ArrivalType = "new" | "returning" | "referred";
+export type ArrivalType = "new" | "returning";
 
 const META: Record<
   ArrivalType,
@@ -46,12 +42,6 @@ const META: Record<
     kicker: "Register · Returning",
     submit: "Open returning encounter",
   },
-  referred: {
-    title: "Referred patient",
-    subtitle: "Register a referred arrival with source and urgency details.",
-    kicker: "Register · Referred",
-    submit: "Open referred encounter",
-  },
 };
 
 type FormValues = {
@@ -61,9 +51,6 @@ type FormValues = {
   phone: string;
   address: string;
   patient_id: string;
-  referral_source: string;
-  referral_details: string;
-  urgent: boolean;
 };
 
 type ReturningPatientOption = Patient & { visit_count: number };
@@ -92,9 +79,6 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
       phone: "",
       address: "",
       patient_id: "",
-      referral_source: "",
-      referral_details: "",
-      urgent: false,
     },
   });
 
@@ -177,21 +161,9 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
         return;
       }
 
-      let referral_source = "";
-      if (arrivalType === "referred") {
-        referral_source = [
-          values.urgent ? "URGENT" : null,
-          values.referral_source?.trim() || null,
-          values.referral_details?.trim() || null,
-        ]
-          .filter(Boolean)
-          .join(" · ");
-      }
-
       await api.post("/clinic/encounters/", {
         patient_id: Number(patientId),
         arrival_type: arrivalType,
-        referral_source,
       });
       invalidateEncounterBoardCache();
       toast.success("Encounter opened — consultation awaiting payment");
@@ -214,7 +186,8 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
           placeholder="Patient full name"
         />
       </div>
-      <div className="sm:col-span-2 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start">
+      <div className="@container sm:col-span-2">
+      <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2 @lg:items-start">
         <CustomFormField
           control={registerForm.control}
           name="age"
@@ -231,7 +204,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
               <RadioGroup
                 value={field.value}
                 onValueChange={field.onChange}
-                className="grid w-full grid-cols-3 gap-2"
+                className="flex w-full flex-wrap gap-2"
               >
                 {[
                   { label: "Female", value: "Female" },
@@ -241,7 +214,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
                   <FieldLabel
                     key={option.value}
                     htmlFor={`gender-${option.value}`}
-                    className="flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border bg-muted/30 px-2 py-2.5 text-center has-checked:border-primary/40 has-checked:bg-primary/5"
+                    className="flex min-w-[5.5rem] flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2.5 text-center transition-colors hover:border-(--role)/40 has-checked:border-(--role) has-checked:bg-(--role)/8 has-checked:shadow-sm"
                   >
                     <RadioGroupItem
                       id={`gender-${option.value}`}
@@ -254,6 +227,7 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
             )}
           />
         </Field>
+      </div>
       </div>
     </FormSection>
   );
@@ -316,11 +290,11 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
                 {selectedPatient ? (
                   <Card className="gap-0 rounded-2xl border-primary/15 bg-primary/5 py-0">
                     <CardContent className="flex items-start gap-3 p-4">
-                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                      <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                         <UserRound className="size-5" />
                       </span>
                       <div>
-                        <p className="text-[11px] font-semibold tracking-[0.16em] text-cta uppercase">
+                        <p className="text-[11px] font-semibold tracking-[0.16em] text-(--role-ink) uppercase">
                           Selected patient
                         </p>
                         <p className="mt-1 font-heading text-lg font-semibold text-primary">
@@ -352,57 +326,6 @@ export function ReceptionRegisterForm({ arrivalType }: { arrivalType: ArrivalTyp
                 {contactFields}
               </>
             )}
-
-            {arrivalType === "referred" ? (
-              <FormSection title="Referral">
-                <div className="sm:col-span-2">
-                  <CustomFormField
-                    control={registerForm.control}
-                    name="referral_source"
-                    fieldType={formFieldTypes.INPUT}
-                    label="Referral source"
-                    placeholder="Clinic / doctor name"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <CustomFormField
-                    control={registerForm.control}
-                    name="referral_details"
-                    fieldType={formFieldTypes.TEXTAREA}
-                    label="Referral details"
-                    placeholder="Why referred / what was already done"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Controller
-                    control={registerForm.control}
-                    name="urgent"
-                    render={({ field }) => (
-                      <FieldLabel
-                        className={cn(
-                          "flex cursor-pointer items-start gap-3 rounded-2xl border border-cta/25 bg-cta/5 px-4 py-3.5",
-                          field.value && "border-cta/40 bg-cta/10",
-                        )}
-                      >
-                        <Checkbox
-                          checked={Boolean(field.value)}
-                          onCheckedChange={(checked) => field.onChange(checked === true)}
-                          className="mt-0.5 border-cta data-checked:border-cta data-checked:bg-cta"
-                        />
-                        <FieldContent>
-                          <FieldLegend variant="label" className="text-sm font-semibold text-primary">
-                            Urgent
-                          </FieldLegend>
-                          <FieldDescription>
-                            Mark this referred arrival for priority handling on the board.
-                          </FieldDescription>
-                        </FieldContent>
-                      </FieldLabel>
-                    )}
-                  />
-                </div>
-              </FormSection>
-            ) : null}
 
             <Separator className="bg-primary/8" />
 

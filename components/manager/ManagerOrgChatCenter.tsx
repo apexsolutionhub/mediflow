@@ -13,13 +13,7 @@ import { Building2, ImagePlus, MessagesSquare, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Sheet,
   SheetContent,
@@ -119,7 +113,9 @@ export function ManagerOrgChatCenter({ onNavigate }: { onNavigate?: () => void }
   const peerTinRef = useRef(peerTin);
   const stickToBottomRef = useRef(true);
 
-  peerTinRef.current = peerTin;
+  useEffect(() => {
+    peerTinRef.current = peerTin;
+  }, [peerTin]);
 
   const selectedPeer = useMemo(
     () => peers.find((p) => p.clinic_tin === peerTin) || null,
@@ -273,31 +269,32 @@ export function ManagerOrgChatCenter({ onNavigate }: { onNavigate?: () => void }
               No other branch managers yet.
             </p>
           ) : (
-            <Select value={peerTin || undefined} onValueChange={setPeerTin}>
-              <SelectTrigger className="h-12 rounded-xl border-border/70 bg-background/90 shadow-sm">
-                <SelectValue placeholder="Select a branch manager" />
-              </SelectTrigger>
-              <SelectContent position="popper" className="rounded-xl">
-                {peers.map((peer) => (
-                  <SelectItem key={peer.clinic_tin} value={peer.clinic_tin} className="rounded-lg py-2.5">
-                    <span className="flex min-w-0 items-center gap-2.5">
-                      <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Building2 className="size-3.5" />
-                      </span>
-                      <span className="min-w-0 text-left">
-                        <span className="block truncate font-medium text-foreground">
-                          {peer.branch_name || peer.username}
-                        </span>
-                        <span className="block truncate text-[11px] text-muted-foreground">
-                          @{peer.username}
-                          {peer.unread_count > 0 ? ` · ${peer.unread_count} new` : ""}
-                        </span>
+            <Combobox
+              value={peerTin || undefined}
+              onValueChange={setPeerTin}
+              placeholder="Select a branch manager"
+              searchPlaceholder="Search branches…"
+              className="h-12 rounded-xl border-border/70 bg-background/90"
+              options={peers.map((peer) => ({
+                value: peer.clinic_tin,
+                label: peer.branch_name || peer.username,
+                keywords: peer.username,
+                content: (
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
+                      <Building2 className="size-3.5" />
+                    </span>
+                    <span className="min-w-0 text-left">
+                      <span className="block truncate font-medium text-foreground">{peer.branch_name || peer.username}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        @{peer.username}
+                        {peer.unread_count > 0 ? ` · ${peer.unread_count} new` : ""}
                       </span>
                     </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  </span>
+                ),
+              }))}
+            />
           )}
         </div>
 

@@ -6,13 +6,17 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import { LabResultForm, isLabFormComplete } from "@/components/diagnostics/LabResultForm";
+import { LabResultTable, resultValuesToHtml } from "@/components/diagnostics/LabResultTable";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  emptyRadiologyDraft,
+  isRadiologyDraftComplete,
+  RadiologyReportForm,
+  RadiologyReportView,
+  radiologyReportToHtml,
+  type RadiologyDraft,
+} from "@/components/diagnostics/RadiologyReport";
 import { LoadingButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -24,7 +28,7 @@ import {
   StatusPill,
 } from "@/components/ui-chrome";
 import { api, results } from "@/lib/api";
-import { type ClinicalOrder, orderTone } from "@/lib/clinic";
+import { type ClinicalOrder, formatStatus, orderTone } from "@/lib/clinic";
 import { cn } from "@/lib/utils";
 
 type UnitKind = "lab" | "radiology";
@@ -86,6 +90,8 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
   const Icon = meta.icon;
   const [orders, setOrders] = useState<ClinicalOrder[]>([]);
   const [resultDraft, setResultDraft] = useState<Record<number, string>>({});
+  const [radDraft, setRadDraft] = useState<Record<number, RadiologyDraft>>({});
+  const [valueDraft, setValueDraft] = useState<Record<number, Record<string, string>>>({});
   const [busyOrderId, setBusyOrderId] = useState<number | null>(null);
   const [busyAction, setBusyAction] = useState<"start" | "complete" | null>(null);
   const [tab, setTab] = useState<"active" | "sent">("active");
@@ -119,27 +125,41 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
       toast.error("Allow pop-ups to print");
       return;
     }
-    const body = escapeHtml(order.result_text || resultDraft[order.id] || "—").replaceAll(
-      "\n",
-      "<br/>",
-    );
+    const body = order.radiology_report
+      ? radiologyReportToHtml(order.radiology_report, escapeHtml)
+      : order.result_values?.length
+      ? resultValuesToHtml(order.result_values, escapeHtml)
+      : escapeHtml(order.result_text || resultDraft[order.id] || "—").replaceAll("\n", "<br/>");
     win.document.write(`<!doctype html><html><head><title>${meta.reportTitle}</title>
       <style>
         body{font-family:system-ui,sans-serif;padding:32px;color:#0f1c2e}
-        h1{font-size:20px;margin:0 0 8px;color:#12305f}
+        .brand{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:3px solid #0d9488;padding-bottom:14px;margin-bottom:18px}
+        .brand img{height:48px;width:auto}
+        h1{font-size:20px;margin:0 0 8px;color:#0b2b63}
         .meta{color:#5b6b82;font-size:13px;margin-bottom:24px}
         .box{border:1px solid #d7e0ec;border-radius:14px;padding:16px;margin-top:16px}
-        .label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#e8951e;font-weight:700}
+        .label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#0d9488;font-weight:700}
       </style></head><body>
-      <h1>MediFlow · ${meta.reportTitle}</h1>
-      <div class="meta">${escapeHtml(order.encounter_number || "")} · ${escapeHtml(order.patient_name || "")} · ${new Date().toLocaleString()}</div>
-      <div class="box"><div class="label">Order</div><p>${escapeHtml(order.details || "")}</p></div>
+      <div class="brand"><img src="${window.location.origin}/assets/mediflow-logo.png" alt="MediFlow" /><span style="color:#5b6b82;font-size:12px">${new Date().toLocaleDateString()}</span></div>
+      <h1>${meta.reportTitle}</h1>
+      <div class="meta">${escapeHtml(order.encounter_number || "")} · ${escapeHtml(order.patient_name || "")}</div>
+      <div class="box"><div class="label">Test</div><p><b>${escapeHtml(order.test_name || order.details || "")}</b>${order.test_name && order.details && order.details !== order.test_name ? "<br/>" + escapeHtml(order.details) : ""}</p></div>
       <div class="box"><div class="label">${meta.resultLabel}</div><p>${body}</p></div>
-      <div class="box"><div class="label">Status</div><p>${escapeHtml(order.status)}</p></div>
+      <div class="box"><div class="label">Status</div><p>${escapeHtml(formatStatus(order.status))}</p></div>
       </body></html>`);
     win.document.close();
-    win.focus();
-    win.print();
+    // Print only once the logo has loaded, or it can come out blank.
+    const logo = win.document.querySelector("img");
+    const go = () => {
+      win.focus();
+      win.print();
+    };
+    if (logo && !logo.complete) {
+      logo.onload = go;
+      logo.onerror = go;
+    } else {
+      go();
+    }
   };
 
   return (
@@ -167,60 +187,49 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
             <span className="hidden text-[10px] font-semibold tracking-[0.16em] text-muted-foreground uppercase sm:block sm:text-right">
               Show
             </span>
-            <Select value={tab} onValueChange={(value) => setTab(value as "active" | "sent")}>
-              <SelectTrigger
-                className={cn(
-                  "h-11 w-full rounded-2xl border-primary/12 bg-white px-3 shadow-sm",
-                  "hover:border-primary/25 hover:bg-primary/2",
-                  "data-[state=open]:border-cta/35 data-[state=open]:ring-2 data-[state=open]:ring-cta/15",
-                )}
-              >
-                <SelectValue>
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary ring-1 ring-primary/15">
-                      {tab === "active" ? (
-                        <ClipboardCheck className="size-3.5" />
-                      ) : (
-                        <Send className="size-3.5" />
-                      )}
-                    </span>
-                    <span className="truncate font-medium text-primary">
-                      {tab === "active" ? "Enter results" : "Sent reports"}
-                    </span>
-                    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/8 px-1.5 text-[11px] font-semibold text-primary tabular-nums">
-                      {visible.length}
-                    </span>
+            <Combobox
+              value={tab}
+              onValueChange={(value) => setTab(value as "active" | "sent")}
+              align="end"
+              searchable={false}
+              className="h-11 rounded-2xl px-3"
+              contentClassName="min-w-52"
+              renderValue={() => (
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
+                    {tab === "active" ? <ClipboardCheck className="size-3.5" /> : <Send className="size-3.5" />}
                   </span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent
-                align="end"
-                className="w-(--radix-select-trigger-width) min-w-52 rounded-2xl border-primary/10 p-1.5 shadow-xl shadow-primary/10"
-              >
-                <div className="mb-1 flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
-                  <Filter className="size-3" />
-                  Queue view
-                </div>
-                <SelectItem value="active" className="cursor-pointer rounded-xl py-2.5">
-                  <span className="flex w-full items-center gap-2.5">
-                    <ClipboardCheck className="size-3.5 text-primary" />
-                    <span className="flex-1 font-medium">Enter results</span>
-                    <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums">
-                      {active.length}
-                    </span>
+                  <span className="truncate font-medium text-primary">{tab === "active" ? "Enter results" : "Sent reports"}</span>
+                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/8 px-1.5 text-[11px] font-semibold text-primary tabular-nums">
+                    {visible.length}
                   </span>
-                </SelectItem>
-                <SelectItem value="sent" className="cursor-pointer rounded-xl py-2.5">
-                  <span className="flex w-full items-center gap-2.5">
-                    <Send className="size-3.5 text-primary" />
-                    <span className="flex-1 font-medium">Sent reports</span>
-                    <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums">
-                      {sent.length}
+                </span>
+              )}
+              options={[
+                {
+                  value: "active",
+                  label: "Enter results",
+                  content: (
+                    <span className="flex w-full items-center gap-2.5">
+                      <ClipboardCheck className="size-3.5 text-primary" />
+                      <span className="flex-1 font-medium">Enter results</span>
+                      <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums">{active.length}</span>
                     </span>
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+                  ),
+                },
+                {
+                  value: "sent",
+                  label: "Sent reports",
+                  content: (
+                    <span className="flex w-full items-center gap-2.5">
+                      <Send className="size-3.5 text-primary" />
+                      <span className="flex-1 font-medium">Sent reports</span>
+                      <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums">{sent.length}</span>
+                    </span>
+                  ),
+                },
+              ]}
+            />
           </div>
         }
       >
@@ -238,6 +247,15 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
           <div className="space-y-4">
             {visible.map((order) => {
               const draft = resultDraft[order.id] ?? order.result_text ?? "";
+              const params = order.test_parameters ?? [];
+              const isRad = kind === "radiology";
+              const structured = !isRad && params.length > 0;
+              const rad = radDraft[order.id] ?? emptyRadiologyDraft();
+              const ready = isRad
+                ? isRadiologyDraftComplete(rad)
+                : structured
+                  ? isLabFormComplete(params, valueDraft[order.id])
+                  : Boolean(draft.trim());
               const canEnter =
                 order.status === "PaymentApproved" || order.status === "InProgress";
               return (
@@ -256,11 +274,17 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
                       <p className="text-base font-semibold text-primary">
                         {order.patient_name}
                       </p>
-                      <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                        {order.details}
+                      <p className="font-heading text-lg font-semibold text-cta">
+                        {order.test_name || order.details}
                       </p>
+                      {order.test_name && order.details && order.details !== order.test_name ? (
+                        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                          <span className="font-medium text-primary/70">Note: </span>
+                          {order.details}
+                        </p>
+                      ) : null}
                     </div>
-                    <StatusPill tone={orderTone(order.status)}>{order.status}</StatusPill>
+                    <StatusPill tone={orderTone(order.status)}>{formatStatus(order.status)}</StatusPill>
                   </div>
 
                   {canEnter ? (
@@ -292,32 +316,61 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
                           </LoadingButton>
                         ) : null}
                       </div>
-                      <Textarea
-                        className="min-h-28 rounded-2xl border-primary/12 bg-white shadow-sm"
-                        placeholder={meta.resultPlaceholder}
-                        value={draft}
-                        onChange={(e) =>
-                          setResultDraft((prev) => ({ ...prev, [order.id]: e.target.value }))
-                        }
-                      />
+                      {isRad ? (
+                        <RadiologyReportForm
+                          draft={rad}
+                          onChange={(next) => setRadDraft((prev) => ({ ...prev, [order.id]: next }))}
+                        />
+                      ) : structured ? (
+                        <LabResultForm
+                          params={params}
+                          values={valueDraft[order.id] ?? {}}
+                          onChange={(paramId, value) =>
+                            setValueDraft((prev) => ({
+                              ...prev,
+                              [order.id]: { ...prev[order.id], [String(paramId)]: value },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <Textarea
+                          className="min-h-28 rounded-2xl border-primary/12 bg-white shadow-sm"
+                          placeholder={meta.resultPlaceholder}
+                          value={draft}
+                          onChange={(e) =>
+                            setResultDraft((prev) => ({ ...prev, [order.id]: e.target.value }))
+                          }
+                        />
+                      )}
                       <div className="flex flex-wrap gap-2">
                         <LoadingButton
                           size="sm"
                           className={ctaButtonClass}
                           loading={busyOrderId === order.id && busyAction === "complete"}
                           loadingLabel="Sending…"
-                          disabled={!draft.trim()}
+                          disabled={!ready}
                           onClick={async () => {
-                            if (!draft.trim()) {
-                              toast.error("Enter a result before sending");
+                            if (!ready) {
+                              toast.error(
+                                isRad
+                                  ? "Findings, impression and overall result are required"
+                                  : structured
+                                    ? "Fill every result field"
+                                    : "Enter a result before sending",
+                              );
                               return;
                             }
                             setBusyOrderId(order.id);
                             setBusyAction("complete");
                             try {
-                              await api.post(`/clinic/orders/${order.id}/complete/`, {
-                                result_text: draft.trim(),
-                              });
+                              await api.post(
+                                `/clinic/orders/${order.id}/complete/`,
+                                isRad
+                                  ? rad
+                                  : structured
+                                    ? { values: valueDraft[order.id] ?? {} }
+                                    : { result_text: draft.trim() },
+                              );
                               toast.success("Result sent to doctor");
                               setTab("sent");
                               await load();
@@ -330,7 +383,7 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
                           <Send className="size-3.5" />
                           Complete & send to doctor
                         </LoadingButton>
-                        {draft.trim() ? (
+                        {!isRad && !structured && draft.trim() ? (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -349,9 +402,19 @@ export function DiagnosticUnitPortal({ kind }: { kind: UnitKind }) {
                         <p className="text-[11px] font-semibold tracking-[0.14em] text-emerald-800/80 uppercase">
                           {meta.resultLabel}
                         </p>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-primary/90">
-                          {order.result_text || "—"}
-                        </p>
+                        {order.radiology_report ? (
+                          <div className="mt-2">
+                            <RadiologyReportView report={order.radiology_report} />
+                          </div>
+                        ) : order.result_values?.length ? (
+                          <div className="mt-2">
+                            <LabResultTable values={order.result_values} />
+                          </div>
+                        ) : (
+                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-primary/90">
+                            {order.result_text || "—"}
+                          </p>
+                        )}
                       </div>
                       <Button
                         size="sm"

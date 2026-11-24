@@ -42,7 +42,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       )}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          forcedTheme="light"
+          enableSystem={false}
+          storageKey="mediflow-theme"
+        >
           <TooltipProvider>{children}</TooltipProvider>
           <Toaster position="top-right" richColors />
         </ThemeProvider>

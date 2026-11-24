@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 
 export type SalesAgentOption = {
   id: number;
@@ -31,26 +25,23 @@ export function SalesAgentSelector({
   disabled?: boolean;
 }) {
   return (
-    <Select
+    <Combobox
       value={value != null ? String(value) : NONE}
       onValueChange={(next) => {
         if (next === NONE) onChange(null);
         else onChange(Number(next));
       }}
       disabled={disabled || Boolean(loading)}
-    >
-      <SelectTrigger className="h-11 w-full">
-        <SelectValue placeholder={loading ? "Loading sales agents…" : "No sales agent"} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value={NONE}>No sales agent</SelectItem>
-        {agents.map((agent) => (
-          <SelectItem key={agent.id} value={String(agent.id)}>
-            {agent.displayName}
-            {agent.city ? ` · ${agent.city}` : ""}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      placeholder={loading ? "Loading sales agents…" : "No sales agent"}
+      searchPlaceholder="Search sales agents…"
+      className="h-11"
+      options={[
+        { value: NONE, label: "No sales agent" },
+        ...agents.map((agent) => ({
+          value: String(agent.id),
+          label: `${agent.displayName}${agent.city ? ` · ${agent.city}` : ""}`,
+        })),
+      ]}
+    />
   );
 }

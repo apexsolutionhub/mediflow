@@ -13,6 +13,7 @@ import {
 } from "react";
 import { Activity, ChevronDown, LogOut, Menu } from "lucide-react";
 
+import { LogoMark } from "@/components/brand-logo";
 import { SubscriptionNotificationCenter } from "@/components/subscription/subscription-notification-center";
 import { TrialBillingButton } from "@/components/subscription/trial-billing-button";
 import { ChangeOwnPasswordButton } from "@/components/account/ChangeOwnPasswordButton";
@@ -53,6 +54,14 @@ import {
 } from "@/lib/clinicOpsMode";
 import { cn } from "@/lib/utils";
 import { useBillingCatalogPricing } from "@/lib/hooks/useBillingCatalogPricing";
+
+/** Same look in the sidebar and the phone menu: a calm rectangle, not a pill. */
+const SIGN_OUT_CLASS =
+  "w-full cursor-pointer justify-start gap-2.5 rounded-md border-white/15 bg-white/6 px-3.5 text-white/80 transition-colors " +
+  // Destructive feel on hover / keyboard focus / press (touch screens only get the press state).
+  "hover:border-red-400/60 hover:bg-red-500/20 hover:text-red-100 " +
+  "focus-visible:border-red-400/70 focus-visible:ring-red-400/30 " +
+  "active:border-red-400/80 active:bg-red-500/35 active:text-white";
 
 const BILLING_CACHE_KEY = cacheKey(["billing", "me"]);
 const BILLING_TTL_MS = 60_000;
@@ -105,19 +114,20 @@ function CollapsibleNavItem({
         type="button"
         className={cn(
           "flex w-full cursor-pointer items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-left text-sm font-medium transition-all duration-200",
-          depth > 0 && "py-2 text-[13px]",
+          depth > 0 && "py-1.5 text-[13px]",
           lit
             ? "clinic-nav-active"
-            : "text-white/65 hover:border-white/10 hover:bg-white/6 hover:text-white",
+            : "text-white/70 hover:border-white/10 hover:bg-white/7 hover:text-white",
         )}
       >
-        <Icon
+        <span
           className={cn(
-            "size-4 shrink-0",
-            depth > 0 && "size-3.5",
-            lit ? "text-apex-orange-light" : "text-white/40",
+            "inline-flex size-7 shrink-0 items-center justify-center rounded-lg",
+            lit ? "bg-white/20 text-white" : "bg-white/6 text-white/55",
           )}
-        />
+        >
+          <Icon className={cn("size-4", depth > 0 && "size-3.5")} />
+        </span>
         <span className="min-w-0 flex-1 truncate">{item.label}</span>
         <ChevronDown
           className={cn(
@@ -173,20 +183,24 @@ function NavLinks({
             onClick={onNavigate}
             prefetch
             className={cn(
-              "flex cursor-pointer items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-sm font-medium transition-all duration-200",
-              depth > 0 && "py-2 text-[13px]",
+              "group/nav relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium transition-all duration-200",
+              depth > 0 && "py-1.5 text-[13px]",
               lit
-                ? "clinic-nav-active"
-                : "text-white/65 hover:border-white/10 hover:bg-white/6 hover:text-white",
+                ? "clinic-nav-active before:absolute before:top-1/2 before:-left-2.5 before:h-6 before:w-1 before:-translate-y-1/2 before:rounded-r-full before:bg-(--role-2)"
+                : "text-white/70 hover:translate-x-0.5 hover:border-white/10 hover:bg-white/7 hover:text-white",
             )}
           >
-            <Icon
+            <span
               className={cn(
-                "size-4 shrink-0",
-                depth > 0 && "size-3.5",
-                lit ? "text-apex-orange-light" : "text-white/40",
+                "inline-flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                depth > 0 && "size-6",
+                lit
+                  ? "bg-white/20 text-white"
+                  : "bg-white/6 text-white/55 group-hover/nav:bg-(--role)/30 group-hover/nav:text-white",
               )}
-            />
+            >
+              <Icon className={cn("size-4", depth > 0 && "size-3.5")} />
+            </span>
             {item.label}
           </Link>
         );
@@ -199,27 +213,18 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const managerBillingLoaded = useRef(false);
-  const [user, setUser] = useState<ClinicUser | null>(() =>
-    typeof window === "undefined" ? null : readUser(),
-  );
+  // Server and first client render must match; saved session is read after mount.
+  const [user, setUser] = useState<ClinicUser | null>(null);
   const [open, setOpen] = useState(false);
   const [pageMeta, setPageMeta] = useState<PageMeta>({ title: "Workspace" });
   const [opsModeLabel, setOpsModeLabel] = useState("Online");
-  const [billing, setBilling] = useState<BillingSnapshot | null>(() =>
-    typeof window === "undefined" ? null : readBilling(),
-  );
+  const [billing, setBilling] = useState<BillingSnapshot | null>(null);
   const catalogPricing = useBillingCatalogPricing();
   const displayBilling = useMemo(
     () => (billing ? applyCatalogFeesToBilling(billing, catalogPricing) : null),
     [billing, catalogPricing],
   );
-  const [logoUrl, setLogoUrl] = useState(() => {
-    if (typeof window === "undefined") return "";
-    const current = readUser();
-    if (current?.logoUrl) return current.logoUrl;
-    const stored = readBilling();
-    return stored?.logo_url || "";
-  });
+  const [logoUrl, setLogoUrl] = useState("");
 
   const applyBillingSnapshot = useCallback((snapshot: BillingSnapshot, accessMode: string) => {
     updateBillingSession(snapshot, accessMode);
@@ -246,7 +251,6 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
           snapshot.period_status === "on_hold" ||
           data.access_mode === "denied"
         ) {
-          const current = readUser();
           clearSession();
           router.replace("/");
           return data;
@@ -304,6 +308,10 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
     const mode = localStorage.getItem("access_mode");
     const stored = readBilling();
+
+    setUser(current);
+    setBilling(stored);
+    setLogoUrl(current.logoUrl || stored?.logo_url || "");
 
     if (stored && (stored.billing_hold || stored.period_status === "on_hold")) {
       clearSession();
@@ -387,8 +395,15 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
   if (!user) {
     return (
-      <div className="clinic-canvas flex min-h-dvh items-center justify-center text-sm text-muted-foreground">
-        Loading workspace…
+      <div
+        className="clinic-canvas flex min-h-dvh flex-col items-center justify-center gap-4"
+        role="status"
+        aria-live="polite"
+      >
+        <LogoMark size={72} plate className="animate-pulse" />
+        <span className="text-xs font-semibold tracking-[0.2em] text-primary/60 uppercase">
+          Loading workspace
+        </span>
       </div>
     );
   }
@@ -405,20 +420,35 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
 
   return (
     <ClinicShellMetaContext.Provider value={metaContext}>
-      <div className="clinic-canvas flex h-dvh overflow-hidden text-foreground">
-        <aside className="sticky top-0 hidden h-dvh w-68 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,rgba(11,25,46,0.98),rgba(6,14,26,0.99))] text-sidebar-foreground shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] md:flex">
+      <div
+        data-role={role}
+        className="clinic-canvas flex h-dvh overflow-hidden text-foreground"
+      >
+        <aside className="sticky top-0 hidden h-dvh w-68 shrink-0 flex-col overflow-hidden border-r border-white/10 bg-[linear-gradient(180deg,#0e1f3d_0%,#0a1730_55%,#070f20_100%)] text-sidebar-foreground shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] lg:flex">
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-20 right-0 h-48 w-48 rounded-full bg-cta/25 blur-3xl"
+            className="pointer-events-none absolute -top-16 -right-10 h-56 w-56 rounded-full bg-(--role)/40 blur-3xl"
           />
           <div
             aria-hidden
-            className="pointer-events-none absolute bottom-24 left-0 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl"
+            className="pointer-events-none absolute bottom-20 -left-12 h-48 w-48 rounded-full bg-(--role-2)/15 blur-3xl"
           />
+          <div aria-hidden className="clinic-accent-bar absolute inset-x-0 top-0 h-1" />
 
-          <div className="relative shrink-0 border-b border-white/10 p-4">
-            <div className="mb-4 flex items-center gap-3 rounded-2xl border border-white/12 bg-white/6 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-              <Avatar className="size-11 shrink-0 rounded-2xl ring-2 ring-cta/30 shadow-[0_10px_30px_-12px_rgba(232,149,30,0.9)]">
+          <div className="relative shrink-0 border-b border-white/10 p-3.5">
+            <div className="mb-3 flex items-center gap-2.5 px-0.5">
+              <LogoMark size={38} plate />
+              <div className="leading-tight">
+                <p className="font-heading text-[15px] font-extrabold tracking-[0.16em] text-white">
+                  MEDIFLOW
+                </p>
+                <p className="text-[10px] font-medium tracking-[0.14em] text-white/55 uppercase">
+                  Clinic management
+                </p>
+              </div>
+            </div>
+            <div className="mb-2.5 flex items-center gap-3 rounded-2xl border border-white/12 bg-white/6 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <Avatar className="size-11 shrink-0 rounded-2xl ring-2 ring-(--role-2)/60 shadow-[0_10px_30px_-10px_var(--role)]">
                 {logoUrl ? (
                   <AvatarImage
                     src={logoUrl}
@@ -426,13 +456,13 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
                     className="rounded-2xl object-cover"
                   />
                 ) : null}
-                <AvatarFallback className="rounded-2xl bg-linear-to-br from-cta to-amber-600 text-sm font-bold text-apex-navy">
+                <AvatarFallback className="rounded-2xl bg-linear-to-br from-(--role) to-(--role-2) text-sm font-bold text-white">
                   {(user.clinic_name || "MF").trim().slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="font-heading text-[10px] font-semibold tracking-[0.22em] text-apex-orange-light/85 uppercase">
-                  MediFlow
+                <p className="font-heading text-[10px] font-semibold tracking-[0.22em] text-(--role-2) uppercase">
+                  Your clinic
                 </p>
                 <p className="truncate font-heading text-sm font-semibold text-white">
                   {user.clinic_name || "Clinic"}
@@ -440,13 +470,13 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/12 bg-white/5 px-3.5 py-3">
+            <div className="rounded-2xl border border-white/12 bg-white/5 px-3 py-2.5">
               <p className="truncate text-sm font-medium text-white">{user.username}</p>
               <p className="truncate text-[11px] capitalize tracking-wide text-white/50">
                 {user.branch_name} · {user.role}
               </p>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="inline-flex rounded-full border border-cta/30 bg-cta/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-apex-orange-light uppercase">
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className="inline-flex rounded-full border border-(--role-2)/40 bg-(--role)/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
                   {opsModeLabel}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-emerald-300 uppercase">
@@ -470,7 +500,8 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
             <div className="pointer-events-none mb-3 h-px bg-[linear-gradient(90deg,transparent,rgba(232,149,30,0.35),transparent)]" />
             <Button
               variant="outline"
-              className="w-full cursor-pointer justify-start rounded-xl border-white/12 bg-white/5 text-white/70 hover:bg-white/8 hover:text-white"
+              size="lg"
+              className={SIGN_OUT_CLASS}
               onClick={signOut}
             >
               <LogOut className="size-4" />
@@ -480,19 +511,23 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
         </aside>
 
         <div className="flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="sticky top-0 z-10 shrink-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(11,25,46,0.94),rgba(11,25,46,0.82))] px-4 py-3.5 backdrop-blur-xl md:px-7">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex min-w-0 items-start gap-3">
+          <header className="relative sticky top-0 z-10 shrink-0 border-b border-white/10 bg-[linear-gradient(115deg,rgba(11,25,46,0.97)_0%,rgba(14,31,61,0.92)_55%,color-mix(in_oklab,var(--role)_38%,rgb(11,25,46))_130%)] px-4 py-3.5 backdrop-blur-xl md:px-7">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-(--role-2) to-transparent opacity-80"
+            />
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 sm:flex-nowrap sm:gap-4">
+              <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="mt-0.5 text-white/70 hover:bg-white/10 hover:text-white md:hidden"
+                  className="mt-0.5 text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
                   onClick={() => setOpen((v) => !v)}
                 >
                   <Menu className="size-4" />
                 </Button>
                 <div>
-                  <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-apex-orange-light uppercase">
+                  <div className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-(--role-2) uppercase">
                     <Activity className="size-3.5" />
                     {role} portal
                   </div>
@@ -500,13 +535,14 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
                     {pageMeta.title}
                   </h1>
                   {pageMeta.subtitle ? (
-                    <p className="mt-0.5 max-w-2xl text-sm leading-6 text-white/75">
+                    <p className="mt-0.5 line-clamp-2 max-w-2xl text-[13px] leading-5 text-white/75 sm:line-clamp-none sm:text-sm sm:leading-6">
                       {pageMeta.subtitle}
                     </p>
                   ) : null}
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-0.5 text-white sm:gap-1 md:gap-1.5 [&_button]:text-white/90 [&_button]:hover:bg-white/15 [&_button]:hover:text-white [&_button_svg]:text-white/90">
+              <div className="flex w-full shrink-0 items-center justify-end gap-1 text-white sm:w-auto sm:gap-1 md:gap-1.5 [&_button]:text-white/90 [&_button]:hover:bg-white/15 [&_button]:hover:text-white [&_button_svg]:text-white/90">
+                {/* On phones this row sits under the title so the title keeps the full width. */}
                 {isManager && billing ? (
                   <>
                     <TrialBillingButton billing={displayBilling ?? billing} />
@@ -522,32 +558,31 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
           </header>
 
           {open ? (
-            <div className="border-b border-white/10 bg-apex-navy md:hidden">
+            <div className="max-h-[70dvh] overflow-y-auto border-b border-white/10 bg-apex-navy lg:hidden">
               <NavLinks items={visibleNav} pathname={pathname} onNavigate={() => setOpen(false)} />
-              {isManager && billing ? (
-                <div className="flex items-center justify-end gap-1 border-t border-white/10 px-4 py-3">
-                  <TrialBillingButton billing={displayBilling ?? billing} onNavigate={() => setOpen(false)} />
-                  <SubscriptionNotificationCenter
-                    billing={displayBilling ?? billing}
-                    onNavigate={() => setOpen(false)}
-                  />
-                  <ClinicFeedbackCenter
-                    clinicName={user.clinic_name}
-                    onNavigate={() => setOpen(false)}
-                  />
-                  <ManagerOrgChatCenter onNavigate={() => setOpen(false)} />
-                </div>
-              ) : null}
-              <div className="flex items-center justify-end gap-1 border-t border-white/10 px-4 py-3">
-                <ClinicNotificationCenter role={role} onNavigate={() => setOpen(false)} />
-                <ChangeOwnPasswordButton />
+              <div className="border-t border-white/10 p-3">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className={SIGN_OUT_CLASS}
+                  onClick={() => {
+                    setOpen(false);
+                    signOut();
+                  }}
+                >
+                  <LogOut className="size-4" />
+                  Sign out
+                </Button>
               </div>
             </div>
           ) : null}
 
           <main className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 md:px-7">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(232,149,30,0.08),transparent)]" />
-            <div className="relative w-full min-w-0 pb-8">{children}</div>
+            <div className="relative w-full min-w-0 pb-8">
+              <div key={pathname} className="clinic-enter">
+                {children}
+              </div>
+            </div>
           </main>
         </div>
       </div>

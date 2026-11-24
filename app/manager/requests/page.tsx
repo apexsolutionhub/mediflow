@@ -161,7 +161,7 @@ export default function ManagerRequestsPage() {
                           ) : (
                             <span className="mt-2 inline-flex size-4 shrink-0" />
                           )}
-                          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                          <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                             <Wrench className="size-4.5" />
                           </span>
                           <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Beaker,
@@ -17,11 +17,19 @@ import { toast } from "sonner";
 import { ClinicShell } from "@/components/clinic-shell";
 import { ManagerOpsModeOverviewTeaser } from "@/components/manager/ManagerOpsModePortal";
 import { SectionCard, StatTile, StatusPill } from "@/components/ui-chrome";
+import {
+  buildSeries,
+  CHART_COLORS,
+  ChartEmpty,
+  DonutChart,
+  TrendChart,
+} from "@/components/charts/chart-kit";
 import { api } from "@/lib/api";
-import { type DashboardStats, money } from "@/lib/clinic";
+import { type DashboardStats, type ManagerReport, money } from "@/lib/clinic";
 
 export default function ManagerOverviewPage() {
   const [stats, setStats] = useState<Partial<DashboardStats>>({});
+  const [month, setMonth] = useState<ManagerReport | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await api.get("/clinic/dashboard/");
@@ -30,7 +38,35 @@ export default function ManagerOverviewPage() {
 
   useEffect(() => {
     load().catch(() => toast.error("Could not load dashboard"));
+    // Trend charts are a bonus: a failure here must not block the live board.
+    api
+      .get<ManagerReport>("/clinic/reports/", { params: { period: "month" } })
+      .then(({ data }) => setMonth(data))
+      .catch(() => setMonth(null));
   }, [load]);
+
+  const revenueSeries = useMemo(
+    () =>
+      month
+        ? buildSeries(
+            month.start_date,
+            month.end_date,
+            (month.revenue_by_day || []).map((r) => ({ date: r.date, value: Number(r.total) })),
+          )
+        : [],
+    [month],
+  );
+  const visitSeries = useMemo(
+    () =>
+      month?.visits_by_day
+        ? buildSeries(
+            month.start_date,
+            month.end_date,
+            month.visits_by_day.map((r) => ({ date: r.date, value: r.count })),
+          )
+        : null,
+    [month],
+  );
 
   const alerts = [
     { label: "Pending payments", value: stats.pending_payments, tone: "orange" as const, icon: Wallet },
@@ -43,7 +79,7 @@ export default function ManagerOverviewPage() {
       title="Overview"
       subtitle="Clinic health at a glance — queues, payments, stock, and revenue."
     >
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatTile label="Today visits" value={stats.today_encounters ?? "—"} tone="navy" />
         <StatTile label="Open encounters" value={stats.open_encounters ?? "—"} tone="navy" />
         <StatTile label="Pending payments" value={stats.pending_payments ?? "—"} tone="orange" />
@@ -54,12 +90,69 @@ export default function ManagerOverviewPage() {
         />
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatTile label="Lab queue" value={stats.lab_queue ?? "—"} tone="navy" />
         <StatTile label="Radiology queue" value={stats.radiology_queue ?? "—"} tone="navy" />
         <StatTile label="Rx queue" value={stats.rx_queue ?? "—"} tone="orange" />
         <StatTile label="Low stock" value={stats.low_stock ?? "—"} tone="rose" />
         <StatTile label="Open tickets" value={stats.open_tickets ?? "—"} tone="orange" />
+      </div>
+
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <SectionCard
+          kicker="This month"
+          title="Revenue trend"
+          description="Collected payments per day since the 1st."
+        >
+          {revenueSeries.some((p) => p.value > 0) ? (
+            <TrendChart
+              data={revenueSeries}
+              label="Revenue"
+              kind="bar"
+              color={CHART_COLORS[2]}
+              format={(v) => `${money(v)} ETB`}
+              height={220}
+            />
+          ) : (
+            <ChartEmpty message="No payments collected this month yet." />
+          )}
+        </SectionCard>
+
+        <SectionCard
+          kicker="This month"
+          title="Visits trend"
+          description="Visits opened per day since the 1st."
+        >
+          {visitSeries === null ? (
+            <ChartEmpty message="The visit trend appears after the latest backend update." />
+          ) : visitSeries.some((p) => p.value > 0) ? (
+            <TrendChart
+              data={visitSeries}
+              label="Visits"
+              format={(v) => `${v} visits`}
+              height={220}
+            />
+          ) : (
+            <ChartEmpty message="No visits this month yet." />
+          )}
+        </SectionCard>
+
+        <SectionCard
+          kicker="Right now"
+          title="Workload by desk"
+          description="Where the waiting work sits across the clinic."
+          className="lg:col-span-2"
+        >
+          <DonutChart
+            data={[
+              { name: "Lab", value: Number(stats.lab_queue || 0) },
+              { name: "Radiology", value: Number(stats.radiology_queue || 0) },
+              { name: "Pharmacy Rx", value: Number(stats.rx_queue || 0) },
+              { name: "Open encounters", value: Number(stats.open_encounters || 0) },
+            ]}
+            centerLabel="Waiting"
+          />
+        </SectionCard>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -82,7 +175,7 @@ export default function ManagerOverviewPage() {
                   key={item.label}
                   className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-linear-to-br from-white to-primary/3 px-4 py-3"
                 >
-                  <span className="inline-flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                  <span className="inline-flex size-10 items-center justify-center rounded-xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
                     <Icon className="size-4.5" />
                   </span>
                   <div>

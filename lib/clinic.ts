@@ -22,12 +22,66 @@ export type BillableItem = {
   total_amount?: string | number;
 };
 
+export type LabParameter = {
+  id: number;
+  name: string;
+  result_type: "numeric" | "choice" | "text";
+  unit?: string;
+  ref_low?: string | null;
+  ref_high?: string | null;
+  critical_low?: string | null;
+  critical_high?: string | null;
+  choices?: string;
+  abnormal_choices?: string;
+  sort_order?: number;
+  reference_text?: string;
+  choice_list?: string[];
+};
+
+export type ResultFlag = "normal" | "low" | "high" | "critical" | "abnormal";
+
+export type OrderResultValue = {
+  id: number;
+  parameter?: number | null;
+  name: string;
+  unit?: string;
+  reference_text?: string;
+  value: string;
+  flag: ResultFlag;
+};
+
+export type ReportTag = "normal" | "abnormal" | "critical";
+
+export type RadiologyReport = {
+  technique?: string;
+  findings: string;
+  impression: string;
+  tag: ReportTag;
+  attachments: { url: string; name: string }[];
+};
+
 export type ClinicalOrder = {
   id: number;
   order_type: string;
   status: string;
   details: string;
   result_text?: string;
+  result_values?: OrderResultValue[];
+  test_parameters?: LabParameter[];
+  radiology_report?: RadiologyReport | null;
+  test_name?: string;
+  medicine_name?: string;
+  medicine_on_hand?: number | null;
+  medicine_unit?: string;
+  medicine_loose_unit?: string;
+  medicine_stock_text?: string;
+  medicine_stock_after_text?: string;
+  medicine_can_dispense?: boolean;
+  quantity?: number;
+  sale_unit?: "pack" | "loose" | string;
+  dispense_quantity?: number | null;
+  abnormal_count?: number;
+  has_critical?: boolean;
   patient_name?: string;
   encounter_number?: string;
   encounter?: number;
@@ -40,7 +94,6 @@ export type Encounter = {
   number: string;
   status: string;
   arrival_type: string;
-  referral_source?: string;
   amount_due?: number;
   patient: Patient;
   billables: BillableItem[];
@@ -101,6 +154,7 @@ export type BillableService = {
   auto_add_on_registration?: boolean;
   requires_payment_before_work?: boolean;
   internal_notes?: string;
+  parameters?: LabParameter[];
 };
 
 export const BILLABLE_SERVICE_TYPES = [
@@ -122,39 +176,100 @@ export const ORDER_TYPE_TO_SERVICE_TYPE: Record<string, string> = {
 export type Medicine = {
   id: number;
   name: string;
-  description?: string;
-  sku?: string;
   category?: string;
+  /** Read: the supplier this stock line was bought from. */
+  selected_supplier_id?: number | null;
+  supplier_name?: string;
+  supplier_phone?: string;
+  supplier_email?: string;
+  /** Sale price of one whole pack. */
+  unit_price: string | number;
+  cost?: string | number;
+  /** Whole packs on hand (the registered "Quantity"). */
+  on_hand: number;
+  /** The pack unit stock is counted in: box, packet, piece... */
+  unit_of_measure?: string;
+  pack_size?: number;
+  loose_unit?: string;
+  loose_price?: string | number | null;
+  loose_unit_price?: string | number | null;
+  /** Loose units left from an opened pack. */
+  loose_stock?: number;
+  stock_text?: string;
+  received_quantity?: number;
+  paid_amount?: string | number;
+  total_cost?: string | number;
+  credit_amount?: string | number;
+  payment_status?: "paid" | "credit";
   batch_number?: string;
   expiry_date?: string | null;
-  unit_of_measure?: string;
-  on_hand: number;
+  description?: string;
+  image_url?: string;
   min_threshold: number;
-  unit_price: string | number;
   is_active?: boolean;
-  internal_notes?: string;
+};
+
+export type Supplier = {
+  id: number;
+  supplier_name: string;
+  supplier_phone: string;
+  supplier_email?: string;
+  medicine_count?: number;
+};
+
+export type MedicineDamage = {
+  id: number;
+  medicine: number;
+  medicine_name: string;
+  quantity: number;
+  sale_unit: "pack" | "loose";
+  quantity_text: string;
+  reason: string;
+  recorded_by_name: string;
+  created_at: string;
 };
 
 export const MEDICINE_CATEGORIES = [
-  { label: "Antibiotic", value: "antibiotic" },
-  { label: "Analgesic", value: "analgesic" },
-  { label: "Antipyretic", value: "antipyretic" },
-  { label: "Antihypertensive", value: "antihypertensive" },
-  { label: "Vitamin / supplement", value: "vitamin" },
-  { label: "Antacid", value: "antacid" },
-  { label: "Topical", value: "topical" },
-  { label: "Infusion / injectable", value: "infusion" },
+  { label: "Pain & fever", value: "pain_fever" },
+  { label: "Antibiotics", value: "antibiotics" },
+  { label: "Malaria medicines", value: "malaria" },
+  { label: "Deworming (worms)", value: "deworming" },
+  { label: "Diarrhea & ORS", value: "diarrhea_ors" },
+  { label: "Stomach acid / ulcer", value: "stomach_acid_ulcer" },
+  { label: "Allergy & itching", value: "allergy" },
+  { label: "Cough & cold", value: "cough_cold" },
+  { label: "Asthma / breathing", value: "asthma" },
+  { label: "Blood pressure", value: "hypertension" },
+  { label: "Diabetes", value: "diabetes" },
+  { label: "Family planning", value: "family_planning" },
+  { label: "Pregnancy / mothers", value: "pregnancy" },
+  { label: "Skin", value: "skin" },
+  { label: "Fungal", value: "fungal" },
+  { label: "Eye / ear", value: "eye_ear" },
+  { label: "Vitamins", value: "vitamins" },
   { label: "Other", value: "other" },
 ] as const;
 
+/** The pack unit stock is counted in. */
 export const MEDICINE_UNITS = [
+  { label: "Litre", value: "litre" },
+  { label: "Kilogram", value: "kilogram" },
+  { label: "Piece", value: "piece" },
+  { label: "Packet", value: "packet" },
+  { label: "Box", value: "box" },
+  { label: "Dozen", value: "dozen" },
+  { label: "Other", value: "other" },
+] as const;
+
+/** What a pack is split into when sold loose. */
+export const LOOSE_UNIT_OPTIONS = [
   { label: "Tablet", value: "tablet" },
   { label: "Capsule", value: "capsule" },
-  { label: "Bottle", value: "bottle" },
-  { label: "Vial", value: "vial" },
-  { label: "Tube", value: "tube" },
-  { label: "Pack", value: "pack" },
-  { label: "Other", value: "other" },
+  { label: "Sachet", value: "sachet" },
+  { label: "Ampoule", value: "ampoule" },
+  { label: "Piece", value: "piece" },
+  { label: "Millilitre (ml)", value: "ml" },
+  { label: "Gram", value: "gram" },
 ] as const;
 
 /** Common Rx frequency options for doctor prescriptions. */
@@ -229,7 +344,8 @@ export type ManagerReportPeriod =
   | "month"
   | "quarter"
   | "half_year"
-  | "year";
+  | "year"
+  | "custom";
 
 export type ManagerReportSummary = {
   visits: number;
@@ -269,6 +385,7 @@ export type ManagerReport = {
   low_stock: number;
   open_tickets: number;
   revenue_by_day?: { date: string; total: number | string; count: number }[];
+  visits_by_day?: { date: string; count: number }[];
   tender_breakdown?: { method: string; total: number | string; count: number }[];
   arrival_breakdown?: { arrival_type: string; count: number }[];
   referral_breakdown?: { kind: string; status: string; count: number }[];
@@ -289,6 +406,22 @@ export function paymentTone(
   if (s.includes("partial")) return "orange";
   if (s.includes("await")) return "orange";
   return "muted";
+}
+
+/** How many results are out of range (and whether any is critical), from the values themselves. */
+export function abnormalSummary(order: ClinicalOrder): { count: number; critical: boolean } {
+  const flags: string[] = (order.result_values ?? []).map((v) => v.flag);
+  if (order.radiology_report) flags.push(order.radiology_report.tag);
+  return {
+    count: flags.filter((f) => f !== "normal").length,
+    critical: flags.includes("critical"),
+  };
+}
+
+/** "PaymentApproved" -> "Payment approved" (statuses arrive as CamelCase keys). */
+export function formatStatus(status: string): string {
+  const spaced = (status || "").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/_/g, " ").trim();
+  return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase() : "";
 }
 
 export function orderTone(

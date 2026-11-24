@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
+import { BatchApprovalDialog } from "@/components/doctor/BatchApprovalDialog";
 import { EncounterVisitSelector } from "@/components/encounter-visit-selector";
 import { VisitPatientStrip } from "@/components/visit-patient-strip";
 import { Button } from "@/components/ui/button";
@@ -34,13 +35,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { LoadingButton } from "@/components/ui/submit-button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -54,14 +49,31 @@ import { api } from "@/lib/api";
 import {
   MEDICINE_FREQUENCY_OPTIONS,
   type Medicine,
+  formatStatus,
+  money,
   orderTone,
 } from "@/lib/clinic";
 import { fetchClinicCatalog } from "@/lib/hooks/use-clinic-catalog";
+import {
+  capacityFor,
+  countWord,
+  isSplittable,
+  looseName,
+  looseUnitPrice,
+  packName,
+  stockText,
+  unitPriceFor,
+  type SaleUnit,
+} from "@/lib/medicine-stock";
 import { useEncounterBoard } from "@/hooks/use-encounter-board";
 import { cn } from "@/lib/utils";
 
 type RxLine = {
   id: string;
+  /** The inventory medicine picked (for price and stock), or null for an outside medicine. */
+  medicine: Medicine | null;
+  quantity: string;
+  saleUnit: SaleUnit;
   medicineId: number | null;
   medicineName: string;
   inInventory: boolean;
@@ -73,6 +85,9 @@ type RxLine = {
 function newLine(): RxLine {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    medicine: null,
+    quantity: "1",
+    saleUnit: "pack",
     medicineId: null,
     medicineName: "",
     inInventory: false,
@@ -112,7 +127,8 @@ function MedicinePicker({
   medicines: Medicine[];
   value: string;
   inInventory: boolean;
-  onPickInventory: (med: Medicine) => void;
+  /** Every stock entry sharing the chosen name (one when there is only one batch). */
+  onPickInventory: (batches: Medicine[]) => void;
   onPickCustom: (name: string) => void;
   onClear: () => void;
 }) {
@@ -123,21 +139,27 @@ function MedicinePicker({
     setQuery(value);
   }, [value]);
 
-  const filtered = useMemo(() => {
+  const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return medicines.slice(0, 40);
-    return medicines
-      .filter((m) => {
-        const hay = `${m.name} ${m.description || ""} ${m.sku || ""} ${m.category || ""}`.toLowerCase();
-        return hay.includes(q);
-      })
-      .slice(0, 40);
+    const rows = q
+      ? medicines.filter((m) => {
+          const hay = `${m.name} ${m.description || ""} ${m.batch_number || ""} ${m.category || ""}`.toLowerCase();
+          return hay.includes(q);
+        })
+      : medicines;
+    const map = new Map<string, Medicine[]>();
+    for (const m of rows) {
+      const key = m.name.trim().toLowerCase();
+      map.set(key, [...(map.get(key) ?? []), m]);
+    }
+    return [...map.values()].slice(0, 40);
   }, [medicines, query]);
 
   const exactMatch = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return null;
-    return medicines.find((m) => m.name.trim().toLowerCase() === q) || null;
+    const rows = medicines.filter((m) => m.name.trim().toLowerCase() === q);
+    return rows.length ? rows : null;
   }, [medicines, query]);
 
   const commitCustom = () => {
@@ -257,17 +279,19 @@ function MedicinePicker({
               </div>
             </CommandEmpty>
             <CommandGroup heading="Clinic inventory">
-              {filtered.map((med) => {
-                const low =
-                  med.on_hand != null &&
-                  med.min_threshold != null &&
-                  Number(med.on_hand) <= Number(med.min_threshold);
+              {groups.map((batches) => {
+                const med = batches[0];
+                const many = batches.length > 1;
+                const suppliers = new Set(batches.map((m) => m.supplier_name || "")).size;
+                const low = batches.every(
+                  (m) => m.on_hand != null && m.min_threshold != null && Number(m.on_hand) <= Number(m.min_threshold),
+                );
                 return (
                   <CommandItem
-                    key={med.id}
+                    key={med.name.trim().toLowerCase()}
                     value={String(med.id)}
                     onSelect={() => {
-                      onPickInventory(med);
+                      onPickInventory(batches);
                       setOpen(false);
                     }}
                     className="items-start gap-2 rounded-xl px-2.5 py-2.5"
@@ -281,14 +305,22 @@ function MedicinePicker({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-foreground">{med.name}</span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                        {med.category ? <span className="capitalize">{med.category}</span> : null}
-                        {med.unit_of_measure ? <span>· {med.unit_of_measure}</span> : null}
-                        {med.on_hand != null ? (
-                          <span className={cn(low && "font-semibold text-amber-700")}>
-                            · stock {med.on_hand}
-                            {low ? " · low" : ""}
+                        {many ? (
+                          <span className="font-semibold text-primary">
+                            {batches.length} batches · {suppliers} supplier{suppliers === 1 ? "" : "s"}
                           </span>
-                        ) : null}
+                        ) : (
+                          <>
+                            <span>{money(med.unit_price)} ETB / {packName(med)}</span>
+                            {isSplittable(med) ? (
+                              <span>· {money(looseUnitPrice(med))} / {looseName(med)}</span>
+                            ) : null}
+                            <span className={cn(low && "font-semibold text-amber-700")}>
+                              · stock {stockText(med)}
+                              {low ? " · low" : ""}
+                            </span>
+                          </>
+                        )}
                       </span>
                     </span>
                     <Package className="mt-0.5 size-3.5 shrink-0 text-emerald-600/70" />
@@ -321,6 +353,92 @@ function MedicinePicker({
   );
 }
 
+/** How much to give: a count in whole packs, or in loose units (tablets...) for splittable medicines. */
+function RxAmount({
+  medicine,
+  batchCount,
+  onChangeBatch,
+  quantity,
+  saleUnit,
+  onChange,
+}: {
+  medicine: Medicine;
+  batchCount: number;
+  onChangeBatch: () => void;
+  quantity: string;
+  saleUnit: SaleUnit;
+  onChange: (patch: { quantity?: string; saleUnit?: SaleUnit }) => void;
+}) {
+  const split = isSplittable(medicine);
+  const qty = Number(quantity) || 0;
+  const cap = capacityFor(medicine, saleUnit);
+  const over = qty > cap;
+  const unitWord = saleUnit === "loose" ? looseName(medicine) : packName(medicine);
+  const lineTotal = qty * unitPriceFor(medicine, saleUnit);
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-(--role)/20 bg-(--role)/5 p-3 animate-in fade-in-0 slide-in-from-top-1 duration-200">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span>
+          Batch <span className="font-semibold text-primary">{medicine.batch_number || "—"}</span>
+          {medicine.expiry_date ? ` · expires ${medicine.expiry_date.slice(0, 10)}` : ""}
+          {medicine.supplier_name ? ` · ${medicine.supplier_name}` : ""}
+        </span>
+        {batchCount > 1 ? (
+          <Button type="button" size="sm" variant="outline" className="h-7 rounded-lg px-2.5 text-xs" onClick={onChangeBatch}>
+            Change batch
+          </Button>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="space-y-1.5">
+          <FieldLabel htmlFor={`qty-${medicine.id}`}>How many</FieldLabel>
+          <Input
+            id={`qty-${medicine.id}`}
+            type="number"
+            min={1}
+            inputMode="numeric"
+            className={cn("h-11 w-28 rounded-2xl bg-white shadow-sm", over && "border-rose-400")}
+            value={quantity}
+            onChange={(e) => onChange({ quantity: e.target.value })}
+          />
+        </div>
+        {split ? (
+          <div className="space-y-1.5">
+            <FieldLabel>Counted in</FieldLabel>
+            <div className="inline-flex rounded-2xl border border-primary/12 bg-white p-1 shadow-sm">
+              {(["pack", "loose"] as const).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  onClick={() => onChange({ saleUnit: u })}
+                  className={cn(
+                    "rounded-xl px-3.5 py-1.5 text-sm font-medium transition",
+                    saleUnit === u
+                      ? "bg-(--role) text-white shadow-sm"
+                      : "text-primary/70 hover:bg-(--role)/10",
+                  )}
+                >
+                  {u === "pack" ? packName(medicine) : looseName(medicine)}s
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="pb-2.5 text-sm font-medium text-primary/80">{countWord(unitWord, qty || 1)}</p>
+        )}
+      </div>
+      <p className={cn("text-xs", over ? "font-semibold text-rose-600" : "text-muted-foreground")}>
+        {over
+          ? `Only ${stockText(medicine)} in stock.`
+          : qty > 0
+            ? `${countWord(unitWord, qty)} × ${money(unitPriceFor(medicine, saleUnit))} = ${money(lineTotal)} ETB · in stock ${stockText(medicine)}`
+            : `In stock ${stockText(medicine)}`}
+      </p>
+    </div>
+  );
+}
+
 function parseRxDetails(details: string) {
   const parts = details.split(" · ").map((p) => p.trim()).filter(Boolean);
   const name = parts[0] || "Prescription";
@@ -334,6 +452,11 @@ export default function DoctorPharmacyPrescriptionPage() {
   const [lines, setLines] = useState<RxLine[]>([newLine()]);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [batchDialog, setBatchDialog] = useState<{
+    lineId: string;
+    batches: Medicine[];
+    currentId: number | null;
+  } | null>(null);
 
   const loadMedicines = useCallback(async () => {
     const rows = await fetchClinicCatalog<Medicine>(
@@ -370,6 +493,25 @@ export default function DoctorPharmacyPrescriptionPage() {
     setLines((prev) => prev.map((line) => (line.id === id ? { ...line, ...patch } : line)));
   };
 
+  const batchesOf = (med: Medicine) =>
+    medicines.filter((m) => m.name.trim().toLowerCase() === med.name.trim().toLowerCase());
+
+  const applyBatch = (lineId: string, med: Medicine, keepAmount = false) =>
+    updateLine(lineId, {
+      medicine: med,
+      medicineId: med.id,
+      medicineName: med.name,
+      inInventory: true,
+      ...(keepAmount ? {} : { quantity: "1", saleUnit: "pack" as const }),
+      dose: "",
+    });
+
+  /** One batch: use it. Several: ask which one (the earliest expiry is preselected). */
+  const pickBatches = (lineId: string, batches: Medicine[]) => {
+    if (batches.length === 1) applyBatch(lineId, batches[0]);
+    else setBatchDialog({ lineId, batches, currentId: null });
+  };
+
   const removeLine = (id: string) => {
     setLines((prev) => (prev.length <= 1 ? prev : prev.filter((line) => line.id !== id)));
   };
@@ -386,6 +528,17 @@ export default function DoctorPharmacyPrescriptionPage() {
         toast.error(`Choose a frequency for ${line.medicineName}`);
         return;
       }
+      if (line.inInventory && line.medicine) {
+        const qty = Number(line.quantity);
+        if (!Number.isInteger(qty) || qty < 1) {
+          toast.error(`Enter how many ${line.medicineName} to give`);
+          return;
+        }
+        if (qty > capacityFor(line.medicine, line.saleUnit)) {
+          toast.error(`${line.medicineName}: only ${stockText(line.medicine)} in stock`);
+          return;
+        }
+      }
       if (!line.inInventory && !line.dose.trim()) {
         toast.error(`Enter a dose for ${line.medicineName} (not in clinic inventory)`);
         return;
@@ -398,6 +551,12 @@ export default function DoctorPharmacyPrescriptionPage() {
         const parts = [
           line.medicineName,
           !line.inInventory && line.dose ? `Dose: ${line.dose}` : null,
+          line.inInventory && line.medicine
+            ? `Qty: ${countWord(
+                line.saleUnit === "loose" ? looseName(line.medicine) : packName(line.medicine),
+                Number(line.quantity),
+              )}`
+            : null,
           `Freq: ${line.frequency}`,
           line.duration.trim()
             ? `Duration: ${line.duration.trim()}`
@@ -412,6 +571,8 @@ export default function DoctorPharmacyPrescriptionPage() {
           details: parts.join(" · "),
           medicine: line.medicineId || undefined,
           medicine_name: line.inInventory ? undefined : line.medicineName.trim(),
+          quantity: line.inInventory ? Number(line.quantity) : undefined,
+          sale_unit: line.inInventory ? line.saleUnit : undefined,
         });
       }
       toast.success(
@@ -553,16 +714,10 @@ export default function DoctorPharmacyPrescriptionPage() {
                           medicines={medicines}
                           value={line.medicineName}
                           inInventory={line.inInventory}
-                          onPickInventory={(med) =>
-                            updateLine(line.id, {
-                              medicineId: med.id,
-                              medicineName: med.name,
-                              inInventory: true,
-                              dose: "",
-                            })
-                          }
+                          onPickInventory={(batches) => pickBatches(line.id, batches)}
                           onPickCustom={(name) =>
                             updateLine(line.id, {
+                              medicine: null,
                               medicineId: null,
                               medicineName: name,
                               inInventory: false,
@@ -570,14 +725,34 @@ export default function DoctorPharmacyPrescriptionPage() {
                           }
                           onClear={() =>
                             updateLine(line.id, {
+                              medicine: null,
                               medicineId: null,
                               medicineName: "",
                               inInventory: false,
+                              quantity: "1",
+                              saleUnit: "pack",
                               dose: "",
                             })
                           }
                         />
                       </div>
+
+                      {line.inInventory && line.medicine ? (
+                        <RxAmount
+                          medicine={line.medicine}
+                          batchCount={batchesOf(line.medicine).length}
+                          onChangeBatch={() =>
+                            setBatchDialog({
+                              lineId: line.id,
+                              batches: batchesOf(line.medicine!),
+                              currentId: line.medicine!.id,
+                            })
+                          }
+                          quantity={line.quantity}
+                          saleUnit={line.saleUnit}
+                          onChange={(patch) => updateLine(line.id, patch)}
+                        />
+                      ) : null}
 
                       {!line.inInventory && line.medicineName ? (
                         <div className="space-y-1.5 animate-in fade-in-0 slide-in-from-top-1 duration-200">
@@ -597,21 +772,14 @@ export default function DoctorPharmacyPrescriptionPage() {
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
                           <FieldLabel>Frequency</FieldLabel>
-                          <Select
+                          <Combobox
                             value={line.frequency}
                             onValueChange={(value) => updateLine(line.id, { frequency: value })}
-                          >
-                            <SelectTrigger className="h-11 w-full rounded-2xl border-primary/12 bg-white shadow-sm">
-                              <SelectValue placeholder="Select frequency" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-2xl">
-                              {MEDICINE_FREQUENCY_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            options={MEDICINE_FREQUENCY_OPTIONS}
+                            placeholder="Select frequency"
+                            searchable={false}
+                            className="h-11 rounded-2xl border-primary/12"
+                          />
                         </div>
                         <div className="space-y-1.5">
                           <FieldLabel htmlFor={`duration-${line.id}`} hint="Optional">
@@ -746,7 +914,7 @@ export default function DoctorPharmacyPrescriptionPage() {
                             ) : null}
                           </div>
                         </div>
-                        <StatusPill tone={orderTone(order.status)}>{order.status}</StatusPill>
+                        <StatusPill tone={orderTone(order.status)}>{formatStatus(order.status)}</StatusPill>
                       </div>
                     </QueueItem>
                   );
@@ -756,6 +924,16 @@ export default function DoctorPharmacyPrescriptionPage() {
           </SectionCard>
         </div>
       ) : null}
+      <BatchApprovalDialog
+        open={batchDialog !== null}
+        batches={batchDialog?.batches ?? []}
+        currentId={batchDialog?.currentId}
+        onCancel={() => setBatchDialog(null)}
+        onConfirm={(batch) => {
+          if (batchDialog) applyBatch(batchDialog.lineId, batch);
+          setBatchDialog(null);
+        }}
+      />
     </ClinicShell>
   );
 }

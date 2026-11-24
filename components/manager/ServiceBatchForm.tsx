@@ -12,13 +12,7 @@ import {
 } from "@/components/manager/batch-ops";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Switch } from "@/components/ui/switch";
 import { ctaButtonClass } from "@/components/ui-chrome";
@@ -183,7 +177,7 @@ export function ServiceBatchForm({
   return (
     <form className="grid gap-5" onSubmit={(e) => void onSubmit(e)}>
       <div className="flex items-start gap-3 rounded-2xl border border-primary/10 bg-linear-to-r from-primary/5 via-transparent to-cta/5 px-4 py-4">
-        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+        <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-(--role) to-(--role-2) text-white shadow-md shadow-(--role)/25">
           <Tags className="size-5" />
         </span>
         <div>
@@ -236,38 +230,21 @@ export function ServiceBatchForm({
                 />
               </BatchField>
               <BatchField label="Department">
-                <Select
+                <Combobox
                   value={line.department}
                   onValueChange={(v) => patchLine(line.key, { department: v })}
-                >
-                  <SelectTrigger className="h-11 w-full rounded-xl">
-                    <SelectValue placeholder="Department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departmentOptions.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={departmentOptions}
+                  placeholder="Department"
+                  className="h-11"
+                />
               </BatchField>
               <BatchField label="Service type">
-                <Select
+                <Combobox
                   value={line.service_type}
                   onValueChange={(v) => patchLine(line.key, { service_type: v })}
-                >
-                  <SelectTrigger className="h-11 w-full rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BILLABLE_SERVICE_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={BILLABLE_SERVICE_TYPES}
+                  className="h-11"
+                />
               </BatchField>
               <BatchField label="Default quantity" htmlFor={`svc-qty-${line.key}`}>
                 <Input
