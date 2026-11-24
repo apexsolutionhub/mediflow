@@ -349,6 +349,14 @@ Manager (MediFlow)          Apex (mediflow_admin)
 - Manager UI: backup state (`ok`, `stale` after 36 hours, `failed`, `missing`), last backup time and size, second-copy state, and **Back up now**.
 - Restore: `manage.py restore_backup --yes [--file …]` replaces the database and then requires a sync before staff can sign in.
 
+### 11.2.1 Restore kit and drill (v1.2)
+
+`docs/CLINIC_RESTORE_KIT.md` is the restore kit: which situation you are in, the kit to keep off the reception PC, restore on the same PC, restore on a new PC (`clinic-node/restore_clinic_node.ps1`), starting again from the cloud when no backup exists, a post-restore checklist, and a quarterly restore drill. `manage.py verify_backup` checks every backup (and the second location) is readable and complete without touching the database.
+
+### 11.2.2 Conflicts (v1.2)
+
+A conflict is logged whenever a row changed on both sides would otherwise be overwritten. One copy is kept on both sides after the sync (the cloud copy when the cloud found the conflict while pushing; the clinic server copy when the server found it while pulling), and the other version is kept in the conflict record. The clinic manager sees every conflict on the **Sync** page with the differing fields side by side, and marks it **reviewed** (with an optional note) after entering the other version again by hand if it was the right one. A conflict found by the cloud is sent back in the push receipt so the clinic server shows it too. The same row conflicting again updates its open entry; once reviewed, a new conflict opens a new entry. There is no automatic merge and no "apply the other version" button in v1.
+
 ### 11.4 Failure scenarios
 
 | Scenario | Expected behavior |
@@ -426,7 +434,8 @@ Clinic node stores locally:
 | Feature | Page |
 |---------|------|
 | Setup / quarterly payment approval | Existing flow |
-| **Ops mode change approval** | **Separate** Ops mode requests page |
+| **Ops mode change approval** | **Separate** Ops mode requests page. Approving sets the request to *approved*; it is applied by the clinic server's seed (to offline) or final sync (to online), never by the approval itself. The queue has a **Waiting for clinic** view and shows each clinic server's state (token issued, seeded, last sync). |
+| **Clinic server tokens** | From the same page (**Clinic server**): issue one token per branch (shown once, only its hash stored), replace it, or revoke it; see seeded / last sync / recent runs / open conflicts. Issuing, replacing and revoking are audited. |
 | Suspend / ban / delete tenant | Existing; clinic sees on pull |
 
 ---
@@ -453,7 +462,7 @@ Clinic node stores locally:
 | **3** | Clinic host installer (MySQL + Django + static frontend + browser launch) |
 | **4** | Backup automation + manager backup status |
 | **5** | Ops mode request/approval in MediFlow + mediflow_admin |
-| **6** | Conflict list + restore kit documentation |
+| **6** | Conflict review (list, differences, mark reviewed) + restore kit (script, verify command, documentation, drill) |
 
 ---
 

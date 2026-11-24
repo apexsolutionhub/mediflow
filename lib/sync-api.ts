@@ -50,13 +50,28 @@ export type SyncStatus = {
   runs: SyncRun[];
 };
 
+export type SyncConflictDifference = {
+  field: string;
+  /** The value on this clinic server. */
+  server: unknown;
+  /** The value in the cloud. */
+  cloud: unknown;
+};
+
 export type SyncConflict = {
   id: number;
   entity: string;
   label: string;
+  /** Where the conflict was found: the cloud while pushing, or this server while pulling. */
   side: "cloud" | "node";
+  /** The copy that is live on both sides after the sync. */
+  kept: "cloud" | "server";
   note: string;
+  differences: SyncConflictDifference[];
   created_at: string;
+  resolved_at: string | null;
+  resolved_by: string;
+  resolution_note: string;
 };
 
 export async function fetchSyncStatus(): Promise<SyncStatus> {
@@ -67,6 +82,26 @@ export async function fetchSyncStatus(): Promise<SyncStatus> {
 export async function fetchSyncConflicts(): Promise<SyncConflict[]> {
   const { data } = await api.get<SyncConflict[]>("/sync/conflicts/");
   return data;
+}
+
+/** The manager has looked at a conflict (and entered the other version again by hand if it mattered). */
+export async function resolveSyncConflict(id: number, note: string): Promise<SyncConflict> {
+  const { data } = await api.post<SyncConflict>(`/sync/conflicts/${id}/resolve/`, { note });
+  return data;
+}
+
+/** "full_name" -> "Full name" */
+export function fieldLabel(name: string): string {
+  const text = name.replace(/_/g, " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** A value as the manager should read it. */
+export function showValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
 }
 
 /** Runs a sync (or the initial seed) on the clinic server. A failed run is returned, not thrown. */

@@ -16,13 +16,11 @@ For an **offline clinic** (operating mode `offline`): one reception PC runs Medi
 
 ## Steps
 
-### 1. Apex issues the node token (on the cloud)
+### 1. Apex approves the change and issues the node token (on the cloud)
 
-```powershell
-python manage.py issue_sync_node --tin <clinic TIN> --branch "<branch name>" --label "Reception PC"
-```
+The manager requests **offline mode** in MediFlow (Operating mode). In the Apex console, open **Ops mode requests**, approve the request, then press **Clinic server** on that row and **Issue token** for the branch. The token is shown once; give it to the clinic. (The command line does the same: `python manage.py issue_sync_node --tin <clinic TIN> --branch "<branch name>"`.)
 
-The token is shown once. The clinic must already be set to offline mode: the manager requests it, Apex approves it, and it takes effect when the seed in step 4 finishes.
+Approving does **not** switch the clinic. It keeps working on the cloud until its server is installed and the initial seed in step 4 finishes; the request then shows as applied. The branch name in the token must match the one entered at install.
 
 ### 2. Build the web app (on a developer PC)
 
@@ -77,11 +75,13 @@ Staff sign in with the same usernames and passwords as on the cloud.
 
 ### Restoring after a disk failure
 
-On the new or repaired PC: install (steps 2-3), then restore the newest backup from the second disk and sync.
+The full procedure, for each situation, is in **`CLINIC_RESTORE_KIT.md`** (keep a printed copy with the backups). In short, on the new or repaired PC install (steps 2-3), then restore the newest backup and sync:
 
 ```powershell
-BackEnd\venv\Scripts\python BackEnd\manage.py restore_backup --yes --file E:\MediFlowBackups\<newest file>.sql.gz
+powershell -ExecutionPolicy Bypass -File clinic-node\restore_clinic_node.ps1
 ```
+
+The script checks the backup first and asks you to type `RESTORE`. `manage.py verify_backup` checks your backups any time without touching the database.
 
 This **replaces everything** in the local database. Afterwards staff cannot sign in until the manager runs **Sync**, which brings the restored copy and the cloud back together. Anything done after the backup and before the failure is lost, so the Sync page always shows the time of the last backup honestly.
 

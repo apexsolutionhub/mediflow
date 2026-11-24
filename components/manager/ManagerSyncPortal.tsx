@@ -6,13 +6,17 @@ import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { EmptyState, QueueItem, SectionCard, StatTile, StatusPill } from "@/components/ui-chrome";
 import { apiErrorDetail } from "@/lib/parallelBatch";
 import {
   fetchSyncConflicts,
   fetchSyncStatus,
+  fieldLabel,
+  resolveSyncConflict,
   runBackup,
   runSync,
+  showValue,
   summariseCounts,
   SYNC_ENTITY_LABELS,
   type BackupState,
@@ -149,6 +153,86 @@ function BackupPanel({
         ) : null}
       </div>
     </SectionCard>
+  );
+}
+
+function ConflictCard({ conflict, onReviewed }: { conflict: SyncConflict; onReviewed: () => void }) {
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const kept = conflict.kept === "cloud" ? "cloud" : "clinic server";
+  const other = conflict.kept === "cloud" ? "clinic server" : "cloud";
+
+  const review = async () => {
+    setSaving(true);
+    try {
+      await resolveSyncConflict(conflict.id, note);
+      toast.success("Marked as reviewed");
+      onReviewed();
+    } catch (error) {
+      toast.error(apiErrorDetail(error, "Could not mark as reviewed"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <QueueItem>
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-semibold text-primary">
+            {SYNC_ENTITY_LABELS[conflict.entity] ?? conflict.entity}: {conflict.label || "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {conflict.note} · {when(conflict.created_at)}
+          </p>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-primary/10 bg-white">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-primary/10 text-left text-xs text-muted-foreground">
+                <th className="px-3 py-2 font-medium">Field</th>
+                <th className="px-3 py-2 font-medium">Clinic server{conflict.kept === "server" ? " (kept)" : ""}</th>
+                <th className="px-3 py-2 font-medium">Cloud{conflict.kept === "cloud" ? " (kept)" : ""}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {conflict.differences.map((d) => (
+                <tr key={d.field} className="border-b border-primary/5 last:border-0">
+                  <td className="px-3 py-2 font-medium text-primary">{fieldLabel(d.field)}</td>
+                  <td className={`px-3 py-2 ${conflict.kept === "server" ? "font-semibold" : "text-muted-foreground"}`}>
+                    {showValue(d.server)}
+                  </td>
+                  <td className={`px-3 py-2 ${conflict.kept === "cloud" ? "font-semibold" : "text-muted-foreground"}`}>
+                    {showValue(d.cloud)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          The {kept} copy is now used on both sides. If the {other} version was the right one, enter it again in the
+          normal screen, then mark this as reviewed.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Note (optional), e.g. entered the new phone number again"
+            className="h-10 min-w-0 flex-1 rounded-xl"
+            maxLength={255}
+            disabled={saving}
+          />
+          <Button type="button" variant="outline" className="h-10 rounded-xl" disabled={saving} onClick={() => void review()}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <CircleCheck className="size-4" />}
+            Mark as reviewed
+          </Button>
+        </div>
+      </div>
+    </QueueItem>
   );
 }
 
@@ -366,19 +450,12 @@ export function ManagerSyncPortal() {
       {conflicts.length ? (
         <SectionCard
           kicker="Review"
-          title="Conflicts"
-          description="Both the clinic server and the cloud changed these since the last sync. The cloud copy was kept."
+          title="Conflicts to review"
+          description="The same record was changed on the clinic server and in the cloud. Nothing was merged silently: one copy was kept on both sides, and the other change is shown here so you can enter it again if it was the right one."
         >
-          <div className="space-y-2">
+          <div className="space-y-3">
             {conflicts.map((c) => (
-              <QueueItem key={c.id}>
-                <p className="text-sm font-semibold text-primary">
-                  {SYNC_ENTITY_LABELS[c.entity] ?? c.entity}: {c.label}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {c.note} · {when(c.created_at)}
-                </p>
-              </QueueItem>
+              <ConflictCard key={c.id} conflict={c} onReviewed={() => void load()} />
             ))}
           </div>
         </SectionCard>
