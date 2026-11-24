@@ -8,9 +8,10 @@ For an **offline clinic** (operating mode `offline`): one reception PC runs Medi
 |------|-------|
 | A Windows PC for reception | Always on during clinic hours. Give it a **fixed address** in the router (for example `192.168.10.10`) so staff always use the same link. |
 | Python 3.12 or newer | python.org, tick "Add to PATH". |
-| MySQL Server 8 | With the `mysql` command on PATH. |
+| MySQL Server 8 | With the `mysql` and `mysqldump` commands on PATH (they come with the server). |
 | The MediFlow folder | This repository, including the `dist-node` folder (the web app; see step 2). |
 | A node token | From Apex, for this clinic and branch (step 1). |
+| A second disk or USB drive | For backup copies. Strongly recommended: a single PC disk must not be the only home of the clinic's data. |
 | Internet, once | For the first copy of the clinic's data (the seed). After that the clinic works without it. |
 
 ## Steps
@@ -36,10 +37,10 @@ This makes `dist-node/` (plain files, no Node.js needed on the clinic PC). Copy 
 Open PowerShell **as Administrator** in the MediFlow folder:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File clinic-node\install_clinic_node.ps1
+powershell -ExecutionPolicy Bypass -File clinic-node\install_clinic_node.ps1 -BackupCopyDir E:\MediFlowBackups
 ```
 
-It asks for the clinic TIN, branch name, node token and two passwords (a new one for the local database, and the MySQL `root` password, used only to create that database). Then it installs the backend, creates the database, opens the firewall port for **private networks only**, runs the seed, and puts a **MediFlow** shortcut on the desktop. Add `-AutoStart` to start MediFlow when the PC user signs in.
+It asks for the clinic TIN, branch name, node token and two passwords (a new one for the local database, and the MySQL `root` password, used only to create that database). Then it installs the backend, creates the database, opens the firewall port for **private networks only**, runs the seed, and puts a **MediFlow** shortcut on the desktop. Add `-AutoStart` to start MediFlow when the PC user signs in. `-BackupCopyDir` is the second disk or USB drive for backups; the installer also schedules a backup every 4 hours and takes the first one.
 
 The installer can be run again; it keeps what already exists.
 
@@ -64,6 +65,26 @@ Staff sign in with the same usernames and passwords as on the cloud.
 - At the end of the day the **manager** opens **Sync** and presses **Sync now** (push, then pull). If the PC loses power or the sync fails, press **Retry**.
 - A clinic that goes too long without syncing (7 days, or 2 days near the payment due date) is closed to staff until the manager syncs.
 
+## Backups
+
+**Sync is not a backup.** Until the day's work reaches the cloud, this PC holds the only copy.
+
+- A database backup runs **every 4 hours** (Windows Task Scheduler task "MediFlow Backup") and **right before every sync**. Backups are compressed files named `mediflow-<date>-<time>-<reason>.sql.gz` in the `backups` folder next to `BackEnd`, and are copied to the second disk if one is set.
+- The last 24 hours of backups are kept, then one per day for 7 days.
+- Every backup is checked after it is made. A broken one is thrown away and never replaces a good one.
+- The manager sees **Backup OK / old / failed / none yet** on the **Sync** page, with the last backup time and whether the second copy worked, and can press **Back up now**.
+- A failed backup before a sync does **not** stop the sync (so a broken backup tool cannot lock the clinic out), but it is shown in red. Fix it the same day.
+
+### Restoring after a disk failure
+
+On the new or repaired PC: install (steps 2-3), then restore the newest backup from the second disk and sync.
+
+```powershell
+BackEnd\venv\Scripts\python BackEnd\manage.py restore_backup --yes --file E:\MediFlowBackups\<newest file>.sql.gz
+```
+
+This **replaces everything** in the local database. Afterwards staff cannot sign in until the manager runs **Sync**, which brings the restored copy and the cloud back together. Anything done after the backup and before the failure is lost, so the Sync page always shows the time of the last backup honestly.
+
 ## If something is wrong
 
 | Problem | What to do |
@@ -72,11 +93,13 @@ Staff sign in with the same usernames and passwords as on the cloud.
 | Other PCs cannot connect | Use the address the window prints; check the firewall rule "MediFlow Clinic Server"; make sure the PC is on a **private** network profile. |
 | Pages do not load | The `dist-node` folder is missing or old. Rebuild and copy it (step 2). |
 | "Not linked to the cloud" | `CLOUD_API_URL`, `NODE_TOKEN` or `NODE_CLINIC_TIN` is empty in `BackEnd\.env`. |
-| After restoring a backup | Run `python manage.py flag_node_restore --tin <TIN> --branch <branch>`, then have the manager sync. |
+| After restoring a backup | `restore_backup` already requires a sync. If you restored another way, run `python manage.py flag_node_restore --tin <TIN> --branch <branch>`. |
+| "Backup failed: mysqldump was not found" | Add MySQL's `bin` folder to PATH, or set `MYSQLDUMP_PATH` in `BackEnd\.env`. |
+| "Second copy missing" | The USB drive is unplugged or full. Plug it in and press **Back up now**. |
 
 ## Known limits (v1)
 
-- Backups are **not** automated yet (phase 4). Until then, copy the database dump to another disk daily.
+- Backups are not encrypted and the cloud does not hold a copy yet (planned for v1.5). Keep the second disk somewhere safe.
 - There is no tray icon; the server window is the status.
 - Staff accounts are managed on the cloud. Accounts created or changed on the clinic server are not sent to the cloud.
-- The installer has been checked for syntax and its parts tested separately, but it has not been run on a clean PC.
+- The installer and the real `mysqldump` / restore have been checked for syntax and tested with simulated dumps, but not yet run on a clean PC against a real MySQL.

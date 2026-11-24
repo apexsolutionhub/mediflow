@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CircleCheck, CircleX, Cloud, Loader2, RefreshCw, Server, TriangleAlert } from "lucide-react";
+import { CircleCheck, CircleX, Cloud, DatabaseBackup, Loader2, RefreshCw, Server, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,9 +11,12 @@ import { apiErrorDetail } from "@/lib/parallelBatch";
 import {
   fetchSyncConflicts,
   fetchSyncStatus,
+  runBackup,
   runSync,
   summariseCounts,
   SYNC_ENTITY_LABELS,
+  type BackupState,
+  type BackupStatus,
   type SyncConflict,
   type SyncKind,
   type SyncRun,
@@ -61,11 +64,100 @@ function RunSteps({ run }: { run: SyncRun }) {
   );
 }
 
+const BACKUP_TONE: Record<BackupState, "green" | "orange" | "red"> = {
+  ok: "green",
+  stale: "orange",
+  failed: "red",
+  missing: "red",
+};
+
+const BACKUP_LABEL: Record<BackupState, string> = {
+  ok: "Backup OK",
+  stale: "Backup is old",
+  failed: "Last backup failed",
+  missing: "No backup yet",
+};
+
+function sizeText(bytes?: number | null) {
+  if (!bytes) return "";
+  return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function BackupPanel({
+  backup,
+  busy,
+  onBackup,
+}: {
+  backup: BackupStatus;
+  busy: boolean;
+  onBackup: () => void;
+}) {
+  const needsAttention = backup.state !== "ok";
+  return (
+    <SectionCard
+      kicker="Safety"
+      title="Backup"
+      description="Sync is not a backup. This copy of the clinic's data is kept on this server (and a second disk if one is set), so a broken PC loses at most a few hours."
+      action={
+        <Button type="button" variant="outline" className="h-10 rounded-xl" disabled={busy} onClick={onBackup}>
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <DatabaseBackup className="size-4" />}
+          Back up now
+        </Button>
+      }
+    >
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusPill tone={BACKUP_TONE[backup.state]}>{BACKUP_LABEL[backup.state]}</StatusPill>
+          <span className="text-sm text-muted-foreground">
+            Last backup: <span className="font-semibold text-primary">{when(backup.last_backup_at)}</span>
+            {backup.last_size ? ` · ${sizeText(backup.last_size)}` : ""}
+            {backup.count ? ` · ${backup.count} kept` : ""}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {backup.secondary_configured ? (
+            <>
+              <StatusPill tone={backup.secondary_ok === false ? "red" : backup.secondary_ok ? "green" : "orange"}>
+                {backup.secondary_ok === false ? "Second copy missing" : backup.secondary_ok ? "Second copy OK" : "Second copy waiting"}
+              </StatusPill>
+              <span className="text-sm text-muted-foreground">
+                Last copied: <span className="font-semibold text-primary">{when(backup.last_secondary_at)}</span>
+              </span>
+            </>
+          ) : (
+            <StatusPill tone="orange">No second disk set</StatusPill>
+          )}
+        </div>
+        {backup.last_error ? (
+          <Alert className="rounded-xl border-rose-200/80 bg-rose-50/70">
+            <CircleX className="text-rose-700" />
+            <AlertDescription className="leading-6">{backup.last_error}</AlertDescription>
+          </Alert>
+        ) : null}
+        {backup.secondary_error ? (
+          <Alert className="rounded-xl border-amber-200/80 bg-amber-50/70">
+            <TriangleAlert className="text-amber-700" />
+            <AlertDescription className="leading-6">{backup.secondary_error}</AlertDescription>
+          </Alert>
+        ) : null}
+        {needsAttention && !backup.last_error ? (
+          <p className="text-sm text-muted-foreground">
+            {backup.state === "missing"
+              ? "No backup has been made on this server. Press Back up now."
+              : "The last backup is more than a day and a half old. Check that the backup schedule is running."}
+          </p>
+        ) : null}
+      </div>
+    </SectionCard>
+  );
+}
+
 export function ManagerSyncPortal() {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState<SyncKind | null>(null);
+  const [backingUp, setBackingUp] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -98,6 +190,20 @@ export function ManagerSyncPortal() {
       toast.error(apiErrorDetail(error, "Could not start sync"));
     } finally {
       setBusy(null);
+      await load();
+    }
+  };
+
+  const backUpNow = async () => {
+    setBackingUp(true);
+    try {
+      const result = await runBackup();
+      if (result.ok) toast.success("Backup saved");
+      else toast.error("Backup failed", { description: result.detail });
+    } catch (error) {
+      toast.error(apiErrorDetail(error, "Could not back up"));
+    } finally {
+      setBackingUp(false);
       await load();
     }
   };
@@ -215,6 +321,8 @@ export function ManagerSyncPortal() {
         </SectionCard>
       ) : null}
 
+      {status.backup ? <BackupPanel backup={status.backup} busy={backingUp} onBackup={() => void backUpNow()} /> : null}
+
       <SectionCard kicker="History" title="Recent runs" description="The last ten sync attempts on this branch.">
         {status.runs.length === 0 ? (
           <EmptyState title="No runs yet" hint="Runs show up here once a sync has been started." />
@@ -235,6 +343,7 @@ export function ManagerSyncPortal() {
                           ? [
                               run.receipt.push ? `Sent: ${summariseCounts(run.receipt.push.counts)}` : "",
                               run.receipt.pull ? `Received: ${summariseCounts(run.receipt.pull.counts)}` : "",
+                              run.receipt.backup && !run.receipt.backup.ok ? "Backup before sync failed" : "",
                             ]
                               .filter(Boolean)
                               .join(" · ")

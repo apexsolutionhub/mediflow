@@ -14,9 +14,25 @@ export type SyncRun = {
   started_at: string;
   finished_at: string | null;
   receipt: {
+    /** The backup taken right before this sync. */
+    backup?: { ok: boolean; file: string; error: string };
     push?: { counts?: Record<string, Record<string, number>>; conflicts?: number };
     pull?: { counts?: Record<string, Record<string, number>>; conflicts?: number };
   };
+};
+
+export type BackupState = "ok" | "stale" | "failed" | "missing";
+
+export type BackupStatus = {
+  state: BackupState;
+  last_backup_at: string | null;
+  last_size: number | null;
+  last_error: string;
+  count: number;
+  secondary_configured: boolean;
+  secondary_ok: boolean | null;
+  secondary_error: string;
+  last_secondary_at: string | null;
 };
 
 export type SyncStatus = {
@@ -29,6 +45,8 @@ export type SyncStatus = {
   /** The step an approved mode change is waiting for. */
   awaiting_step: "seed" | "sync" | null;
   open_conflicts: number;
+  /** Only on a clinic server. */
+  backup: BackupStatus | null;
   runs: SyncRun[];
 };
 
@@ -61,6 +79,19 @@ export async function runSync(kind: SyncKind, runId?: string): Promise<SyncRun> 
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.push_status) {
       return error.response.data as SyncRun;
+    }
+    throw error;
+  }
+}
+
+/** Backs up the clinic database now. A failed backup is returned with the reason, not thrown. */
+export async function runBackup(): Promise<{ ok: boolean; backup: BackupStatus; detail?: string }> {
+  try {
+    const { data } = await api.post<{ backup: BackupStatus }>("/sync/backup/");
+    return { ok: true, backup: data.backup };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.backup) {
+      return { ok: false, backup: error.response.data.backup, detail: error.response.data.detail };
     }
     throw error;
   }

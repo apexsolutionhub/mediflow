@@ -9,7 +9,8 @@
   4. Creates the local database and applies migrations.
   5. Opens the firewall for the clinic network (private networks only).
   6. Runs the initial seed from the cloud (needs internet once).
-  7. Puts a "MediFlow" shortcut on the desktop; optionally starts it at sign-in.
+  7. Schedules a database backup every 4 hours (and to a second disk if you give one).
+  8. Puts a "MediFlow" shortcut on the desktop; optionally starts it at sign-in.
 
   Run it from an administrator PowerShell, from the repository folder:
     powershell -ExecutionPolicy Bypass -File clinic-node\install_clinic_node.ps1
@@ -19,7 +20,9 @@
 [CmdletBinding()]
 param(
   [switch]$AutoStart,
-  [switch]$SkipSeed
+  [switch]$SkipSeed,
+  # A second disk or USB drive for backup copies, e.g. E:\MediFlowBackups
+  [string]$BackupCopyDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -63,6 +66,7 @@ $systemPython = Get-Command python -ErrorAction SilentlyContinue
 if (-not $systemPython) { Fail "Python 3.12 or newer is not installed. Install it from python.org (tick 'Add to PATH'), then run this again." }
 $mysql = Get-Command mysql -ErrorAction SilentlyContinue
 if (-not $mysql) { Fail "MySQL 8 is not installed or 'mysql' is not on PATH. Install MySQL Server, then run this again." }
+if (-not (Get-Command mysqldump -ErrorAction SilentlyContinue)) { Fail "'mysqldump' was not found on PATH. It comes with MySQL Server; add its bin folder to PATH, then run this again." }
 if (-not (Test-Path (Join-Path $Root "dist-node\index.html"))) {
   Write-Host "Note: the web app (dist-node folder) was not found next to BackEnd. Copy it here before opening MediFlow." -ForegroundColor Yellow
 }
@@ -100,6 +104,7 @@ if (Test-Path $EnvFile) {
   $text = $text -replace "(?m)^CLOUD_API_URL=.*$", "CLOUD_API_URL=$cloud"
   $text = $text -replace "(?m)^NODE_TOKEN=.*$", "NODE_TOKEN=$token"
   $text = $text -replace "(?m)^DB_PASSWORD=.*$", "DB_PASSWORD=$dbPassword"
+  if ($BackupCopyDir) { $text = $text -replace "(?m)^BACKUP_COPY_DIR=.*$", "BACKUP_COPY_DIR=$BackupCopyDir" }
   Set-Content -Path $EnvFile -Value $text -Encoding UTF8
   Write-Host "Wrote BackEnd\.env"
 }
@@ -150,7 +155,24 @@ if ($SkipSeed) {
   } finally { Pop-Location }
 }
 
-# --- 7. Shortcut and optional auto-start ---
+# --- 7. Backups ---
+Step "Scheduling backups (every 4 hours)"
+if (-not $settings.BACKUP_COPY_DIR -and -not $BackupCopyDir) {
+  Write-Host "No second disk was given. Re-run with -BackupCopyDir E:\MediFlowBackups (a USB drive or second disk) so one failed disk cannot lose everything." -ForegroundColor Yellow
+}
+$backupAction = New-ScheduledTaskAction -Execute $Python -Argument "manage.py run_backup --reason scheduled" -WorkingDirectory $Backend
+$backupTrigger = New-ScheduledTaskTrigger -Once -At "06:00" -RepetitionInterval (New-TimeSpan -Hours 4) -RepetitionDuration (New-TimeSpan -Days 1)
+$backupSettings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+Register-ScheduledTask -TaskName "MediFlow Backup" -Action $backupAction -Trigger $backupTrigger -Settings $backupSettings -Force | Out-Null
+Write-Host "Backups run every 4 hours and are kept for $(if ($settings.BACKUP_KEEP_DAYS) { $settings.BACKUP_KEEP_DAYS } else { 7 }) days."
+Push-Location $Backend
+try {
+  $env:NODE_MODE = "clinic"
+  & $Python manage.py run_backup --reason install
+  if ($LASTEXITCODE -ne 0) { Write-Host "The first backup did not work. Fix the message above; the schedule will keep trying." -ForegroundColor Yellow }
+} finally { Pop-Location }
+
+# --- 8. Shortcut and optional auto-start ---
 Step "Shortcut"
 $starter = Join-Path $PSScriptRoot "start_clinic.bat"
 $shell = New-Object -ComObject WScript.Shell

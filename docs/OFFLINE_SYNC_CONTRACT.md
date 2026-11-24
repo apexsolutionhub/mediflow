@@ -340,6 +340,15 @@ Manager (MediFlow)          Apex (mediflow_admin)
 | **LAN hot spare** | Second low-cost PC with nightly replica (MySQL replication) — failover if reception disk dies. |
 | **UPS** | Battery backup on reception PC + router so sync/backup can finish during short outages. |
 
+### 11.1.1 How Tier 1 is implemented (v1.2)
+
+- A scheduled task dumps the database **every 4 hours** and the sync runner dumps it **before every manager-started sync** (`manage.py run_backup`). Dumps are gzip files checked after writing (readable, complete); a bad dump is discarded.
+- If `BACKUP_COPY_DIR` is set, each dump is copied there. An unavailable second location is a **warning**, not a failed backup.
+- Retention: all dumps of the last 24 hours, then the newest of each day for `BACKUP_KEEP_DAYS` (7).
+- A failed pre-sync backup **does not block** the sync (a broken backup tool must not lock a clinic out through the freshness rule); it is recorded on the sync run and shown to the manager.
+- Manager UI: backup state (`ok`, `stale` after 36 hours, `failed`, `missing`), last backup time and size, second-copy state, and **Back up now**.
+- Restore: `manage.py restore_backup --yes [--file …]` replaces the database and then requires a sync before staff can sign in.
+
 ### 11.4 Failure scenarios
 
 | Scenario | Expected behavior |
