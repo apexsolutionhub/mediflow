@@ -1,9 +1,9 @@
 # MediFlow Offline Sync Contract
 
-**Version:** 1.1  
-**Status:** Approved design (implementation pending)  
+**Version:** 1.2  
+**Status:** Approved design (implementation in progress)  
 **Audience:** Engineering partners, Apex ops, clinic IT  
-**Last updated:** 2026-08-31
+**Last updated:** 2026-11-24
 
 This document defines how **offline clinics** run MediFlow on a local server and how data moves between the **clinic node** and the **cloud**. Online-only tenants are unchanged: they always use the cloud API.
 
@@ -47,7 +47,9 @@ Each tenant has `ops_mode`:
 **Rules:**
 
 - A clinic never runs **both** cloud and local clinical writers at the same time.
-- **No mid-day mode flip.** Even if Apex approves `ops_mode` change (e.g. offline → online), the new mode takes effect **only after the next successful sync** (push + pull).
+- **No mid-day mode flip.** Even if Apex approves an `ops_mode` change, the new mode takes effect **only after the next successful sync**:
+  - **offline → online:** after a successful final **push + pull**.
+  - **online → offline:** after the clinic node is provisioned and the **initial seed pull** (§8.5) succeeds. Until then the request stays **approved, awaiting seed** and the tenant keeps working on the cloud. (v1.2: changed from "applies on approval".)
 - Mode change requires **manager request** in MediFlow and **Apex approval** in `mediflow_admin` (separate **Ops mode requests** page, not mixed with payment approvals).
 
 ---
@@ -133,29 +135,32 @@ Local clinic sees these on **pull**, not instantly.
 ### 6.2 What must not be overwritten blindly
 
 - **Payments** and **refunds:** append-only events; never delete or rewrite history.
-- **Stock:** apply **dispense deltas**, not “set on_hand = N” from a full replace.
+- **Stock:** never copy a stock number. Every change (receive, dispense, damage, adjustment) is an **append-only stock movement** with a `sync_uuid`. Sync merges movements; `on_hand` and `loose_stock` are recomputed from them (v1.2).
 - **Catalog:** cloud catalog wins on pull; local catalog edits sync up on push via upsert.
 
 ---
 
 ## 7. Natural keys (sync identity)
 
-Sync APIs use **TIN-scoped natural keys**, not raw integer primary keys.
+Sync APIs use **scope-qualified natural keys**, not raw integer primary keys.
 
-| Entity | Natural key (examples) |
-|--------|-------------------------|
-| Tenant scope | `clinic_tin` (+ `branch_name` when multi-branch is explicit) |
-| Patient | `(clinic_tin, mrn)` |
-| Encounter | `(clinic_tin, encounter_number)` — field `number` in DB |
-| Billable service | `(clinic_tin, code)` |
-| Department | `(clinic_tin, name)` |
-| Medicine / SKU | `(clinic_tin, sku)` or agreed code field |
-| Staff user | `(clinic_tin, username)` |
-| Payment | `(clinic_tin, receipt_number)` or stable UUID (to be assigned) |
-| Clinical order | `(clinic_tin, encounter_number, order_ref)` — `order_ref` to be added if missing |
-| Tenant payment submission | Normal cloud model; synced as normal `TenantPaymentSubmission` |
+**Scope.** A clinic node's scope is `(clinic_tin, branch_name)`. Every key below is that scope plus the business key. The TIN is always present: if a clinic signs up without one, the system **generates a unique TIN** (`GEN-` + 10 hex characters) at registration, so the scope is never blank. Branches that have their own TIN use it; branches without one share the organization TIN and are told apart by `branch_name`.
 
-**Rule:** New records created offline must generate **stable IDs** (UUID or deterministic refs) before push so retries do not duplicate rows.
+| Entity | Natural key (after scope) |
+|--------|---------------------------|
+| Patient | `mrn` |
+| Encounter | `number` (encounter number) |
+| Billable service | `code` |
+| Department | `name` |
+| Supplier | `supplier_name` |
+| Medicine | `(name, batch_number, supplier)` |
+| Staff user | `username` |
+| Tenant payment submission | Normal cloud model; synced as a normal `TenantPaymentSubmission` |
+| Payments, refunds, clinical orders, nurse notes, appointments, referrals, stock movements, damages | **No reliable business key** — generated `sync_uuid` (see rule) |
+
+**Rule:** Records with no unique business key get an immutable `sync_uuid` at creation, before push, so retries never duplicate rows. `sku` is legacy and is not used for sync identity.
+
+**Merge metadata.** Every synced model carries `updated_at` and a soft-delete marker `deleted_at` (so a delete made offline is not undone by the next pull). Ordering uses the cloud's receipt time, not the clinic PC's clock.
 
 ---
 
@@ -207,6 +212,16 @@ Sync APIs use **TIN-scoped natural keys**, not raw integer primary keys.
 - Insert if missing on cloud.
 - Conflicts → `sync_conflict` log for manager review (no silent merge).
 
+Per-entity rules (v1.2):
+
+| Entity | Rule |
+|--------|------|
+| Payments, refunds, stock movements, damages | Append-only; insert if the `sync_uuid` is new, never update |
+| Encounter, clinical order | Status moves **forward only** |
+| Patient, catalog (services, medicines, suppliers, departments) | **Cloud wins** on pull; local edits upsert on push |
+| Staff credentials and roles | Cloud wins |
+| Rows changed locally since the last push | A pull must **not** overwrite them; they go to the next push or to `sync_conflict` |
+
 ### 8.4 Sync freshness (login gate)
 
 Let `D` = **days until due** (trial end or subscription end).
@@ -222,6 +237,14 @@ If exceeded:
 - **Manager:** may open **Sync** and **Billing** (if payment lockout) only until sync completes.
 
 After **PC failure / restore:** first action when node is back = **sync** (same blocking rules).
+
+How it is enforced (v1.2):
+
+- The gate exists only on a **clinic server** for a tenant in `offline` mode. The cloud and online tenants are never gated.
+- "Calendar days" are counted by date, from the last successful sync. A server that has **never** synced is overdue (it needs its initial seed first).
+- **Staff:** sign-in is refused with a message, and a session started earlier gets `403` on every clinic API call.
+- **Manager:** signs in with access mode `sync_required` and may open **Sync**, **Billing** and **Account** only; clinic API calls are refused.
+- **Restore:** `manage.py flag_node_restore --tin … --branch …` (run by the restore kit) marks the server as needing a sync; the flag clears when a sync completes.
 
 ### 8.5 Initial go-live (seed)
 
@@ -241,6 +264,8 @@ Before first offline clinic day:
 | **Before hard due date** | Same; local `TenantPaymentSubmission` rows sync on push as **normal** submissions. |
 | **Hard payment lockout** (trial expired, grace ended, etc.) | Payment proof and approval checks hit **cloud only** (HTTPS). Manager payment portal on cloud until Apex approves. |
 | **Staff during lockout** | Blocked (existing `resolve_login_access` rules). |
+
+During a **hard lockout** the clinic server does not trust its own copy: `GET /billing/me/` and the payment-proof submit are forwarded to the cloud (`/api/sync/billing/status/` and `/billing/submit/`, node token). If the cloud is unreachable the submit fails with `503` ("needs the internet") and nothing is stored locally. In the **warning window** the proof is stored locally and sent in the next push; the cloud files it once (matched by kind and transaction reference) and returns its verdict in the push receipt, which the node mirrors.
 
 Passwords on clinic node: **hashed** (Django-compatible), not decryptable. After pull, credential changes from cloud apply **before next login**.
 
@@ -283,7 +308,7 @@ Manager (MediFlow)          Apex (mediflow_admin)
 ```
 
 - **Offline → online:** Final sync must succeed so cloud has all local data before switching daily use to cloud.
-- **Online → offline:** After approval, initial **seed pull** to new node before enabling sticky local.
+- **Online → offline:** After approval the request is **approved, awaiting seed**. The tenant stays online until the node is provisioned and the initial **seed pull** succeeds; only then does `ops_mode` become `offline`.
 
 ---
 
@@ -343,9 +368,21 @@ Endpoints to implement on **cloud** (clinic node calls when online):
 
 | Endpoint | Purpose |
 |----------|---------|
-| `POST /api/sync/push/` | Body: tenant payload keyed by natural keys; returns push receipt + conflicts. |
-| `POST /api/sync/pull/` | Returns full tenant snapshot or delta since `last_sync_token`. |
-| `GET /api/sync/status/` | Last sync time, freshness, pending conflicts. |
+| `POST /api/sync/push/` | Node token. Body: `push_id`, `since_token`, rows per entity (each with `sync_uuid`, `stamp`, `data`, `refs`, `users`). Applied all-or-nothing; returns a receipt (counts, conflicts, `remap` of ids the cloud already had). A repeated `push_id` returns the first receipt. |
+| `POST /api/sync/pull/` | Node token. Returns the branch's rows (all, or changed since `since_token`), staff with password hashes, the tenant snapshot, and a new `token`. |
+| `POST /api/sync/complete/` | Node token. The node applied its pull: records the sync and applies an approved mode change waiting on this step (`seed` or `sync`). |
+| `GET /api/sync/status/` | Manager. Last sync time, seeded or not, the step a mode change is waiting for, open conflicts, recent runs. |
+| `POST /api/sync/run/`, `POST /api/sync/seed/` | Manager, clinic node only. Runs push → pull → complete; a failed run is retried by passing its `run_id`. |
+
+A node authenticates with `Authorization: Node <token>`; tokens are issued per `(clinic_tin, branch_name)` by `manage.py issue_sync_node`. Staff password changes made on a node are **not** pushed in v1.2; staff credentials are cloud-wins on pull.
+
+Authentication and safety (v1.2):
+
+- The clinic node calls these endpoints with its own **node token** (issued by Apex for one `(clinic_tin, branch_name)` scope), not a staff JWT. The cloud rejects any row outside that scope.
+- Every push carries a `push_id`. The cloud stores a receipt per `push_id`, so a retried push is applied once.
+- A pull is applied in checkpointed steps, so a failure part-way is resumable and never leaves the node half-updated.
+- The clinic deployment runs with `NODE_MODE=clinic`: signup, Apex admin and tenant creation are disabled, and only its own scope is served.
+- The frontend reads its API base at runtime (`/api` on a node), so one build serves both cloud and node.
 
 Clinic node stores locally:
 
@@ -393,6 +430,7 @@ Clinic node stores locally:
 - Automatic nightly sync without manager action (reminder only in v1)  
 - HTTPS on LAN (deferred to v1.5)  
 - Full conflict-resolution UI beyond list + manual fix  
+- Off-site backup upload, MySQL hot spare, backup encryption and the tray icon (deferred to v1.5)  
 
 ---
 
@@ -400,7 +438,7 @@ Clinic node stores locally:
 
 | Phase | Deliverable |
 |-------|-------------|
-| **0** | Natural keys + UUIDs on new entities; `sync_runs` tables |
+| **0** | `sync_uuid`, `updated_at`, `deleted_at` on synced models; stock movement ledger; generated TIN; ops-mode "awaiting seed" rule; `sync_runs` tables |
 | **1** | Cloud push/pull APIs + manager Sync UI |
 | **2** | Login freshness gates + billing lockout cloud path |
 | **3** | Clinic host installer (MySQL + Django + static frontend + browser launch) |
@@ -414,6 +452,7 @@ Clinic node stores locally:
 
 | Version | Date | Notes |
 |---------|------|-------|
+| 1.2 | 2026-11-24 | Scope-qualified natural keys + `sync_uuid` for keyless rows; generated TIN when blank; stock movement ledger; per-entity merge rules; node token, push idempotency, `NODE_MODE`; online→offline waits for seed |
 | 1.1 | 2026-08-31 | §6.3 — chat cloud-only; password + notifications local real-time for offline tenants |
 | 1.0 | 2026-08-28 | Initial contract from product/architecture review |
 

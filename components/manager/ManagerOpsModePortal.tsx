@@ -10,7 +10,6 @@ import {
   HardDrive,
   Loader2,
   RefreshCw,
-  Server,
   ShieldCheck,
   TriangleAlert,
   CircleCheck,
@@ -51,6 +50,7 @@ import {
   CLINIC_OPS_MODE_LABELS,
   CLINIC_OPS_MODE_SHORT_LABELS,
   OPS_MODE_REQUEST_STATUS_LABELS,
+  opsModeAwaitedStep,
   opsModeTransitionSummary,
   parseClinicOpsMode,
   type ClinicOpsMode,
@@ -145,14 +145,6 @@ const RequestHistoryRow = memo(function RequestHistoryRow({ row }: { row: OpsMod
             <span className="font-medium text-primary">{CLINIC_OPS_MODE_SHORT_LABELS[from]}</span>
             <ArrowRight className="size-3.5 text-muted-foreground" />
             <span className="font-medium text-primary">{CLINIC_OPS_MODE_SHORT_LABELS[to]}</span>
-            {row.applies_immediately ? (
-              <Badge
-                variant="outline"
-                className="h-auto border-cta/20 bg-cta/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800"
-              >
-                No sync
-              </Badge>
-            ) : null}
           </div>
           {row.request_note ? (
             <p className="text-sm leading-6 text-muted-foreground">{row.request_note}</p>
@@ -194,11 +186,11 @@ function WorkflowSteps({
 }) {
   const transition = opsModeTransitionSummary(from, to);
 
-  const steps = transition.appliesOnApprovalWithoutSync
+  const steps = transition.toOffline
     ? [
         { icon: ShieldCheck, title: "Submit to Apex", detail: "Explain why you need offline LAN operation." },
         { icon: Clock, title: "Apex approval", detail: "Apex reviews your request." },
-        { icon: Server, title: "Offline goes live", detail: "On approval, offline mode starts — no sync step." },
+        { icon: RefreshCw, title: "Initial seed", detail: "Set up the reception server and seed it — offline mode starts after the seed completes." },
       ]
     : [
         { icon: ShieldCheck, title: "Submit to Apex", detail: "Explain why you are ready for cloud mode again." },
@@ -260,8 +252,8 @@ export function ManagerOpsModePortal() {
       setNote("");
       setConfirmOpen(false);
       toast.success("Request sent to Apex", {
-        description: transition.appliesOnApprovalWithoutSync
-          ? "After Apex approves, offline mode starts right away — no sync required."
+        description: transition.toOffline
+          ? "After Apex approves, run the initial seed. Offline mode starts when the seed completes."
           : "After Apex approves, complete a full sync before cloud mode is active.",
       });
     } catch (error: unknown) {
@@ -322,7 +314,7 @@ export function ManagerOpsModePortal() {
         <Alert className="rounded-2xl border-emerald-200/80 bg-emerald-50/80">
           <CircleCheck className="text-emerald-700" />
           <AlertTitle className="flex flex-wrap items-center gap-2 text-emerald-950">
-            <StatusPill tone="green">Approved — sync required</StatusPill>
+            <StatusPill tone="green">Approved — awaiting {opsModeAwaitedStep(status.approved_awaiting_sync.requested_ops_mode)}</StatusPill>
             <span className="text-sm font-medium">
               {CLINIC_OPS_MODE_SHORT_LABELS[parseClinicOpsMode(status.approved_awaiting_sync.current_ops_mode)]}
             </span>
@@ -332,9 +324,9 @@ export function ManagerOpsModePortal() {
             </span>
           </AlertTitle>
           <AlertDescription className="leading-6">
-            Apex approved your return to cloud mode. Run a full sync (push + pull) from the sync
-            portal when your reception server is ready — staff stay on offline LAN until sync
-            completes.
+            {opsModeAwaitedStep(status.approved_awaiting_sync.requested_ops_mode) === "seed"
+              ? "Apex approved offline mode. Set up your reception server and run the initial seed — your clinic keeps working on the cloud until the seed completes."
+              : "Apex approved your return to cloud mode. Run a full sync (push + pull) from the sync portal when your reception server is ready — staff stay on offline LAN until sync completes."}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -403,7 +395,7 @@ export function ManagerOpsModePortal() {
                 id="ops-note"
                 className="min-h-24 rounded-xl"
                 placeholder={
-                  transition.appliesOnApprovalWithoutSync
+                  transition.toOffline
                     ? "e.g. Unreliable internet — need offline LAN with evening sync"
                     : "e.g. Stable fiber installed — ready to return staff to cloud URLs"
                 }
@@ -417,8 +409,8 @@ export function ManagerOpsModePortal() {
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold text-primary">{transition.headline}</span>
                 {" — "}
-                {transition.appliesOnApprovalWithoutSync
-                  ? "Both directions need Apex approval; offline starts on approval without sync."
+                {transition.toOffline
+                  ? "Going offline needs Apex approval and a successful initial seed; you keep using the cloud until then."
                   : "Returning to cloud always needs Apex approval and a successful sync after."}
               </p>
               <Button
@@ -449,7 +441,9 @@ export function ManagerOpsModePortal() {
             {status.pending_request
               ? "Your request is with Apex for review."
               : status.approved_awaiting_sync
-                ? "Apex approved your return to cloud — complete a full sync first."
+                ? opsModeAwaitedStep(status.approved_awaiting_sync.requested_ops_mode) === "seed"
+                  ? "Apex approved offline mode — complete the initial seed first."
+                  : "Apex approved your return to cloud — complete a full sync first."
                 : "Check the status banners above for details."}
           </p>
         </SectionCard>
@@ -499,11 +493,12 @@ export function ManagerOpsModePortal() {
           <AlertDialogHeader>
             <AlertDialogTitle>Submit mode change to Apex?</AlertDialogTitle>
             <AlertDialogDescription className="leading-6">
-              {transition.appliesOnApprovalWithoutSync ? (
+              {transition.toOffline ? (
                 <>
                   Apex will review your request to move to{" "}
-                  <strong>{CLINIC_OPS_MODE_LABELS.offline}</strong>. If approved, offline mode
-                  starts immediately — no sync step. Until then, the clinic stays on cloud mode.
+                  <strong>{CLINIC_OPS_MODE_LABELS.offline}</strong>. If approved, you must
+                  run the initial seed on your reception server before offline mode starts. Until then,
+                  the clinic stays on cloud mode.
                 </>
               ) : (
                 <>

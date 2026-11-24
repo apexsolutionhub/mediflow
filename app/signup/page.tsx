@@ -320,8 +320,8 @@ function SignupPageContent() {
                         control={form.control}
                         name="clinic_tin"
                         fieldType={formFieldTypes.INPUT}
-                        label="Clinic TIN"
-                        placeholder="0000000000"
+                        label="Clinic TIN (optional)"
+                        placeholder="Leave blank and we will generate one"
                       />
                       <CustomFormField
                         control={form.control}

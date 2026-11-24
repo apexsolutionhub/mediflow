@@ -5,7 +5,7 @@ export default function ManagerOpsModePage() {
   return (
     <ClinicShell
       title="Operating mode"
-      subtitle="All mode changes go through Apex. Online → offline applies on approval; offline → online needs approval plus sync."
+      subtitle="All mode changes go through Apex. Going offline waits for the initial seed; going online waits for a final sync."
     >
       <ManagerOpsModePortal />
     </ClinicShell>

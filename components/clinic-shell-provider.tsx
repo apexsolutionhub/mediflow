@@ -37,7 +37,13 @@ import {
   type BillingSnapshot,
   type ClinicUser,
 } from "@/lib/api";
-import { isClinicSessionAllowed, renewalGatePath, sessionRecoveryPath, signupGatePath } from "@/lib/tenant-access";
+import {
+  isClinicSessionAllowed,
+  isSyncRequiredPathAllowed,
+  renewalGatePath,
+  sessionRecoveryPath,
+  signupGatePath,
+} from "@/lib/tenant-access";
 import { requiresSetupPaymentPortal } from "@/lib/tenantProvisioning";
 import { isSetupPaymentBlocking, isSubscriptionPaymentBlocking } from "@/lib/billing-access";
 import { applyCatalogFeesToBilling } from "@/lib/billing-fees";
@@ -211,6 +217,10 @@ function NavLinks({
 
 export function ClinicShellProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
   const router = useRouter();
   const managerBillingLoaded = useRef(false);
   // Server and first client render must match; saved session is read after mount.
@@ -291,6 +301,9 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
         if (data.access_mode === "payment_portal") {
           router.replace("/billing");
         }
+        if (data.access_mode === "sync_required" && !isSyncRequiredPathAllowed(pathnameRef.current)) {
+          router.replace("/manager/sync");
+        }
         return data;
       } catch {
         return null;
@@ -331,9 +344,18 @@ export function ClinicShellProvider({ children }: { children: React.ReactNode })
       return;
     }
 
-    if (mode === "payment_portal") {
-      router.replace("/billing");
-      return;
+    if (mode === "sync_required") {
+      // An overdue offline clinic: the manager can only open Sync and Billing until a sync completes.
+      if (!isSyncRequiredPathAllowed(pathname)) {
+        router.replace("/manager/sync");
+        return;
+      }
+    } else if (mode === "payment_portal") {
+      // Locked for payment: Billing, plus Sync so an overdue server can still be fixed.
+      if (pathname !== "/manager/sync") {
+        router.replace("/billing");
+        return;
+      }
     }
 
     if (!isClinicSessionAllowed(stored, current)) {

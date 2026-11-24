@@ -35,22 +35,19 @@ export function isOfflineClinicOpsMode(mode: unknown): boolean {
   return parseClinicOpsMode(mode) === "offline";
 }
 
-/**
- * Online → offline: Apex approval applies the change (no sync wait).
- * Offline → online: Apex approval, then manager must sync before cloud mode is live.
- */
-export function appliesOnApexApprovalWithoutSync(from: unknown, to: unknown): boolean {
-  return (
-    parseClinicOpsMode(from) === "online" && parseClinicOpsMode(to) === "offline"
-  );
+/** No mode change is immediate: going offline waits for the initial seed, going online for the final sync. */
+export function appliesOnApexApprovalWithoutSync(_from: unknown, _to: unknown): boolean {
+  return false;
 }
 
 /** @deprecated Use appliesOnApexApprovalWithoutSync */
-export function isImmediateOpsModeTransition(
-  from: unknown,
-  to: unknown,
-): boolean {
+export function isImmediateOpsModeTransition(from: unknown, to: unknown): boolean {
   return appliesOnApexApprovalWithoutSync(from, to);
+}
+
+/** The step an approved change waits for: "seed" when going offline, "sync" when going online. */
+export function opsModeAwaitedStep(to: unknown): "seed" | "sync" {
+  return parseClinicOpsMode(to) === "offline" ? "seed" : "sync";
 }
 
 export function opsModeTransitionSummary(
@@ -58,21 +55,24 @@ export function opsModeTransitionSummary(
   to: unknown,
 ): {
   appliesOnApprovalWithoutSync: boolean;
+  toOffline: boolean;
   headline: string;
   detail: string;
 } {
-  const current = parseClinicOpsMode(from);
   const target = parseClinicOpsMode(to);
-  if (appliesOnApexApprovalWithoutSync(current, target)) {
+  void from;
+  if (target === "offline") {
     return {
-      appliesOnApprovalWithoutSync: true,
-      headline: "Apex review, then offline goes live",
+      appliesOnApprovalWithoutSync: false,
+      toOffline: true,
+      headline: "Apex review, then seed",
       detail:
-        "Submit to Apex for review. Once approved, your clinic switches to offline mode right away — no sync step.",
+        "Submit to Apex for review. After approval, set up your reception server and run the initial seed — offline mode starts only when the seed completes. Until then you keep working on the cloud.",
     };
   }
   return {
     appliesOnApprovalWithoutSync: false,
+    toOffline: false,
     headline: "Apex review, then sync",
     detail:
       "Submit to Apex for review. After approval, run a full push + pull sync — cloud mode starts only when sync completes.",
@@ -81,7 +81,7 @@ export function opsModeTransitionSummary(
 
 export const OPS_MODE_REQUEST_STATUS_LABELS: Record<string, string> = {
   pending: "Awaiting Apex",
-  approved: "Approved — sync required",
+  approved: "Approved — awaiting seed or sync",
   applied: "Active",
   rejected: "Rejected",
   cancelled: "Cancelled",

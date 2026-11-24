@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Package,
   Pill,
+  RefreshCw,
   ScanLine,
   Share2,
   Tags,
@@ -39,6 +40,7 @@ export const MANAGER_NAV: ClinicNavItem[] = [
   { href: "/manager/referrals", label: "Referrals", icon: Share2 },
   { href: "/manager/requests", label: "Requests", icon: Wrench },
   { href: "/manager/ops-mode", label: "Operating mode", icon: Server },
+  { href: "/manager/sync", label: "Sync", icon: RefreshCw },
 ];
 
 export const RECEPTION_NAV: ClinicNavItem[] = [

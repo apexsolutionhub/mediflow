@@ -21,7 +21,15 @@ export type LoginPayload = {
   access_mode: string;
   billing: BillingSnapshot;
   pending_submission?: PendingPaymentSubmission | null;
+  sync_gate?: { applies: boolean; overdue: boolean; reason: string | null; max_days?: number } | null;
 };
+
+/** Pages a manager can still open while an offline clinic server is overdue for a sync. */
+export const SYNC_REQUIRED_PATHS = ["/manager/sync", "/billing", "/account"];
+
+export function isSyncRequiredPathAllowed(pathname: string): boolean {
+  return SYNC_REQUIRED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
 
 export type LoginAccessDecision =
   | {
@@ -91,6 +99,14 @@ export function evaluateLoginAccess(payload: LoginPayload): LoginAccessDecision 
       message:
         "Clinic access is currently disabled. Contact Apex support if you need help.",
       username: user.username,
+    };
+  }
+
+  if (payload.access_mode === "sync_required" && role === "manager") {
+    return {
+      allowed: true,
+      destination: "/manager/sync",
+      accessMode: "sync_required",
     };
   }
 

@@ -1,0 +1,3 @@
+-r ../BackEnd/requirements.txt
+# Production web server for the clinic PC (pure Python, runs on Windows).
+waitress>=3.0,<4.0
