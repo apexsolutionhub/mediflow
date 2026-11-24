@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 import { ClinicShell } from "@/components/clinic-shell";
 import { ManagerOpsModeOverviewTeaser } from "@/components/manager/ManagerOpsModePortal";
+import { SyncReminderBanner } from "@/components/manager/SyncReminderBanner";
 import { SectionCard, StatTile, StatusPill } from "@/components/ui-chrome";
 import {
   buildSeries,
@@ -79,6 +80,8 @@ export default function ManagerOverviewPage() {
       title="Overview"
       subtitle="Clinic health at a glance — queues, payments, stock, and revenue."
     >
+      <SyncReminderBanner />
+
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatTile label="Today visits" value={stats.today_encounters ?? "—"} tone="navy" />
         <StatTile label="Open encounters" value={stats.open_encounters ?? "—"} tone="navy" />

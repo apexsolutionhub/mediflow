@@ -1,3 +1,5 @@
+import axios from "axios";
+
 import { api } from "@/lib/api";
 
 export type ClinicFeedbackMessage = {
@@ -18,9 +20,17 @@ export type ClinicFeedbackThread = {
   clinic_name: string;
 };
 
+/**
+ * On a clinic server the chat lives in the cloud only: when the cloud cannot be reached the chat is
+ * unavailable (nothing is queued), and the server says so with this code.
+ */
+export function isCloudUnreachable(error: unknown): boolean {
+  return axios.isAxiosError(error) && error.response?.data?.code === "cloud_unreachable";
+}
+
 export async function fetchClinicFeedbackUnread() {
-  const { data } = await api.get<{ unread_count: number }>("/billing/feedback/unread/");
-  return data.unread_count;
+  const { data } = await api.get<{ unread_count: number; cloud_unreachable?: boolean }>("/billing/feedback/unread/");
+  return { count: data.unread_count, cloudUnreachable: Boolean(data.cloud_unreachable) };
 }
 
 export async function fetchClinicFeedbackThread() {

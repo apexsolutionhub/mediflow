@@ -73,6 +73,13 @@ Staff sign in with the same usernames and passwords as on the cloud.
 - The manager sees **Backup OK / old / failed / none yet** on the **Sync** page, with the last backup time and whether the second copy worked, and can press **Back up now**.
 - A failed backup before a sync does **not** stop the sync (so a broken backup tool cannot lock the clinic out), but it is shown in red. Fix it the same day.
 
+### Encryption and an off-site copy
+
+- **Encryption.** Every backup is encrypted (AES-256) with the **backup passphrase**. The installer generates it and shows it **once**; write it down and give it to the manager. **Without the passphrase no backup can be restored, by anyone.** It is also saved in `BackEnd\.env`, but that file lives on the PC that may be the thing that failed.
+- **Off-site copy (optional, recommended).** Each encrypted backup can also be uploaded to storage outside the clinic, so a fire or theft does not take the backups with the PC. Any S3-compatible service works (Cloudflare R2, Backblaze B2, AWS S3, MinIO). Create a bucket and an access key limited to that bucket, then fill in `BACKUP_S3_ENDPOINT`, `BACKUP_S3_BUCKET`, `BACKUP_S3_ACCESS_KEY` and `BACKUP_S3_SECRET_KEY` in `BackEnd\.env`. **Only encrypted backups are ever uploaded**; with no passphrase set, nothing is sent. The upload never blocks a backup: if the internet is down the local copy is still made and the Sync page shows "Off-site copy failed".
+- Old off-site copies are not deleted by MediFlow. Add a lifecycle rule on the bucket (for example, delete after 30 days).
+- The Sync page shows **Encrypted / Not encrypted** and **Off-site copy OK / failed / none**.
+
 ### Restoring after a disk failure
 
 The full procedure, for each situation, is in **`CLINIC_RESTORE_KIT.md`** (keep a printed copy with the backups). In short, on the new or repaired PC install (steps 2-3), then restore the newest backup and sync:
@@ -99,7 +106,8 @@ This **replaces everything** in the local database. Afterwards staff cannot sign
 
 ## Known limits (v1)
 
-- Backups are not encrypted and the cloud does not hold a copy yet (planned for v1.5). Keep the second disk somewhere safe.
+- A lost backup passphrase cannot be recovered. Keep it with the manager, separate from the PC.
 - There is no tray icon; the server window is the status.
-- Staff accounts are managed on the cloud. Accounts created or changed on the clinic server are not sent to the cloud.
+- Staff accounts are managed on the cloud. On a clinic server only passwords can be changed (and that change is sent to the cloud at the next sync); adding, removing or changing the role of staff is done on the cloud and arrives with the next sync.
+- Deleting a record (a supplier, a medicine, a service...) is carried to the other side at the next sync. A deleted record's name or code can be used again straight away.
 - The installer and the real `mysqldump` / restore have been checked for syntax and tested with simulated dumps, but not yet run on a clean PC against a real MySQL.

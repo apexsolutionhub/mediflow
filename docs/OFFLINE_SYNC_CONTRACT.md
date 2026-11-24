@@ -166,6 +166,14 @@ Sync APIs use **scope-qualified natural keys**, not raw integer primary keys.
 
 ## 8. Sync protocol
 
+### 8.0 Reminders and warnings (v1.2)
+
+The manager overview shows a **morning reminder** when no sync succeeded since yesterday at noon, and a **freshness warning** when a day or less remains before staff are locked out (or when they already are). The Sync page carries the same data (`freshness`: days left, maximum, overdue).
+
+### 8.0.1 Deletions (v1.2)
+
+Deleting a synced record is a **soft delete**: the row keeps its identity with `deleted_at` set and is hidden from every ordinary query, and the deletion travels in the next sync like any other change. A deletion wins over an edit made on the other side, a deleted record is never brought back by a stale copy, and a deletion of a record a side never had is ignored. A record with a unique name or code (supplier, service, department) is renamed on delete so the name or code can be reused at once. Stock movements for a deleted medicine are still applied.
+
 ### 8.1 Trigger
 
 - **Manual:** Manager clicks **Sync now** in manager portal.
@@ -357,6 +365,10 @@ Manager (MediFlow)          Apex (mediflow_admin)
 
 A conflict is logged whenever a row changed on both sides would otherwise be overwritten. One copy is kept on both sides after the sync (the cloud copy when the cloud found the conflict while pushing; the clinic server copy when the server found it while pulling), and the other version is kept in the conflict record. The clinic manager sees every conflict on the **Sync** page with the differing fields side by side, and marks it **reviewed** (with an optional note) after entering the other version again by hand if it was the right one. A conflict found by the cloud is sent back in the push receipt so the clinic server shows it too. The same row conflicting again updates its open entry; once reviewed, a new conflict opens a new entry. There is no automatic merge and no "apply the other version" button in v1.
 
+### 11.2.3 Encryption and off-site copy (v1.2)
+
+Backups are encrypted at rest with AES-256-GCM (key from a passphrase by scrypt; chunked and authenticated, so a changed, reordered or cut-off file is rejected). The passphrase is generated at install, shown once, and kept by the manager: **losing it makes every backup unreadable**. If `BACKUP_S3_*` is set, each encrypted backup is also uploaded to S3-compatible storage; **an unencrypted backup is never uploaded**, an upload failure never fails the local backup, and old off-site copies are expired by a lifecycle rule on the bucket, not by MediFlow. Restore, `verify_backup` and the restore script handle encrypted backups (the restore script asks for the passphrase if `.env` is gone).
+
 ### 11.4 Failure scenarios
 
 | Scenario | Expected behavior |
@@ -391,7 +403,7 @@ Endpoints to implement on **cloud** (clinic node calls when online):
 | `GET /api/sync/status/` | Manager. Last sync time, seeded or not, the step a mode change is waiting for, open conflicts, recent runs. |
 | `POST /api/sync/run/`, `POST /api/sync/seed/` | Manager, clinic node only. Runs push → pull → complete; a failed run is retried by passing its `run_id`. |
 
-A node authenticates with `Authorization: Node <token>`; tokens are issued per `(clinic_tin, branch_name)` by `manage.py issue_sync_node`. Staff password changes made on a node are **not** pushed in v1.2; staff credentials are cloud-wins on pull.
+A node authenticates with `Authorization: Node <token>`; tokens are issued per `(clinic_tin, branch_name)` by `manage.py issue_sync_node`. A **password** changed on a node is pushed (as a hash, never a plain password) and wins if it is newer than the cloud's; everything else about staff (new accounts, removal, role, active) is managed on the cloud and copied down, and the clinic server refuses those changes so a sync cannot silently undo them.
 
 Authentication and safety (v1.2):
 
@@ -448,7 +460,7 @@ Clinic node stores locally:
 - Automatic nightly sync without manager action (reminder only in v1)  
 - HTTPS on LAN (deferred to v1.5)  
 - Full conflict-resolution UI beyond list + manual fix  
-- Off-site backup upload, MySQL hot spare, backup encryption and the tray icon (deferred to v1.5)  
+- MySQL hot spare and the tray icon (deferred to v1.5)  
 
 ---
 
@@ -463,6 +475,7 @@ Clinic node stores locally:
 | **4** | Backup automation + manager backup status |
 | **5** | Ops mode request/approval in MediFlow + mediflow_admin |
 | **6** | Conflict review (list, differences, mark reviewed) + restore kit (script, verify command, documentation, drill) |
+| **7** | Spec leftovers (morning reminder, freshness warning, cloud-only chat with an unreachable state, local password change and bell), deletions and staff passwords, encrypted backups with an off-site copy; real backup and restore drill |
 
 ---
 

@@ -47,6 +47,19 @@ if (-not $BackupFile) {
 if (-not (Test-Path $BackupFile)) { Fail "Backup file not found: $BackupFile" }
 Write-Host "Using $BackupFile"
 
+# An encrypted backup needs its passphrase. Normally it is in BackEnd\.env; on a rebuilt PC it may not be.
+$header = [byte[]]::new(5)
+$stream = [IO.File]::OpenRead($BackupFile)
+try { [void]$stream.Read($header, 0, 5) } finally { $stream.Dispose() }
+if ([Text.Encoding]::ASCII.GetString($header) -eq "MFBK1" -and -not $settings.BACKUP_PASSPHRASE) {
+  Write-Host "This backup is encrypted and BackEnd\.env has no BACKUP_PASSPHRASE." -ForegroundColor Yellow
+  $secure = Read-Host "Enter the backup passphrase the manager keeps" -AsSecureString
+  $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+  try { $env:BACKUP_PASSPHRASE = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
+  finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
+  Write-Host "(After the restore, add BACKUP_PASSPHRASE to BackEnd\.env so new backups are encrypted with it too.)"
+}
+
 # --- 2. Check it before touching anything ---
 Step "Checking the backup is complete"
 Push-Location $Backend

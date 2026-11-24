@@ -17,10 +17,11 @@ The Sync page always shows the time of the **last backup** and the **last sync**
 ## The kit (keep it somewhere other than the reception PC)
 
 1. **The MediFlow folder**, including `dist-node` (a zip copy is fine).
-2. **Backups** on the second disk or USB drive (`mediflow-<date>-<time>-<reason>.sql.gz`).
-3. **A copy of `BackEnd\.env`**, kept private (it holds the database password and the node token). If it is lost it is not a disaster: Apex issues a new token (Ops mode requests, Clinic server, replace the token) and you choose a new database password at install.
-4. **The clinic TIN and branch name**, and how to reach Apex.
-5. **This page**, printed.
+2. **Backups** on the second disk or USB drive (`mediflow-<date>-<time>-<reason>.sql.gz.enc`), and the off-site copies if you set them up.
+3. **The backup passphrase**, written down and kept by the manager **away from the PC**. Encrypted backups cannot be read without it; nobody can recover it for you.
+4. **A copy of `BackEnd\.env`**, kept private (it holds the database password and the node token). If it is lost it is not a disaster: Apex issues a new token (Ops mode requests, Clinic server, replace the token) and you choose a new database password at install.
+5. **The clinic TIN and branch name**, and how to reach Apex.
+6. **This page**, printed.
 
 ## A. Restore on the same PC
 
@@ -79,5 +80,5 @@ A backup that has never been restored is only a hope.
 
 ## Known limits
 
-- Backups are not encrypted, and the cloud does not hold a copy of them yet (planned). Keep the second disk somewhere safe.
+- A backup is only as safe as its passphrase: lose it and the backups are useless. The off-site copy is only as current as the last time the clinic had internet.
 - The restore script and a real `mysqldump` backup have been tested with simulated dumps. Do the first drill soon, on a spare PC, before you depend on it.

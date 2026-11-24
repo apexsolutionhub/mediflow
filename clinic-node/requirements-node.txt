@@ -1,3 +1,5 @@
 -r ../BackEnd/requirements.txt
 # Production web server for the clinic PC (pure Python, runs on Windows).
 waitress>=3.0,<4.0
+# AES encryption for backups (clinic/backup_crypto.py).
+cryptography>=43,<47

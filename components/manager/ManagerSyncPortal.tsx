@@ -132,6 +132,34 @@ function BackupPanel({
             <StatusPill tone="orange">No second disk set</StatusPill>
           )}
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusPill tone={backup.encryption_on ? "green" : "orange"}>
+            {backup.encryption_on ? "Encrypted" : "Not encrypted"}
+          </StatusPill>
+          {backup.offsite_configured ? (
+            <>
+              <StatusPill tone={backup.offsite_ok === false ? "red" : backup.offsite_ok ? "green" : "orange"}>
+                {backup.offsite_ok === false ? "Off-site copy failed" : backup.offsite_ok ? "Off-site copy OK" : "Off-site copy waiting"}
+              </StatusPill>
+              <span className="text-sm text-muted-foreground">
+                Last uploaded: <span className="font-semibold text-primary">{when(backup.last_offsite_at)}</span>
+              </span>
+            </>
+          ) : (
+            <StatusPill tone="muted">No off-site copy</StatusPill>
+          )}
+        </div>
+        {!backup.encryption_on ? (
+          <p className="text-xs text-muted-foreground">
+            Backups hold every patient record. Turn on encryption (a backup passphrase) before sending copies off the clinic server.
+          </p>
+        ) : null}
+        {backup.offsite_error ? (
+          <Alert className="rounded-xl border-amber-200/80 bg-amber-50/70">
+            <TriangleAlert className="text-amber-700" />
+            <AlertDescription className="leading-6">{backup.offsite_error}</AlertDescription>
+          </Alert>
+        ) : null}
         {backup.last_error ? (
           <Alert className="rounded-xl border-rose-200/80 bg-rose-50/70">
             <CircleX className="text-rose-700" />

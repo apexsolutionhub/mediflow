@@ -33,6 +33,27 @@ export type BackupStatus = {
   secondary_ok: boolean | null;
   secondary_error: string;
   last_secondary_at: string | null;
+  /** New backups are encrypted (a passphrase is set). */
+  encryption_on: boolean;
+  /** The last backup that succeeded was encrypted. */
+  last_encrypted: boolean;
+  offsite_configured: boolean;
+  offsite_ok: boolean | null;
+  offsite_error: string;
+  last_offsite_at: string | null;
+};
+
+/** How close the clinic server is to being closed to staff, and whether last night's sync was missed. */
+export type SyncFreshness = {
+  applies: boolean;
+  /** Show the reminder: last night's sync was missed, or the clinic is overdue. */
+  due: boolean;
+  /** One day or less left before staff are locked out, or already overdue. */
+  warn: boolean;
+  overdue: boolean;
+  days_left: number | null;
+  max_days: number | null;
+  reason: "missed_last_night" | "overdue" | null;
 };
 
 export type SyncStatus = {
@@ -45,6 +66,7 @@ export type SyncStatus = {
   /** The step an approved mode change is waiting for. */
   awaiting_step: "seed" | "sync" | null;
   open_conflicts: number;
+  freshness: SyncFreshness;
   /** Only on a clinic server. */
   backup: BackupStatus | null;
   runs: SyncRun[];

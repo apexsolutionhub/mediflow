@@ -32,6 +32,7 @@ import { isCloudinaryConfigured, uploadImageToCloudinary } from "@/lib/cloudinar
 import {
   fetchClinicFeedbackThread,
   fetchClinicFeedbackUnread,
+  isCloudUnreachable,
   sendClinicFeedbackMessage,
   type ClinicFeedbackMessage,
 } from "@/lib/feedback-api";
@@ -116,7 +117,10 @@ export function ClinicFeedbackCenter({
   className?: string;
   onNavigate?: () => void;
 }) {
-  const cloudOnline = useBrowserOnline();
+  const browserOnline = useBrowserOnline();
+  // On a clinic server the browser is online (the LAN) while the cloud may not be: the server tells us.
+  const [cloudReachable, setCloudReachable] = useState(true);
+  const cloudOnline = browserOnline && cloudReachable;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -133,8 +137,9 @@ export function ClinicFeedbackCenter({
 
   const refreshUnread = useCallback(async () => {
     try {
-      const count = await fetchClinicFeedbackUnread();
+      const { count, cloudUnreachable } = await fetchClinicFeedbackUnread();
       setUnreadCount(count);
+      setCloudReachable(!cloudUnreachable);
     } catch {
       /* ignore polling errors */
     }
@@ -147,15 +152,17 @@ export function ClinicFeedbackCenter({
       setThreadStatus(data.thread.status);
       setMessages(data.messages);
       setUnreadCount(data.unread_count);
-    } catch {
-      toast.error("Could not load chat messages");
+      setCloudReachable(true);
+    } catch (error) {
+      if (isCloudUnreachable(error)) setCloudReachable(false);
+      else toast.error("Could not load chat messages");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (!cloudOnline) {
+    if (!browserOnline) {
       setUnreadCount(0);
       return;
     }
@@ -164,7 +171,7 @@ export function ClinicFeedbackCenter({
       if (!open) void refreshUnread();
     }, 30000);
     return () => window.clearInterval(id);
-  }, [cloudOnline, open, refreshUnread]);
+  }, [browserOnline, open, refreshUnread]);
 
   useEffect(() => {
     if (!open) return;
@@ -191,7 +198,7 @@ export function ClinicFeedbackCenter({
   }, [messages]);
 
   const canSend =
-    Boolean(draft.trim() || pendingImageUrls.length) && !sending && !uploadingImage;
+    cloudReachable && Boolean(draft.trim() || pendingImageUrls.length) && !sending && !uploadingImage;
   const atImageLimit = pendingImageUrls.length >= FEEDBACK_MAX_IMAGES;
 
   const handleSend = async () => {
@@ -212,8 +219,13 @@ export function ClinicFeedbackCenter({
       setPendingImageUrls([]);
       await loadThread();
       await refreshUnread();
-    } catch {
-      toast.error("Could not send message");
+    } catch (error) {
+      if (isCloudUnreachable(error)) {
+        setCloudReachable(false);
+        toast.error("Apex chat needs the internet. Nothing was sent; your message is still here.");
+      } else {
+        toast.error("Could not send message");
+      }
     } finally {
       setSending(false);
     }
@@ -359,6 +371,13 @@ export function ClinicFeedbackCenter({
         </SheetHeader>
 
         <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          {!cloudReachable ? (
+            <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 px-4 py-3 text-sm leading-6 text-amber-950">
+              Apex chat needs the internet. It is unavailable while the clinic cannot reach the cloud, and messages are
+              never saved for later. It comes back by itself when the connection does.
+            </div>
+          ) : null}
+
           {loading && messages.length === 0 ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
               <Spinner className="size-5" />
@@ -406,7 +425,7 @@ export function ClinicFeedbackCenter({
                     size="icon"
                     className="absolute -top-2 -right-2 size-6 rounded-full shadow-sm"
                     aria-label={`Remove image ${index + 1}`}
-                    disabled={sending || uploadingImage}
+                    disabled={sending || uploadingImage || !cloudReachable}
                     onClick={() => removePendingImage(index)}
                   >
                     <X className="size-3.5" />
@@ -422,7 +441,7 @@ export function ClinicFeedbackCenter({
             placeholder="Write to Apex…"
             rows={3}
             maxLength={4000}
-            disabled={sending || uploadingImage}
+            disabled={sending || uploadingImage || !cloudReachable}
             className="min-h-10 resize-none"
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {

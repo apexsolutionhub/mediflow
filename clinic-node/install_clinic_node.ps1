@@ -22,7 +22,9 @@ param(
   [switch]$AutoStart,
   [switch]$SkipSeed,
   # A second disk or USB drive for backup copies, e.g. E:\MediFlowBackups
-  [string]$BackupCopyDir = ""
+  [string]$BackupCopyDir = "",
+  # Use this backup passphrase instead of generating one
+  [string]$BackupPassphrase = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -105,6 +107,19 @@ if (Test-Path $EnvFile) {
   $text = $text -replace "(?m)^NODE_TOKEN=.*$", "NODE_TOKEN=$token"
   $text = $text -replace "(?m)^DB_PASSWORD=.*$", "DB_PASSWORD=$dbPassword"
   if ($BackupCopyDir) { $text = $text -replace "(?m)^BACKUP_COPY_DIR=.*$", "BACKUP_COPY_DIR=$BackupCopyDir" }
+
+  # Backups hold every patient record, so they are encrypted. The passphrase is shown once and must be kept.
+  $alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no look-alike characters (0/O, 1/I)
+  $groups = 1..5 | ForEach-Object { -join (1..5 | ForEach-Object { $alphabet[(Get-Random -Maximum $alphabet.Length)] }) }
+  $backupPassphrase = if ($BackupPassphrase) { $BackupPassphrase } else { $groups -join "-" }
+  $text = $text -replace "(?m)^BACKUP_PASSPHRASE=.*$", "BACKUP_PASSPHRASE=$backupPassphrase"
+  Write-Host "`n=============================================================" -ForegroundColor Yellow
+  Write-Host " BACKUP PASSPHRASE (shown only now):" -ForegroundColor Yellow
+  Write-Host "   $backupPassphrase" -ForegroundColor White
+  Write-Host " Write it down and give it to the clinic manager to keep safe." -ForegroundColor Yellow
+  Write-Host " Without it, NO backup can be restored. Nobody can recover it." -ForegroundColor Yellow
+  Write-Host "=============================================================" -ForegroundColor Yellow
+  do { $ack = Read-Host "Type YES when you have written it down" } until ($ack -eq "YES")
   Set-Content -Path $EnvFile -Value $text -Encoding UTF8
   Write-Host "Wrote BackEnd\.env"
 }
