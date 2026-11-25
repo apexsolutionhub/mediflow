@@ -83,6 +83,14 @@ if ($LASTEXITCODE -ne 0) { Fail "Installing the backend's requirements failed." 
 # --- 3. Settings ---
 Step "Clinic settings"
 $dbPassword = $null
+# A BackEnd\.env copied from a developer PC points at the cloud database. Never reuse it: the installer would
+# create databases and users on that server. Only a file made for a clinic server (NODE_MODE=clinic) is kept.
+if ((Test-Path $EnvFile) -and ((Get-Content $EnvFile -Raw) -notmatch "(?m)^\s*NODE_MODE\s*=\s*clinic\s*$")) {
+  $aside = "$EnvFile.not-clinic-" + (Get-Date -Format "yyyyMMddHHmmss")
+  Move-Item $EnvFile $aside
+  Write-Host "Found a BackEnd\.env that is not for a clinic server (it may point at the cloud database)." -ForegroundColor Yellow
+  Write-Host "Moved it aside to $aside and starting fresh. Delete that file when you are done: it holds cloud secrets." -ForegroundColor Yellow
+}
 if (Test-Path $EnvFile) {
   Write-Host "BackEnd\.env already exists, keeping it."
 } else {

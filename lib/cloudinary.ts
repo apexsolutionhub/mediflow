@@ -23,13 +23,21 @@ export async function uploadImageToCloudinary(
     formData.append("folder", opts.folder);
   }
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-    {
-      method: "POST",
-      body: formData,
-    },
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+  } catch {
+    // The browser could not reach Cloudinary: typically a clinic server with no internet right now.
+    throw new Error(
+      "Photo upload needs the internet. Save without the photo, or add it later when you are online.",
+    );
+  }
 
   const data = await response.json();
 

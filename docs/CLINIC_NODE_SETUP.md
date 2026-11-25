@@ -32,25 +32,77 @@ The token is not a database login. The clinic server sends it with every sync ca
 
 Approving does **not** switch the clinic. It keeps working on the cloud until its server is installed and the initial seed in step 4 finishes; the request then shows as applied. The branch name in the token must match the one entered at install.
 
-### 2. Build the web app (on a developer PC)
+### 2. Build the web app (on the developer PC, once per release)
+
+**What it is.** The MediFlow web app normally runs on the cloud (Vercel) and needs Node.js. A clinic server has no Node.js, so we first turn the web app into plain files (HTML, JavaScript, images) that the clinic's own backend can hand out. That folder is called `dist-node`.
+
+**Where.** On the PC where you develop MediFlow (the one with the project folder and `node_modules`). **Not** on the reception PC.
+
+**How.** In the MediFlow project folder:
 
 ```powershell
 npm run build:node
 ```
 
-This makes `dist-node/` (plain files, no Node.js needed on the clinic PC). Copy it next to the `BackEnd` folder on the reception PC.
+It deletes the old `dist-node` folder, builds the app with its API address set to `/api` (the same address the page was loaded from, so it talks to the clinic's own backend and never to the cloud), and writes the result to `dist-node/` in the project folder. It takes a few minutes. When it finishes, `dist-node\index.html` exists.
+
+**Then get it onto the reception PC.** `dist-node` is not stored in git (it is rebuilt each time), so cloning the repository does not bring it. Copy the **whole MediFlow folder** to the reception PC (for example to `C:\MediFlow`) with a USB drive or a network share, and make sure it contains these three folders side by side:
+
+```
+C:\MediFlow\
+  BackEnd\        the Django backend
+  clinic-node\    the installer and starter scripts
+  dist-node\      the web app you just built
+```
+
+**Do not copy these** (they are your developer settings, and some point at the cloud database):
+
+- `BackEnd\.env` and any `.env.local` / `.env*` file, in the project root or in `BackEnd`. The web app does not need `.env.local` on the clinic PC (it is already built into `dist-node`), and the installer writes a fresh `BackEnd\.env` for the clinic. As a safety net the installer moves aside any `BackEnd\.env` that does not say `NODE_MODE=clinic`, but never rely on that: leave the file out.
+- `node_modules` and `BackEnd\venv` (the installer builds its own `venv`; a copied one has paths from your PC and breaks).
+- `BackEnd\backups` and any `__pycache__` folders.
+
+Rebuild and recopy `dist-node` whenever the web app changes; the backend needs nothing else.
 
 ### 3. Install (on the reception PC)
 
-Open PowerShell **as Administrator** in the MediFlow folder:
+**What it is.** One script that turns a plain Windows PC into the clinic server: it installs the backend's Python packages, creates the local database, writes the settings file, opens the network port, copies the clinic's data from the cloud, schedules backups and puts a **MediFlow** shortcut on the desktop. You run it once per PC.
+
+**Before you start, have these ready:**
+
+| Needed by the installer | Where it comes from |
+|---|---|
+| Python 3.12+ and MySQL Server 8 installed on this PC | Installed by you first (see "What you need" above) |
+| The MediFlow folder with `BackEnd`, `clinic-node` and `dist-node` | Step 2 |
+| Clinic TIN | The clinic's TIN as shown in Apex (the branch's own TIN for a branch) |
+| Branch name | Exactly the branch name in the token window / Apex Clinic server panel (usually `Main`) |
+| Node token | The "Copy this token now" window from step 1 |
+| MySQL `root` password | Set when MySQL was installed |
+| A USB drive or second disk (optional but recommended) | For backup copies, for example `E:\MediFlowBackups` |
+| Internet, once | For the first copy of the clinic's data |
+
+**How.** Open PowerShell **as Administrator** (right-click, Run as administrator) in the MediFlow folder on the reception PC:
 
 ```powershell
+cd C:\MediFlow
 powershell -ExecutionPolicy Bypass -File clinic-node\install_clinic_node.ps1 -BackupCopyDir E:\MediFlowBackups
 ```
 
-It asks for the clinic TIN, branch name, node token and two passwords (a new one for the local database, and the MySQL `root` password, used only to create that database). Then it installs the backend, creates the database, opens the firewall port for **private networks only**, runs the seed, and puts a **MediFlow** shortcut on the desktop. Add `-AutoStart` to start MediFlow when the PC user signs in. `-BackupCopyDir` is the second disk or USB drive for backups; the installer also schedules a backup every 4 hours and takes the first one.
+**What it asks you, in order:**
 
-The installer can be run again; it keeps what already exists.
+1. *Clinic TIN* and *Branch name*: from the table above.
+2. *Cloud API address*: press Enter to accept the default (the live MediFlow cloud).
+3. *Node token*: paste the token (typing is hidden). This is the only place the token is entered; the installer saves it as `NODE_TOKEN` in `BackEnd\.env`.
+4. *A password for the local database*: invent one. The clinic server uses it to talk to its own MySQL; nobody types it again.
+5. It then shows the **backup passphrase** once. Write it down and give it to the manager, then type `YES`.
+6. *MySQL root password*: used only to create the clinic's database, then forgotten.
+
+**What it does after that, by itself:** installs the backend packages, creates the database `mediflow_clinic`, applies the database structure, opens the firewall port on **private networks only**, runs the initial seed, schedules a backup every 4 hours (and takes the first one), and adds the **MediFlow** shortcut to the desktop. Add `-AutoStart` to also start MediFlow when the PC user signs in. `-BackupCopyDir` is the second disk or USB drive for backup copies.
+
+**How you know it worked.** The last line says `Done. Open the MediFlow shortcut. Other PCs connect to http://<address>/`. If the seed line shows a warning, the PC had no internet or the token was wrong: fix it and run `BackEnd\venv\Scripts\python BackEnd\manage.py node_sync --seed` (step 4).
+
+The installer can be run again; it keeps what already exists (it will not ask for the token again if `BackEnd\.env` is already there, so to change the token edit `NODE_TOKEN` in that file).
+
+**Testing on your own PC.** You can follow the same steps on your development PC to try a clinic server: use a different folder for the copy, a separate local MySQL database (not the cloud database), and set `CLOUD_API_URL=http://localhost:8000/api` so it talks to your local cloud backend. The clinic server and the cloud backend must be different databases.
 
 ### 4. First start
 
@@ -118,6 +170,7 @@ This **replaces everything** in the local database. Afterwards staff cannot sign
 
 - A lost backup passphrase cannot be recovered. Keep it with the manager, separate from the PC.
 - There is no tray icon; the server window is the status.
+- **Photos need the internet.** Pictures (medicine photos, radiology images, logos, chat attachments) are stored on Cloudinary, not on the clinic server. Without internet, uploading a photo shows "Photo upload needs the internet. Save without the photo, or add it later when you are online", and photos already uploaded do not display. Everything else works offline. Saving images on the clinic server itself was considered and left out: it makes the database and backups much heavier.
 - Staff accounts are managed on the cloud. On a clinic server only passwords can be changed (and that change is sent to the cloud at the next sync); adding, removing or changing the role of staff is done on the cloud and arrives with the next sync.
 - Deleting a record (a supplier, a medicine, a service...) is carried to the other side at the next sync. A deleted record's name or code can be used again straight away.
 - The installer and the real `mysqldump` / restore have been checked for syntax and tested with simulated dumps, but not yet run on a clean PC against a real MySQL.
