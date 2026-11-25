@@ -9,6 +9,8 @@ const nodeBuild = process.env.NEXT_OUTPUT === "export";
 
 const nextConfig: NextConfig = {
   ...(nodeBuild ? { output: "export" as const, trailingSlash: true, distDir: "dist-node" } : {}),
+  // Lets client code know it is the static clinic-server build (see the sidebar's Link prefetch).
+  env: { NEXT_PUBLIC_NODE_BUILD: nodeBuild ? "1" : "" },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
     // The image optimizer is a server feature; a static export serves images as they are.

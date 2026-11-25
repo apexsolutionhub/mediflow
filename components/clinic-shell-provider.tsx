@@ -187,7 +187,10 @@ function NavLinks({
             key={item.href}
             href={item.href}
             onClick={onNavigate}
-            prefetch
+            // The static clinic-server build does a HEAD probe and several fetches per prefetched link; with
+            // a dozen sidebar links at once, a cancelled prefetch can leave a click doing nothing. There, a
+            // click simply loads the page (the files are on the same PC, so it is instant).
+            prefetch={process.env.NEXT_PUBLIC_NODE_BUILD ? false : true}
             className={cn(
               "group/nav relative flex cursor-pointer items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium transition-all duration-200",
               depth > 0 && "py-1.5 text-[13px]",
