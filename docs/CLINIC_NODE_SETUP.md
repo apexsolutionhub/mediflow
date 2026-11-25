@@ -18,7 +18,17 @@ For an **offline clinic** (operating mode `offline`): one reception PC runs Medi
 
 ### 1. Apex approves the change and issues the node token (on the cloud)
 
-The manager requests **offline mode** in MediFlow (Operating mode). In the Apex console, open **Ops mode requests**, approve the request, then press **Clinic server** on that row and **Issue token** for the branch. The token is shown once; give it to the clinic. (The command line does the same: `python manage.py issue_sync_node --tin <clinic TIN> --branch "<branch name>"`.)
+The token is made for you at the moment the clinic becomes offline in Apex, and shown **once** in a "Copy this token now" window:
+
+- the manager requests **offline mode** in MediFlow and Apex approves the request in **Ops mode requests**;
+- Apex creates a clinic as offline;
+- a clinic that signed up as offline has its setup payment approved.
+
+Give the token to the clinic. If it is lost, open the clinic's page in Apex, press **Clinic server**, revoke it and issue a new one (the same panel also issues tokens for a clinic that has none). The command line does the same: `python manage.py issue_sync_node --tin <clinic TIN> --branch "<branch name>"`.
+
+**One token per branch.** Every branch has its own TIN (a branch added without one gets a generated `GEN-…` TIN) and so its own account, billing, online/offline mode and token. A TIN never changes once a branch has data, so type the real one when creating the branch.
+
+The token is not a database login. The clinic server sends it with every sync call (`Authorization: Node <token>`); the cloud compares its hash and syncs only that branch. The manager never pastes it when pressing Sync: it lives in `NODE_TOKEN` in `BackEnd/.env` on the reception PC (the installer asks for it). If Apex revokes or replaces it, the Sync page says so in plain words and the fix is one step: put the new token in `NODE_TOKEN` and restart the server.
 
 Approving does **not** switch the clinic. It keeps working on the cloud until its server is installed and the initial seed in step 4 finishes; the request then shows as applied. The branch name in the token must match the one entered at install.
 

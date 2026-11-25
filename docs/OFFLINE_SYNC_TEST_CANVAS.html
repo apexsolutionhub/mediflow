@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediFlow Offline Sync – Test Canvas</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --bg-grad: radial-gradient(1200px 500px at 85% -10%, #dfe7ff 0%, transparent 60%), radial-gradient(900px 420px at -10% 10%, #d8f5ee 0%, transparent 55%);
+    --card: #ffffff;
+    --card-2: #f8faff;
+    --ink: #172033;
+    --muted: #64708a;
+    --line: #e3e8f3;
+    --brand: #4f46e5;
+    --brand-2: #0ea5a4;
+    --pass: #16a34a;
+    --pass-soft: #e6f7ec;
+    --fail: #dc2626;
+    --fail-soft: #fdeaea;
+    --note: #d97706;
+    --shadow: 0 1px 2px rgba(23, 32, 51, .05), 0 8px 24px -12px rgba(23, 32, 51, .18);
+    --radius: 18px;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1220;
+    --bg-grad: radial-gradient(1100px 520px at 90% -10%, #1d2a5a 0%, transparent 60%), radial-gradient(900px 420px at -10% 5%, #0e3b3b 0%, transparent 55%);
+    --card: #151c30;
+    --card-2: #1a2340;
+    --ink: #e8ecf8;
+    --muted: #93a0bf;
+    --line: #26304f;
+    --brand: #818cf8;
+    --brand-2: #2dd4bf;
+    --pass: #34d399;
+    --pass-soft: #11382c;
+    --fail: #f87171;
+    --fail-soft: #3d1a1d;
+    --note: #fbbf24;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px -12px rgba(0, 0, 0, .6);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--bg) var(--bg-grad) no-repeat fixed;
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 38px 0 18px; }
+  .eyebrow { display: inline-flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--brand); }
+  .eyebrow::before { content: ""; width: 26px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+  h1 { margin: 10px 0 6px; font-size: clamp(28px, 4.4vw, 42px); line-height: 1.1; letter-spacing: -.02em; }
+  h1 span { background: linear-gradient(90deg, var(--brand), var(--brand-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { margin: 0; max-width: 62ch; color: var(--muted); font-size: 16px; }
+  .topbar { display: flex; justify-content: flex-end; gap: 8px; padding-top: 14px; }
+
+  /* ---------- progress ---------- */
+  .progress-card {
+    position: sticky; top: 10px; z-index: 20;
+    display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: center;
+    margin: 14px 0 22px; padding: 18px 22px;
+    background: color-mix(in srgb, var(--card) 88%, transparent);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow);
+  }
+  .ring { position: relative; width: 112px; height: 112px; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .track { stroke: var(--line); }
+  .ring .bar { stroke: url(#grad); transition: stroke-dashoffset .7s cubic-bezier(.2, .8, .2, 1); }
+  .ring .label { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring .pct { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+  .ring .pct small { font-size: 14px; font-weight: 700; color: var(--muted); }
+  .p-title { font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .p-main { margin: 2px 0 10px; font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+  .p-main em { font-style: normal; color: var(--pass); }
+  .meter { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; display: flex; }
+  .meter i { display: block; height: 100%; transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+  .meter .m-pass { background: linear-gradient(90deg, var(--brand-2), var(--pass)); }
+  .meter .m-fail { background: var(--fail); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 99px; background: var(--card-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--muted); }
+  .chip b { color: var(--ink); font-size: 14px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.pass { background: var(--pass); } .dot.fail { background: var(--fail); } .dot.note { background: var(--note); }
+
+  /* ---------- tester info + toolbar ---------- */
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 18px; }
+  .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  label.f { display: grid; gap: 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  input[type=text], textarea, select {
+    width: 100%; font: inherit; color: var(--ink); background: var(--card-2);
+    border: 1px solid var(--line); border-radius: 12px; padding: 9px 12px; outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 18%, transparent); }
+  textarea { resize: vertical; min-height: 44px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .seg { display: inline-flex; background: var(--card-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; gap: 2px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 9px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 4px rgba(0, 0, 0, .12); }
+  .search { flex: 1; min-width: 180px; }
+  .btn { font: inherit; font-size: 13px; font-weight: 700; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; transition: transform .1s, box-shadow .15s, border-color .15s; }
+  .btn:hover { border-color: var(--brand); box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--brand) 60%, transparent); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; border-color: transparent; }
+  .btn.ghost { background: transparent; }
+
+  /* ---------- sections ---------- */
+  details.section { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+  details.section > summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: auto 1fr auto auto; gap: 14px; align-items: center; padding: 16px 18px; }
+  details.section > summary::-webkit-details-marker { display: none; }
+  .s-ico { width: 44px; height: 44px; display: grid; place-items: center; font-size: 22px; border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 16%, var(--card)), color-mix(in srgb, var(--brand-2) 16%, var(--card))); }
+  .s-title { font-size: 17px; font-weight: 800; letter-spacing: -.01em; }
+  .s-blurb { font-size: 13.5px; color: var(--muted); }
+  .s-count { font-size: 13px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+  .s-count.done { color: var(--pass); }
+  .s-mini { width: 74px; height: 7px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .s-mini i { display: block; height: 100%; background: linear-gradient(90deg, var(--brand-2), var(--pass)); transition: width .5s; }
+  .chev { transition: transform .2s; color: var(--muted); }
+  details[open] .chev { transform: rotate(90deg); }
+  .items { border-top: 1px solid var(--line); }
+
+  /* ---------- feature rows ---------- */
+  .item { display: grid; grid-template-columns: auto 1fr; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--line); transition: background .2s; }
+  .item:last-child { border-bottom: 0; }
+  .item.pass { background: color-mix(in srgb, var(--pass-soft) 55%, transparent); }
+  .item.fail { background: color-mix(in srgb, var(--fail-soft) 70%, transparent); }
+  .check { position: relative; width: 28px; height: 28px; margin-top: 2px; }
+  .check input { position: absolute; inset: 0; opacity: 0; cursor: pointer; margin: 0; z-index: 2; }
+  .check .box { position: absolute; inset: 0; border-radius: 9px; border: 2px solid var(--line); background: var(--card); display: grid; place-items: center; transition: all .18s; }
+  .check .box svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 3.2; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset .25s .05s; }
+  .check input:hover + .box { border-color: var(--brand); }
+  .check input:focus-visible + .box { box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent); }
+  .check input:checked + .box { background: linear-gradient(135deg, var(--brand-2), var(--pass)); border-color: transparent; transform: scale(1.04); }
+  .check input:checked + .box svg { stroke-dashoffset: 0; }
+  .row1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+  .i-title { font-size: 15.5px; font-weight: 750; letter-spacing: -.005em; }
+  .tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: color-mix(in srgb, var(--brand) 12%, var(--card)); color: var(--brand); white-space: nowrap; }
+  .tag.net { background: color-mix(in srgb, var(--note) 16%, var(--card)); color: var(--note); }
+  .i-how { margin: 4px 0 0; font-size: 13.5px; color: var(--muted); }
+  .i-how b { color: var(--ink); font-weight: 700; }
+  .i-expect { margin: 4px 0 0; font-size: 13.5px; }
+  .i-expect b { color: var(--pass); }
+  .row-actions { display: flex; align-items: center; gap: 8px; margin: 10px 0 8px; }
+  .failbtn { font: inherit; font-size: 12px; font-weight: 800; padding: 4px 11px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--muted); cursor: pointer; transition: all .15s; }
+  .failbtn:hover { border-color: var(--fail); color: var(--fail); }
+  .failbtn[aria-pressed="true"] { background: var(--fail); border-color: var(--fail); color: #fff; }
+  .state { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .item.pass .state { color: var(--pass); } .item.fail .state { color: var(--fail); }
+  .when { font-size: 11.5px; color: var(--muted); }
+  .item textarea { font-size: 13.5px; }
+  .empty { padding: 36px 18px; text-align: center; color: var(--muted); }
+  .hidden { display: none !important; }
+
+  /* ---------- celebration ---------- */
+  .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+  .confetti i { position: absolute; top: -20px; width: 9px; height: 15px; border-radius: 2px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: .9; } }
+  .toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 30px); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-size: 14px; font-weight: 700; opacity: 0; transition: all .3s; z-index: 70; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 720px) {
+    .progress-card { grid-template-columns: 1fr; justify-items: center; text-align: center; position: static; }
+    .info { grid-template-columns: 1fr; }
+    details.section > summary { grid-template-columns: auto 1fr auto; }
+    .s-mini { display: none; }
+    .chips { justify-content: center; }
+  }
+  @media print {
+    body { background: #fff; } .topbar, .toolbar-panel, .row-actions .failbtn { display: none; }
+    .progress-card { position: static; } details.section { break-inside: avoid; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="topbar"><button class="btn ghost" id="theme" type="button" aria-label="Switch light or dark">🌗 Theme</button></div>
+    <span class="eyebrow">MediFlow · Offline sync contract v1.2</span>
+    <h1>Test <span>Canvas</span></h1>
+    <p class="lead">Tick each feature when it works. If something doesn't, press <b>Didn't work</b> and write what you saw. Your progress saves in this browser automatically, and you can copy the whole report to send back.</p>
+  </header>
+
+  <!-- progress indicator -->
+  <section class="progress-card" aria-live="polite" aria-label="Progress">
+    <div class="ring">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs>
+        <circle class="track" cx="60" cy="60" r="52" fill="none" stroke-width="11"/>
+        <circle class="bar" id="ringBar" cx="60" cy="60" r="52" fill="none" stroke-width="11" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+      </svg>
+      <div class="label"><div class="pct"><span id="pct">0</span><small>%</small></div></div>
+    </div>
+    <div>
+      <div class="p-title">Features that passed the test</div>
+      <div class="p-main"><em id="nPass">0</em> of <span id="nTotal">0</span> passed</div>
+      <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="meter">
+        <i class="m-pass" id="mPass" style="width:0"></i><i class="m-fail" id="mFail" style="width:0"></i>
+      </div>
+      <div class="chips">
+        <span class="chip"><span class="dot pass"></span>Passed <b id="cPass">0</b></span>
+        <span class="chip"><span class="dot fail"></span>Didn't work <b id="cFail">0</b></span>
+        <span class="chip"><span class="dot"></span>Not tested <b id="cTodo">0</b></span>
+        <span class="chip"><span class="dot note"></span>With feedback <b id="cNote">0</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- tester info -->
+  <section class="panel">
+    <div class="info">
+      <label class="f">Tester<input type="text" id="who" placeholder="Your name"></label>
+      <label class="f">Date<input type="text" id="date" placeholder="e.g. 2026-11-25"></label>
+      <label class="f">Environment<input type="text" id="env" placeholder="PC, MySQL version, network…"></label>
+    </div>
+  </section>
+
+  <!-- filters -->
+  <section class="panel toolbar-panel">
+    <div class="toolbar">
+      <div class="seg" id="filters" role="group" aria-label="Filter">
+        <button type="button" data-f="all" aria-pressed="true">All</button>
+        <button type="button" data-f="todo" aria-pressed="false">Not tested</button>
+        <button type="button" data-f="pass" aria-pressed="false">Passed</button>
+        <button type="button" data-f="fail" aria-pressed="false">Didn't work</button>
+        <button type="button" data-f="note" aria-pressed="false">With feedback</button>
+      </div>
+      <input class="search" type="text" id="q" placeholder="Search features…" aria-label="Search features">
+      <button class="btn" id="toggleAll" type="button">Collapse all</button>
+    </div>
+  </section>
+
+  <main id="sections"></main>
+
+  <section class="panel" style="margin-top:22px">
+    <label class="f">Overall feedback<textarea id="overall" rows="3" placeholder="Anything that does not belong to a single feature: how it felt, what confused you, what you would change…"></textarea></label>
+    <div class="toolbar" style="margin-top:14px">
+      <button class="btn primary" id="copy" type="button">📋 Copy report</button>
+      <button class="btn" id="download" type="button">⬇ Download report (.md)</button>
+      <button class="btn ghost" id="print" type="button">🖨 Print</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost" id="reset" type="button">Reset everything</button>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* =====================================================================
+   The features. Edit freely: ids must stay unique and stable so saved
+   ticks and notes keep matching their feature.
+   tags: apex = Apex console · server = clinic server · cloud = MediFlow cloud
+         net = needs internet · pc = needs a second PC / real install
+   ===================================================================== */
+const SECTIONS = [
+  { id: "setup", icon: "🧱", title: "Foundations", blurb: "Clinic identity, stock history and the operating-mode rule.", items: [
+    { id: "tin-generated", title: "A clinic can sign up without a TIN", tags: ["cloud"],
+      how: "Open the signup page and leave the Clinic TIN empty; finish signup.",
+      expect: "Signup works and the clinic gets its own unique TIN starting with GEN-." },
+    { id: "existing-data", title: "Existing data and logins are untouched", tags: ["cloud"],
+      how: "Sign in as a manager and a nurse on the cloud. Open patients, medicines, suppliers.",
+      expect: "Everything loads as before and nobody is locked out." },
+    { id: "stock-history", title: "Stock stays correct after damage, edit and delete", tags: ["cloud"],
+      how: "Register a medicine (10 boxes). Record 2 damaged, edit it to 3, then delete that damage entry.",
+      expect: "Stock goes 10 → 8 → 7 → back to 10 every time." },
+    { id: "offline-waits-seed", title: "Going offline waits for the seed (does not switch on approval)", tags: ["cloud", "apex"],
+      how: "Manager requests Offline mode. Apex approves it. Look at the clinic's operating mode.",
+      expect: "Mode is still Online; the request shows 'approved, waiting for seed'." }
+  ]},
+  { id: "apex", icon: "🛰️", title: "Apex console", blurb: "Approving changes and managing each clinic server's token.", items: [
+    { id: "apex-approve", title: "Approval shows what the clinic is waiting for", tags: ["apex"],
+      how: "Ops mode requests → approve an online→offline request.",
+      expect: "Row shows 'Approved · waiting for seed'. Offline→online shows 'waiting for sync'." },
+    { id: "apex-waiting", title: "'Waiting for clinic' view and Clinic server column", tags: ["apex"],
+      how: "Open the Waiting for clinic filter.",
+      expect: "Approved requests are listed with 'No token issued', 'Token issued · not seeded' or 'Seeded · last sync…'." },
+    { id: "apex-issue", title: "Issue a clinic server token (shown once)", tags: ["apex"],
+      how: "Click Clinic server on an approved row → Issue token.",
+      expect: "A token starting mfn_ appears once with a Copy button; closing and reopening never shows it again." },
+    { id: "apex-one-token", title: "One active token per branch; replacing asks first", tags: ["apex"],
+      how: "Issue a second token for the same branch.",
+      expect: "You are asked to confirm replacing; the old token stops working." },
+    { id: "apex-revoke", title: "Revoke a token", tags: ["apex", "server"],
+      how: "Revoke the token, then press Sync now on the clinic server.",
+      expect: "Token shows Revoked; the sync fails with a clear message." },
+    { id: "apex-status", title: "Clinic server status in the dialog", tags: ["apex"],
+      how: "Open Clinic server after a seed and a sync.",
+      expect: "Seeded / last sync time, recent runs and open conflicts count are right." }
+  ]},
+  { id: "install", icon: "🖥️", title: "Install & run the clinic server", blurb: "Putting the server on the reception PC.", items: [
+    { id: "build-node", title: "The web app builds for the clinic server", tags: ["pc"],
+      how: "Run npm run build:node.",
+      expect: "A dist-node folder appears (about 43 pages) with no errors." },
+    { id: "installer", title: "Installer sets everything up", tags: ["server", "pc", "net"],
+      how: "Run clinic-node\\install_clinic_node.ps1 as Administrator on the reception PC.",
+      expect: "Database created, migrations applied, firewall port opened (private networks), desktop shortcut added, first backup taken." },
+    { id: "passphrase-shown", title: "Installer shows the backup passphrase once and insists you note it", tags: ["server", "pc"],
+      how: "Watch the installer when it writes BackEnd\\.env.",
+      expect: "A passphrase box appears and the installer waits until you type YES." },
+    { id: "starter", title: "Starter brings it all up and opens the browser", tags: ["server", "pc"],
+      how: "Double-click the MediFlow shortcut.",
+      expect: "It starts MySQL if needed, updates the database, starts the server, opens the browser and prints the address for other PCs." },
+    { id: "lan-access", title: "Other PCs reach the clinic through one address", tags: ["server", "pc"],
+      how: "On another PC on the clinic network open http://<reception PC address>/ and sign in.",
+      expect: "Pages and data load; no port number needed." },
+    { id: "guards", title: "The server refuses things that belong to the cloud", tags: ["server"],
+      how: "Open /admin/ and try to sign up a new clinic on the server.",
+      expect: "Both are refused with a clear message." },
+    { id: "health", title: "Health check reports the database", tags: ["server"],
+      how: "Open /api/health/ on the clinic server.",
+      expect: "Shows status ok and database true." }
+  ]},
+  { id: "sync", icon: "🔄", title: "Seed & daily sync", blurb: "Copying the clinic down, and moving a day's work up and down.", items: [
+    { id: "seed", title: "Initial seed copies the clinic onto the server", tags: ["server", "net"],
+      how: "Run manage.py node_sync --seed (the installer does this), then sign in with a cloud account.",
+      expect: "Staff, patients, medicines and prices are there; passwords are the same as on the cloud." },
+    { id: "seed-switches", title: "The seed switches the clinic to offline", tags: ["server", "apex", "net"],
+      how: "After the seed, look at the Apex request and the manager's Operating mode page.",
+      expect: "Request shows Applied; mode is now Offline." },
+    { id: "sync-now", title: "Sync now shows push, pull and complete", tags: ["server", "net"],
+      how: "Manager → Sync → Sync now.",
+      expect: "Three steps turn Done; 'Last sync' updates; the run appears in history." },
+    { id: "work-reaches-cloud", title: "Work done offline reaches the cloud", tags: ["server", "cloud", "net"],
+      how: "Offline: register a patient, open a visit, take a payment. Then sync and look on the cloud.",
+      expect: "Patient, visit and payment are on the cloud with the right amounts." },
+    { id: "cloud-reaches-server", title: "Changes made on the cloud reach the server", tags: ["server", "cloud", "net"],
+      how: "On the cloud edit a service price or add a staff member. Sync the server.",
+      expect: "The change appears on the clinic server." },
+    { id: "stock-merges", title: "Stock sold on both sides adds up", tags: ["server", "cloud", "net"],
+      how: "Dispense 3 boxes on the server and 2 on the cloud (same medicine), then sync.",
+      expect: "Both sides show the original stock minus 5." },
+    { id: "retry", title: "A failed sync can be retried", tags: ["server", "net"],
+      how: "Unplug the internet and press Sync now; plug it back and press Retry.",
+      expect: "First run shows Failed with a reason; Retry completes without duplicating anything." },
+    { id: "repeat-safe", title: "Syncing twice changes nothing", tags: ["server", "net"],
+      how: "Press Sync now twice in a row.",
+      expect: "The second run reports nothing new; no duplicate payments or stock changes." },
+    { id: "forward-only", title: "A visit's status never goes backwards", tags: ["server", "cloud", "net"],
+      how: "Close a visit on the cloud, move the same visit to Active on the server, sync.",
+      expect: "The visit stays Closed on both sides." }
+  ]},
+  { id: "conflicts", icon: "⚖️", title: "Conflicts", blurb: "When the same record is changed in two places.", items: [
+    { id: "conflict-shown", title: "A conflict shows what differs and which copy was kept", tags: ["server", "cloud", "net"],
+      how: "Change the same patient's phone on both sides, then sync.",
+      expect: "Sync page lists a conflict with both phone numbers side by side and says which copy is live." },
+    { id: "conflict-reviewed", title: "Mark a conflict as reviewed (with a note)", tags: ["server"],
+      how: "Press Mark as reviewed on it and add a note.",
+      expect: "It leaves the list; the open-conflicts number drops." },
+    { id: "conflict-once", title: "The same conflict is not listed twice", tags: ["server", "net"],
+      how: "Change the same patient on both sides again before reviewing, and sync.",
+      expect: "One entry, updated." }
+  ]},
+  { id: "gates", icon: "🔒", title: "Sync gate & billing", blurb: "Staying in sync, and paying during a lockout.", items: [
+    { id: "gate-staff", title: "Staff cannot sign in when the server has not synced in time", tags: ["server"],
+      how: "On the server run manage.py flag_node_restore --tin <TIN> --branch <branch>, then sign in as a nurse.",
+      expect: "Sign-in is refused with a message to ask the manager to sync." },
+    { id: "gate-manager", title: "Manager can only open Sync, Billing and Account then", tags: ["server"],
+      how: "Same state: sign in as the manager and try other pages.",
+      expect: "Only Sync, Billing and Account open; others send you back to Sync." },
+    { id: "gate-clears", title: "A successful sync reopens the clinic", tags: ["server", "net"],
+      how: "Press Sync now, then sign in as the nurse.",
+      expect: "Sign-in works again." },
+    { id: "bill-lockout", title: "During a hard payment lockout, proof goes straight to the cloud", tags: ["server", "net", "apex"],
+      how: "With the clinic locked for payment, submit a payment reference on the server.",
+      expect: "It is filed on the cloud at once; with no internet it fails and nothing is stored locally." },
+    { id: "bill-warning", title: "Payment proof before the due date travels with the next sync", tags: ["server", "apex", "net"],
+      how: "In the warning window submit proof on the server, sync, approve it in Apex, sync again.",
+      expect: "Cloud shows the proof once; the approval comes back to the server." }
+  ]},
+  { id: "backup", icon: "🗄️", title: "Backups & restore", blurb: "Protecting the clinic's data.", items: [
+    { id: "backup-now", title: "'Back up now' makes a backup and shows it", tags: ["server"],
+      how: "Manager → Sync → Backup panel → Back up now.",
+      expect: "Status 'Backup OK' with the time and size." },
+    { id: "backup-schedule", title: "Backups run every 4 hours and before every sync", tags: ["server", "pc"],
+      how: "Check Task Scheduler for 'MediFlow Backup'. Press Sync now and look in the backups folder.",
+      expect: "The task exists; a '-presync' file appears for each sync." },
+    { id: "backup-second", title: "A copy goes to the second disk; unplugging it is only a warning", tags: ["server", "pc"],
+      how: "Set a second disk, back up, then unplug it and back up again.",
+      expect: "Copy appears; unplugged shows 'Second copy missing' but the backup itself still succeeds." },
+    { id: "backup-encrypted", title: "Backups are encrypted", tags: ["server"],
+      how: "Look at the newest file in the backups folder.",
+      expect: "Name ends .sql.gz.enc; the panel says Encrypted; the file cannot be opened without the passphrase." },
+    { id: "backup-verify", title: "verify_backup checks the backups", tags: ["server"],
+      how: "Run manage.py verify_backup.",
+      expect: "Each backup is listed ok, and 'The newest backup checks out'." },
+    { id: "restore", title: "Restore brings the data back and forces a sync", tags: ["server", "pc"],
+      how: "On a spare PC (or after damaging a copy) run clinic-node\\restore_clinic_node.ps1.",
+      expect: "It checks the backup, asks you to type RESTORE, restores, and staff cannot sign in until the manager syncs." },
+    { id: "restore-passphrase", title: "Restore asks for the passphrase when .env is gone", tags: ["server", "pc"],
+      how: "Restore an encrypted backup on a PC with no BackEnd\\.env passphrase.",
+      expect: "It asks for the passphrase and rejects a wrong one with a clear message." },
+    { id: "offsite", title: "Off-site copy to S3-compatible storage", tags: ["server", "net"],
+      how: "Fill the BACKUP_S3_* settings (R2, B2, S3…), back up.",
+      expect: "The object appears in the bucket; panel says 'Off-site copy OK'. With no passphrase nothing is uploaded." },
+    { id: "real-drill", title: "A real restore drill on a spare PC", tags: ["pc"],
+      how: "Follow 'Restore drill' in docs/CLINIC_RESTORE_KIT.md with the newest backup.",
+      expect: "Patients, payments and stock are there after the restore and a sync." }
+  ]},
+  { id: "daily", icon: "☀️", title: "Reminders, chat & accounts", blurb: "Everyday behaviour on the clinic server.", items: [
+    { id: "reminder", title: "Morning reminder when last night's sync was missed", tags: ["server"],
+      how: "Don't sync for two days (or move the PC date forward) and open the manager overview.",
+      expect: "A banner says last night's sync did not happen, with a Go to Sync button." },
+    { id: "lock-warning", title: "'Staff will be locked out' warning", tags: ["server"],
+      how: "Leave it a day before the limit (6 days, or 1 day close to the payment due date).",
+      expect: "Banner shows how many days are left." },
+    { id: "chat-online", title: "Apex chat works through the cloud on the clinic server", tags: ["server", "net", "apex"],
+      how: "Send a message to Apex from the clinic server; reply from Apex.",
+      expect: "Apex receives it; the reply shows up in the clinic's chat." },
+    { id: "chat-offline", title: "With no internet the chat is unavailable and nothing is queued", tags: ["server"],
+      how: "Disconnect the internet and open the chat.",
+      expect: "A notice says it needs the internet, the box is disabled, nothing is saved for later, and it recovers by itself when the internet returns." },
+    { id: "password-local", title: "Changing your password works instantly offline", tags: ["server"],
+      how: "With no internet, change a password from the top bar and sign in again.",
+      expect: "The new password works immediately." },
+    { id: "password-up", title: "That password reaches the cloud after the next sync", tags: ["server", "cloud", "net"],
+      how: "Sync, then sign in on the cloud with the new password.",
+      expect: "It works there too." },
+    { id: "bell", title: "Notification bell works offline", tags: ["server"],
+      how: "With no internet check the bell (queues, payments, stock).",
+      expect: "It shows live counts from the clinic server." },
+    { id: "staff-guard", title: "Staff accounts can't be added or changed on the server (passwords can)", tags: ["server"],
+      how: "On the server try to add a staff member, change a role, then reset a password.",
+      expect: "Add/role change is refused with a message to do it on the cloud; the password reset works." },
+    { id: "delete-syncs", title: "A deletion on one side deletes it on the other", tags: ["server", "cloud", "net"],
+      how: "Delete a supplier on the server, sync, look on the cloud (and the other way round for a service).",
+      expect: "It is gone on both sides." },
+    { id: "delete-reuse", title: "A deleted name or code can be used again", tags: ["cloud"],
+      how: "Delete a supplier called Acme, then add a new supplier called Acme.",
+      expect: "The new one saves with no 'already exists' error." },
+    { id: "delete-stays", title: "A deleted record doesn't come back", tags: ["server", "cloud", "net"],
+      how: "Delete a record, then sync several times.",
+      expect: "It never reappears." }
+  ]}
+];
+
+/* =====================================================================
+   App
+   ===================================================================== */
+const KEY = "mediflow-offline-sync-test-v1";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const ALL = SECTIONS.flatMap(s => s.items);
+const TAG = { apex: "Apex console", server: "Clinic server", cloud: "Cloud", net: "Needs internet", pc: "Real install / PC" };
+
+let state = { items: {}, who: "", date: "", env: "", overall: "", theme: "" };
+try { state = Object.assign(state, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) { /* no storage: still works for this visit */ }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } };
+const get = id => state.items[id] || (state.items[id] = { status: "", note: "", at: "" });
+let filter = "all", query = "", celebrated = false;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const stamp = () => new Date().toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+
+function build() {
+  $("#sections").innerHTML = SECTIONS.map(sec => `
+    <details class="section" data-sec="${sec.id}" open>
+      <summary>
+        <span class="s-ico" aria-hidden="true">${sec.icon}</span>
+        <span><span class="s-title">${esc(sec.title)}</span><br><span class="s-blurb">${esc(sec.blurb)}</span></span>
+        <span class="s-count" data-count="${sec.id}"></span>
+        <span class="s-mini" aria-hidden="true"><i data-mini="${sec.id}"></i></span>
+        <span class="chev" aria-hidden="true">▶</span>
+      </summary>
+      <div class="items">${sec.items.map(it => `
+        <article class="item" data-id="${it.id}">
+          <label class="check" title="Mark as passed">
+            <input type="checkbox" data-pass="${it.id}" aria-label="Passed: ${esc(it.title)}">
+            <span class="box"><svg viewBox="0 0 20 20"><path d="M4 10.5l4 4 8-9"/></svg></span>
+          </label>
+          <div>
+            <div class="row1">
+              <span class="i-title">${esc(it.title)}</span>
+              <span class="tags">${it.tags.map(t => `<span class="tag ${t === "net" ? "net" : ""}">${TAG[t]}</span>`).join("")}</span>
+            </div>
+            <p class="i-how"><b>How to test:</b> ${esc(it.how)}</p>
+            <p class="i-expect"><b>You should see:</b> ${esc(it.expect)}</p>
+            <div class="row-actions">
+              <button type="button" class="failbtn" data-fail="${it.id}" aria-pressed="false">✕ Didn't work</button>
+              <span class="state" data-state="${it.id}"></span>
+              <span class="when" data-when="${it.id}"></span>
+            </div>
+            <textarea rows="1" data-note="${it.id}" placeholder="Feedback: what happened, what you expected, any message you saw…" aria-label="Feedback for ${esc(it.title)}"></textarea>
+          </div>
+        </article>`).join("")}
+      </div>
+    </details>`).join("") + `<div class="panel empty hidden" id="none">Nothing matches this filter.</div>`;
+}
+
+function refreshItem(id) {
+  const st = get(id), el = $(`.item[data-id="${id}"]`);
+  if (!el) return;
+  el.classList.toggle("pass", st.status === "pass");
+  el.classList.toggle("fail", st.status === "fail");
+  $(`[data-pass="${id}"]`, el).checked = st.status === "pass";
+  const fb = $(`[data-fail="${id}"]`, el);
+  fb.setAttribute("aria-pressed", st.status === "fail");
+  $(`[data-state="${id}"]`, el).textContent = st.status === "pass" ? "Passed ✓" : st.status === "fail" ? "Didn't work" : "Not tested";
+  $(`[data-when="${id}"]`, el).textContent = st.at && st.status ? "· " + st.at : "";
+  const ta = $(`[data-note="${id}"]`, el);
+  if (ta.value !== st.note) ta.value = st.note;
+  grow(ta);
+}
+
+function grow(ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 260) + "px"; }
+
+function stats() {
+  let pass = 0, fail = 0, note = 0;
+  for (const it of ALL) { const s = get(it.id); if (s.status === "pass") pass++; else if (s.status === "fail") fail++; if (s.note.trim()) note++; }
+  return { pass, fail, note, todo: ALL.length - pass - fail, total: ALL.length };
+}
+
+function paint() {
+  const s = stats(), pct = s.total ? Math.round(s.pass / s.total * 100) : 0;
+  $("#pct").textContent = pct;
+  $("#nPass").textContent = s.pass; $("#nTotal").textContent = s.total;
+  $("#cPass").textContent = s.pass; $("#cFail").textContent = s.fail; $("#cTodo").textContent = s.todo; $("#cNote").textContent = s.note;
+  $("#ringBar").style.strokeDashoffset = 326.7 * (1 - pct / 100);
+  $("#mPass").style.width = (s.pass / s.total * 100) + "%";
+  $("#mFail").style.width = (s.fail / s.total * 100) + "%";
+  $("#meter").setAttribute("aria-valuenow", pct);
+  for (const sec of SECTIONS) {
+    const done = sec.items.filter(i => get(i.id).status === "pass").length;
+    const c = $(`[data-count="${sec.id}"]`);
+    c.textContent = `${done}/${sec.items.length}`; c.classList.toggle("done", done === sec.items.length);
+    $(`[data-mini="${sec.id}"]`).style.width = (done / sec.items.length * 100) + "%";
+  }
+  if (s.pass === s.total && !celebrated) { celebrated = true; celebrate(); toast("Every feature passed. 🎉"); }
+  if (s.pass !== s.total) celebrated = false;
+  applyFilter();
+}
+
+function applyFilter() {
+  let shown = 0;
+  for (const sec of SECTIONS) {
+    let any = 0;
+    for (const it of sec.items) {
+      const st = get(it.id), hay = (it.title + " " + it.how + " " + it.expect + " " + st.note).toLowerCase();
+      const okF = filter === "all" || (filter === "todo" && !st.status) || (filter === "pass" && st.status === "pass") ||
+                  (filter === "fail" && st.status === "fail") || (filter === "note" && st.note.trim());
+      const ok = okF && (!query || hay.includes(query));
+      $(`.item[data-id="${it.id}"]`).classList.toggle("hidden", !ok);
+      if (ok) any++;
+    }
+    $(`details[data-sec="${sec.id}"]`).classList.toggle("hidden", !any);
+    shown += any;
+  }
+  $("#none").classList.toggle("hidden", shown > 0);
+}
+
+function setStatus(id, status) {
+  const st = get(id);
+  st.status = st.status === status ? "" : status;
+  st.at = st.status ? stamp() : "";
+  save(); refreshItem(id); paint();
+}
+
+function report() {
+  const s = stats(), lines = [];
+  lines.push("# MediFlow offline sync — test report", "");
+  lines.push(`Tester: ${state.who || "—"}   Date: ${state.date || new Date().toLocaleDateString()}   Environment: ${state.env || "—"}`, "");
+  lines.push(`**Progress: ${s.pass}/${s.total} passed** · ${s.fail} didn't work · ${s.todo} not tested`, "");
+  for (const sec of SECTIONS) {
+    lines.push(`## ${sec.title}`, "");
+    for (const it of sec.items) {
+      const st = get(it.id), mark = st.status === "pass" ? "[x]" : "[ ]";
+      const tag = st.status === "fail" ? " — ❌ DIDN'T WORK" : st.status === "pass" ? " — ✅ passed" : " — not tested";
+      lines.push(`- ${mark} ${it.title}${tag}`);
+      if (st.note.trim()) lines.push(...st.note.trim().split("\n").map(l => `  > ${l}`));
+    }
+    lines.push("");
+  }
+  if (state.overall.trim()) lines.push("## Overall feedback", "", state.overall.trim(), "");
+  return lines.join("\n");
+}
+
+async function copyReport() {
+  const text = report();
+  try { await navigator.clipboard.writeText(text); toast("Report copied. Paste it to me."); }
+  catch (e) {
+    const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
+    try { document.execCommand("copy"); toast("Report copied. Paste it to me."); } catch (e2) { toast("Could not copy. Use Download instead."); }
+    t.remove();
+  }
+}
+
+function download() {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([report()], { type: "text/markdown" }));
+  a.download = "offline-sync-test-report.md"; a.click(); URL.revokeObjectURL(a.href);
+}
+
+let toastTimer;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
+
+function celebrate() {
+  const box = document.createElement("div"); box.className = "confetti";
+  const colors = ["#4f46e5", "#0ea5a4", "#16a34a", "#f59e0b", "#ec4899", "#3b82f6"];
+  for (let i = 0; i < 70; i++) {
+    const p = document.createElement("i");
+    p.style.left = Math.random() * 100 + "vw"; p.style.background = colors[i % colors.length];
+    p.style.animationDuration = 2.4 + Math.random() * 2.2 + "s"; p.style.animationDelay = Math.random() * .6 + "s";
+    p.style.transform = `rotate(${Math.random() * 360}deg)`; box.appendChild(p);
+  }
+  document.body.appendChild(box); setTimeout(() => box.remove(), 6000);
+}
+
+/* ---------- wiring ---------- */
+build();
+document.addEventListener("change", e => { const id = e.target.dataset && e.target.dataset.pass; if (id) setStatus(id, "pass"); });
+document.addEventListener("click", e => {
+  const f = e.target.closest("[data-fail]"); if (f) setStatus(f.dataset.fail, "fail");
+  const seg = e.target.closest("#filters button");
+  if (seg) { filter = seg.dataset.f; $$("#filters button").forEach(b => b.setAttribute("aria-pressed", b === seg)); applyFilter(); }
+});
+document.addEventListener("input", e => {
+  const id = e.target.dataset && e.target.dataset.note;
+  if (id) { get(id).note = e.target.value; grow(e.target); save(); paint(); }
+});
+$("#q").addEventListener("input", e => { query = e.target.value.trim().toLowerCase(); applyFilter(); });
+for (const [id, key] of [["who", "who"], ["date", "date"], ["env", "env"], ["overall", "overall"]]) {
+  const el = $("#" + id); el.value = state[key] || "";
+  el.addEventListener("input", () => { state[key] = el.value; save(); });
+}
+$("#toggleAll").addEventListener("click", e => {
+  const open = e.target.textContent.startsWith("Collapse");
+  $$("details.section").forEach(d => (d.open = !open)); e.target.textContent = open ? "Expand all" : "Collapse all";
+});
+$("#copy").addEventListener("click", copyReport);
+$("#download").addEventListener("click", download);
+$("#print").addEventListener("click", () => { $$("details.section").forEach(d => (d.open = true)); window.print(); });
+$("#reset").addEventListener("click", () => {
+  if (!confirm("Clear every tick and note in this canvas? This cannot be undone.")) return;
+  state = { items: {}, who: "", date: "", env: "", overall: "", theme: state.theme }; save(); location.reload();
+});
+$("#theme").addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  document.documentElement.dataset.theme = dark ? "dark" : "light"; state.theme = dark ? "dark" : "light"; save();
+});
+document.documentElement.dataset.theme = state.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+ALL.forEach(it => refreshItem(it.id));
+celebrated = stats().pass === stats().total; // do not celebrate again on reload
+paint();
+</script>
+</body>
+</html>
