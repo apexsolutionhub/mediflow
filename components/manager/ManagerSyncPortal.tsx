@@ -286,10 +286,27 @@ export function ManagerSyncPortal() {
     void load();
   }, [load]);
 
+  const isRunning = (r?: SyncRun) =>
+    Boolean(r && !r.finished_at && (r.push_status === "running" || r.pull_status === "running"));
+
+  // Pick a run back up after leaving and returning to this page, and follow it until it ends.
+  useEffect(() => {
+    if (!isRunning(status?.runs[0])) return;
+    const timer = setInterval(() => void load(), 2500);
+    return () => clearInterval(timer);
+  }, [status, load]);
+
   const start = async (kind: SyncKind, runId?: string) => {
     setBusy(kind);
     try {
-      const run = await runSync(kind, runId);
+      let run = await runSync(kind, runId);
+      // The server started it in the background: wait for the end, 2 minutes at most.
+      for (let i = 0; i < 48 && isRunning(run); i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        const fresh = await fetchSyncStatus();
+        setStatus(fresh);
+        run = fresh.runs.find((r) => r.id === run.id) ?? fresh.runs[0] ?? run;
+      }
       const failed = run.push_status === "failed" || run.pull_status === "failed";
       if (failed) {
         toast.error(kind === "seed" ? "Seed did not finish" : "Sync did not finish", {
@@ -334,7 +351,7 @@ export function ManagerSyncPortal() {
   const latest = status.runs[0];
   const latestFailed = latest && (latest.push_status === "failed" || latest.pull_status === "failed");
   const needsSeed = status.can_sync && !status.seeded_at;
-  const working = busy !== null;
+  const working = busy !== null || isRunning(latest);
 
   return (
     <div className="flex w-full flex-col gap-4">

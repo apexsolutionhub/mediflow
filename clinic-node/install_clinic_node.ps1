@@ -24,7 +24,9 @@ param(
   # A second disk or USB drive for backup copies, e.g. E:\MediFlowBackups
   [string]$BackupCopyDir = "",
   # Use this backup passphrase instead of generating one
-  [string]$BackupPassphrase = ""
+  [string]$BackupPassphrase = "",
+  # The node token from Apex. Pass it here to skip the prompt.
+  [string]$NodeToken = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,6 +50,25 @@ function Read-Secret($label) {
   $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
   try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
   finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
+}
+
+# A token is mfn_ + 43 letters, digits, - or _. Paste does not work in PowerShell's hidden prompts (Ctrl+V types an
+# invisible control character), so the token is asked for in the open, cleaned, and checked before it is kept.
+function Clean-NodeToken($text) {
+  $t = [string]$text
+  $t = $t -replace '[\x00-\x20\x7f]', ''           # spaces, line breaks and invisible control characters
+  $t = $t -replace '^(?i)NODE_TOKEN=', ''           # in case the whole line was copied
+  return $t.Trim('"', "'")
+}
+
+function Read-NodeToken {
+  for ($try = 1; $try -le 3; $try++) {
+    $answer = Read-Host "Node token from Apex (paste it with a right-click; it stays visible so you can check it)"
+    $clean = Clean-NodeToken $answer
+    if ($clean -match '^mfn_[A-Za-z0-9_-]{43}$') { return $clean }
+    Write-Host "That is not a valid token: it must start with mfn_ and be 47 characters long (you gave $($clean.Length))." -ForegroundColor Yellow
+  }
+  return $null
 }
 
 function Get-LanAddress {
@@ -98,8 +119,8 @@ if (Test-Path $EnvFile) {
   if (-not $tin) { Fail "The clinic TIN is required." }
   $branch = Read-Value "Branch name" "Main"
   $cloud = Read-Value "Cloud API address" "https://mediflow-backend-delta.vercel.app/api"
-  $token = Read-Secret "Node token from Apex (typing is hidden)"
-  if (-not $token) { Fail "The node token is required. Ask Apex to run issue_sync_node for this branch." }
+  $token = if ($NodeToken) { Clean-NodeToken $NodeToken } else { Read-NodeToken }
+  if (-not $token) { Fail "The node token is required. Ask Apex for one (clinic page, Clinic server)." }
   $dbPassword = Read-Secret "Choose a password for the local database (typing is hidden)"
   if (-not $dbPassword) { Fail "A database password is required." }
 

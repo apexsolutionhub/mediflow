@@ -91,7 +91,7 @@ powershell -ExecutionPolicy Bypass -File clinic-node\install_clinic_node.ps1 -Ba
 
 1. *Clinic TIN* and *Branch name*: from the table above.
 2. *Cloud API address*: press Enter to accept the default (the live MediFlow cloud).
-3. *Node token*: paste the token (typing is hidden). This is the only place the token is entered; the installer saves it as `NODE_TOKEN` in `BackEnd\.env`.
+3. *Node token*: paste the token with a **right-click** (Ctrl+V does not work in PowerShell prompts that hide what you type, so this one is shown on screen). The installer removes spaces and invisible characters and checks the token is `mfn_` plus 43 characters before keeping it; it asks again if not. You can also pass it directly with `-NodeToken <token>`. This is the only place the token is entered; the installer saves it as `NODE_TOKEN` in `BackEnd\.env`. Never type it by hand: one wrong character makes the cloud reject it.
 4. *A password for the local database*: invent one. The clinic server uses it to talk to its own MySQL; nobody types it again.
 5. It then shows the **backup passphrase** once. Write it down and give it to the manager, then type `YES`.
 6. *MySQL root password*: used only to create the clinic's database, then forgotten.

@@ -129,8 +129,11 @@ export function showValue(value: unknown): string {
 /** Runs a sync (or the initial seed) on the clinic server. A failed run is returned, not thrown. */
 export async function runSync(kind: SyncKind, runId?: string): Promise<SyncRun> {
   try {
+    // background: the clinic server answers at once and the page follows the run, so a slow
+    // cloud never freezes the screen.
     const { data } = await api.post<SyncRun>(kind === "seed" ? "/sync/seed/" : "/sync/run/", {
       run_id: runId,
+      background: true,
     });
     return data;
   } catch (error) {
