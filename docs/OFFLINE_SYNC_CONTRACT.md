@@ -403,7 +403,7 @@ Endpoints to implement on **cloud** (clinic node calls when online):
 | `GET /api/sync/status/` | Manager. Last sync time, seeded or not, the step a mode change is waiting for, open conflicts, recent runs. |
 | `POST /api/sync/run/`, `POST /api/sync/seed/` | Manager, clinic node only. Runs push → pull → complete; a failed run is retried by passing its `run_id`. |
 
-A node authenticates with `Authorization: Node <token>`; tokens are issued per `(clinic_tin, branch_name)` by `manage.py issue_sync_node`. A **password** changed on a node is pushed (as a hash, never a plain password) and wins if it is newer than the cloud's; everything else about staff (new accounts, removal, role, active) is managed on the cloud and copied down, and the clinic server refuses those changes so a sync cannot silently undo them.
+A node authenticates with `Authorization: Node <token>`; tokens are issued per `(clinic_tin, branch_name)` by `manage.py issue_sync_node`. A **password** changed on a node is pushed (as a hash, never a plain password) and wins if it is newer than the cloud's; staff accounts (new accounts, role, active, removal-as-deactivation) can also be managed on the clinic server: non-manager accounts created or edited there are pushed with the sync (`staff_changes`, last-writer-wins by `updated_at`, the cloud keeps its copy when it is newer). The cloud refuses an account whose username belongs to another clinic (`username_taken`) or whose role already has an active account in the branch (`role_exists`); the receipt lists them. Managers are managed on the cloud only. The cloud's `updated_at` is kept on pulled rows so only edits made on the server look new to the next push.
 
 Authentication and safety (v1.2):
 

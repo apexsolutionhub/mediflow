@@ -24,7 +24,7 @@ The token is made for you at the moment the clinic becomes offline in Apex, and 
 - Apex creates a clinic as offline;
 - a clinic that signed up as offline has its setup payment approved.
 
-Give the token to the clinic. If it is lost, open the clinic's page in Apex, press **Clinic server**, revoke it and issue a new one (the same panel also issues tokens for a clinic that has none). The command line does the same: `python manage.py issue_sync_node --tin <clinic TIN> --branch "<branch name>"`.
+A clinic that Apex creates is approved from the start (no setup-payment wait); only clinics that sign up themselves wait for approval. Give the token to the clinic. If it is lost, open the clinic's page in Apex, press **Clinic server**, revoke it and issue a new one (the same panel also issues tokens for a clinic that has none). The command line does the same: `python manage.py issue_sync_node --tin <clinic TIN> --branch "<branch name>"`.
 
 **One token per branch.** Every branch has its own TIN (a branch added without one gets a generated `GEN-…` TIN) and so its own account, billing, online/offline mode and token. A TIN never changes once a branch has data, so type the real one when creating the branch.
 
@@ -41,10 +41,11 @@ Approving does **not** switch the clinic. It keeps working on the cloud until it
 **How.** In the MediFlow project folder:
 
 ```powershell
+npm install        # only the first time in a folder (a fresh copy has no node_modules)
 npm run build:node
 ```
 
-It deletes the old `dist-node` folder, builds the app with its API address set to `/api` (the same address the page was loaded from, so it talks to the clinic's own backend and never to the cloud), and writes the result to `dist-node/` in the project folder. It takes a few minutes. When it finishes, `dist-node\index.html` exists.
+If the build stops with "Could not find the Next.js package", the folder has no `node_modules`: run `npm install` first. It deletes the old `dist-node` folder, builds the app with its API address set to `/api` (the same address the page was loaded from, so it talks to the clinic's own backend and never to the cloud), and writes the result to `dist-node/` in the project folder. It takes a few minutes. When it finishes, `dist-node\index.html` exists.
 
 **Then get it onto the reception PC.** `dist-node` is not stored in git (it is rebuilt each time), so cloning the repository does not bring it. Copy the **whole MediFlow folder** to the reception PC (for example to `C:\MediFlow`) with a USB drive or a network share, and make sure it contains these three folders side by side:
 
@@ -89,7 +90,7 @@ powershell -ExecutionPolicy Bypass -File clinic-node\install_clinic_node.ps1 -Ba
 
 **What it asks you, in order:**
 
-1. *Clinic TIN* and *Branch name*: from the table above.
+1. *Clinic TIN* and *Branch name*: from the table above. The branch name must be **exactly** the branch the token was made for (`NODE_BRANCH` in `BackEnd\.env`). A wrong one (for example `main` when the branch is `Bole`) copies the first data under the wrong branch and later syncs fail with "duplicate entry" errors.
 2. *Cloud API address*: press Enter to accept the default (the live MediFlow cloud).
 3. *Node token*: paste the token with a **right-click** (Ctrl+V does not work in PowerShell prompts that hide what you type, so this one is shown on screen). The installer removes spaces and invisible characters and checks the token is `mfn_` plus 43 characters before keeping it; it asks again if not. You can also pass it directly with `-NodeToken <token>`. This is the only place the token is entered; the installer saves it as `NODE_TOKEN` in `BackEnd\.env`. Never type it by hand: one wrong character makes the cloud reject it.
 4. *A password for the local database*: invent one. The clinic server uses it to talk to its own MySQL; nobody types it again.
@@ -102,7 +103,7 @@ powershell -ExecutionPolicy Bypass -File clinic-node\install_clinic_node.ps1 -Ba
 
 The installer can be run again; it keeps what already exists (it will not ask for the token again if `BackEnd\.env` is already there, so to change the token edit `NODE_TOKEN` in that file).
 
-**Testing on your own PC.** You can follow the same steps on your development PC to try a clinic server: use a different folder for the copy, a separate local MySQL database (not the cloud database), and set `CLOUD_API_URL=http://localhost:8000/api` so it talks to your local cloud backend. The clinic server and the cloud backend must be different databases.
+**Testing on your own PC.** You can follow the same steps on your development PC to try a clinic server: use a different folder for the copy, a separate local MySQL database (not the cloud database), and set `CLOUD_API_URL` to your local cloud backend (for example `http://localhost:8010/api`). The clinic server and the cloud backend must be different databases, and two backends must never listen on the same port (a second `runserver` can silently share a port and answer with old code). To run the automated tests against a local MySQL, give the `mediflow` user the right to create test databases once: `GRANT ALL PRIVILEGES ON \`test\_%\`.* TO 'mediflow'@'localhost';`.
 
 ### 4. First start
 
@@ -117,12 +118,12 @@ If the seed did not finish during install, run it by hand once the PC has intern
 BackEnd\venv\Scripts\python BackEnd\manage.py node_sync --seed
 ```
 
-Staff sign in with the same usernames and passwords as on the cloud.
+Staff sign in with the same usernames and passwords as on the cloud. The staff list arrives with the first successful seed; if the manager cannot sign in ("No active account found"), the seed did not finish: fix the cause and run it again.
 
 ## Every day
 
 - Work normally; nothing needs the internet.
-- At the end of the day the **manager** opens **Sync** and presses **Sync now** (push, then pull). If the PC loses power or the sync fails, press **Retry**.
+- At the end of the day the **manager** opens **Sync** and presses **Sync now** (push, then pull). The sync runs in the background and the page shows its progress, so the manager can keep using other pages. A run that is still "running" after 10 minutes is marked as interrupted. If the PC loses power or the sync fails, press **Retry**.
 - A clinic that goes too long without syncing (7 days, or 2 days near the payment due date) is closed to staff until the manager syncs.
 
 ## Backups
@@ -163,6 +164,11 @@ This **replaces everything** in the local database. Afterwards staff cannot sign
 | Pages do not load | The `dist-node` folder is missing or old. Rebuild and copy it (step 2). |
 | "Not linked to the cloud" | `CLOUD_API_URL`, `NODE_TOKEN` or `NODE_CLINIC_TIN` is empty in `BackEnd\.env`. |
 | After restoring a backup | `restore_backup` already requires a sync. If you restored another way, run `python manage.py flag_node_restore --tin <TIN> --branch <branch>`. |
+| Seed or sync: "The cloud answered 400/404" | `CLOUD_API_URL` is wrong (it must be the live backend that has the sync endpoints, ending in `/api`). |
+| Seed or sync: 401 / "no longer accepts this server's sync token" | The token is wrong, revoked, or damaged by a bad paste. Get a new one from Apex and edit `NODE_TOKEN` in `BackEnd\.env` in Notepad. |
+| Sync fails with "Duplicate entry" | `NODE_BRANCH` does not match the token's branch, or an earlier wrong seed left rows under another branch. Correct `NODE_BRANCH`, remove the wrong-branch rows, run the seed again. |
+| Sidebar clicks do nothing | Only one server window should run. Use the latest `dist-node` (built with the sidebar fix), press Ctrl+Shift+R, and try a private window (browser extensions can interfere). |
+| Login blocked by a payment message on an exempt clinic | The cloud backend must carry the exempt flag; redeploy it and sync. |
 | "Backup failed: mysqldump was not found" | Add MySQL's `bin` folder to PATH, or set `MYSQLDUMP_PATH` in `BackEnd\.env`. |
 | "Second copy missing" | The USB drive is unplugged or full. Plug it in and press **Back up now**. |
 
@@ -171,6 +177,7 @@ This **replaces everything** in the local database. Afterwards staff cannot sign
 - A lost backup passphrase cannot be recovered. Keep it with the manager, separate from the PC.
 - There is no tray icon; the server window is the status.
 - **Photos need the internet.** Pictures (medicine photos, radiology images, logos, chat attachments) are stored on Cloudinary, not on the clinic server. Without internet, uploading a photo shows "Photo upload needs the internet. Save without the photo, or add it later when you are online", and photos already uploaded do not display. Everything else works offline. Saving images on the clinic server itself was considered and left out: it makes the database and backups much heavier.
-- Staff accounts are managed on the cloud. On a clinic server only passwords can be changed (and that change is sent to the cloud at the next sync); adding, removing or changing the role of staff is done on the cloud and arrives with the next sync.
+- **Staff accounts can be managed on the clinic server.** A manager can add staff, change a role, reset a password and remove staff there. "Remove" deactivates the account (its name stays on past records). These changes reach the cloud at the next sync. The cloud refuses an account in two cases: the username already belongs to another clinic, or the role already has an active account in that branch; the account then stays on the clinic server only and the sync receipt names it. Manager accounts are managed on the cloud. Staff created on a clinic server only reach the cloud once the cloud backend runs the release that includes this (redeploy it first).
+- **Exempt clinics.** A clinic marked exempt (illustration) in Apex never has login blocked by billing. The clinic server learns this at its next sync, which needs the cloud backend on the same release.
 - Deleting a record (a supplier, a medicine, a service...) is carried to the other side at the next sync. A deleted record's name or code can be used again straight away.
 - The installer and the real `mysqldump` / restore have been checked for syntax and tested with simulated dumps, but not yet run on a clean PC against a real MySQL.
